@@ -1,4 +1,4 @@
-module Fuzz.Internal exposing (Fuzzer, Valid, ValidFuzzer, andThen, combineValid, invalidReason, map)
+module Fuzz.Internal exposing (Fuzzer, Valid, ValidFuzzer, combineValid, invalidReason, map)
 
 import Lazy
 import Lazy.List exposing ((:::), LazyList)
@@ -34,29 +34,6 @@ combineValid valids =
 map : (a -> b) -> Fuzzer a -> Fuzzer b
 map fn fuzzer =
     (Result.map << Random.map << RoseTree.map) fn fuzzer
-
-
-andThen : (a -> Fuzzer b) -> Fuzzer a -> Fuzzer b
-andThen fn fuzzer =
-    let
-        helper : (a -> Fuzzer b) -> RoseTree a -> ValidFuzzer b
-        helper fn xs =
-            RoseTree.map fn xs
-                |> removeInvalid
-                |> sequenceRoseTree
-                |> Random.map RoseTree.flatten
-    in
-    Result.map (Random.andThen (helper fn)) fuzzer
-
-
-removeInvalid : RoseTree (Valid a) -> RoseTree a
-removeInvalid tree =
-    case RoseTree.filterMap getValid tree of
-        Just newTree ->
-            newTree
-
-        Nothing ->
-            Debug.crash "Returning an invalid fuzzer from `andThen` is currently unsupported"
 
 
 sequenceRoseTree : RoseTree (Generator a) -> Generator (RoseTree a)
