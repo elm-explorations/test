@@ -1,6 +1,6 @@
-# elm-test [![Travis build Status](https://travis-ci.org/elm-community/elm-test.svg?branch=master)](http://travis-ci.org/elm-community/elm-test)
+# elm test [![Travis build Status](https://travis-ci.org/elm-explorations/test.svg?branch=master)](http://travis-ci.org/elm-explorations/test)
 
-Write unit and fuzz tests for your Elm code, in Elm.
+Write unit and fuzz tests for Elm code.
 
 ## Quick Start
 
@@ -39,10 +39,10 @@ suite =
 
 This code uses a few common functions:
 
-* [`describe`](http://package.elm-lang.org/packages/elm-community/elm-test/latest/Test#test) to add a description string to a list of tests
-* [`test`](http://package.elm-lang.org/packages/elm-community/elm-test/latest/Test#test) to write a unit test
-* [`Expect`](http://package.elm-lang.org/packages/elm-community/elm-test/latest/Expect) to determine if a test should pass or fail
-* [`fuzz`](http://package.elm-lang.org/packages/elm-community/elm-test/latest/Test#fuzz) to run a function that produces a test several times with randomly-generated inputs
+* [`describe`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Test#test) to add a description string to a list of tests
+* [`test`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Test#test) to write a unit test
+* [`Expect`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Expect) to determine if a test should pass or fail
+* [`fuzz`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Test#fuzz) to run a function that produces a test several times with randomly-generated inputs
 
 Check out [a large real-world test suite](https://github.com/rtfeldman/elm-css/tree/master/tests) for more.
 
@@ -57,13 +57,13 @@ Here's how to set up and run your tests using the CLI test runner:
 
 1. Run `npm install -g elm-test` if you haven't already.
 2. `cd` into the project's root directory that has your `elm-package.json`.
-3. Run `elm-test init`. It will create a `tests` directory inside this one,
+3. Run `elm test init`. It will create a `tests` directory inside this one,
    with some files in it.
 4. Copy all the dependencies from `elm-package.json` into
    `tests/elm-package.json`. These dependencies need to stay in sync, so make
    sure whenever you change your dependencies in your current
    `elm-package.json`, you make the same change to `tests/elm-package.json`.
-5. Run `elm-test`.
+5. Run `elm test`.
 6. Edit `tests/Example.elm` to introduce new tests.
 
 ### Running tests on CI
@@ -84,10 +84,10 @@ wipSuite =
         [ only <| describe "Marking this test as `only` means no other tests will be run!"
             [ test "This test will be run" <|
                   \_ -> 1 + 1 |> Expect.equal 2
-            , skip <| test "This test will be skipped, even though it's in an only!" <|
+            , skip <| test "This test will be skipped, even though it's in an `only`!" <|
                   \_ -> 2 + 3 |> Expect.equal 4
             ]
-        , test "This test will be skipped because it has no only" <|
+        , test "This test will be skipped because it has no `only`" <|
             \_ -> "left" |> Expect.equal "right"
         , todo "Make sure all splines are reticulated"
         ]
@@ -121,7 +121,7 @@ There are a few extra ideas that apply to testing webapps and reusable view pack
 ### From 3.1.0
 Make sure you grab the latest versions of the test runner that you are using:
 * `npm update -g elm-test`
-* `elm package install rtfeldman/html-test-runner`
+* `elm install elm-community/html-test-runner`
 
 `Fuzz.frequency` now fails the test if the frequency is invalid, rather than return a `Result`. If you are using this function, you can remove your `Err` handling code. More likely you are using `Fuzz.frequencyOrCrash`, which you can replace with `Fuzz.frequency`.
 
@@ -129,25 +129,14 @@ Instead of using `Test.filter` to avoid running tests, use `skip` and `only` (se
 
 We now forbid tests and suites to have descriptions that are blank, or that are identical across siblings or parents and children. If you get failures from this, rename your tests to be clearer about what they're testing.
 
-### From 0.17
-You will need to delete `elm-stuff` and `tests/elm-stuff`.
-
-If you are using the Node runner, you will need to install the latest version (`npm update -g elm-test`) and pull down the new `Main.elm`: `curl -o tests/Main.elm https://raw.githubusercontent.com/rtfeldman/node-test-runner/3.0.1/templates/Main.elm`
-
-### From 1.x and elm-check
-[`legacy-elm-test`](http://package.elm-lang.org/packages/rtfeldman/legacy-elm-test/latest) provides a
-drop-in replacement for the `ElmTest 1.0` API, except implemented in terms of
-the current `elm-test`. It also includes support for `elm-check` tests.
-
-This lets you use the latest test runners right now, and upgrade incrementally.
 
 ## Releases
 | Version | Notes |
 | ------- | ----- |
-| [**5.0.0**](https://github.com/elm-community/elm-test/tree/5.0.0) | Remove `Fuzz.andThen`.
-| [**4.0.0**](https://github.com/elm-community/elm-test/tree/4.0.0) | Add `only`, `skip`, `todo`; change `Fuzz.frequency` to fail rather than crash on bad input, disallow tests with blank or duplicate descriptions.
-| [**3.1.0**](https://github.com/elm-community/elm-test/tree/3.1.0) | Add `Expect.all`
-| [**3.0.0**](https://github.com/elm-community/elm-test/tree/3.0.0) | Update for Elm 0.18; switch the argument order of `Fuzz.andMap`.
-| [**2.1.0**](https://github.com/elm-community/elm-test/tree/2.1.0) | Switch to rose trees for `Fuzz.andThen`, other API additions.
-| [**2.0.0**](https://github.com/elm-community/elm-test/tree/2.0.0) | Scratch-rewrite to project-fuzzball
-| [**1.0.0**](https://github.com/elm-community/elm-test/tree/1.0.0) | ElmTest initial release
+| [**5.0.0**](https://github.com/elm-explorations/elm-test/tree/4.0.0) | Remove `Fuzz.andThen`.
+| [**4.0.0**](https://github.com/elm-explorations/elm-test/tree/4.0.0) | Add `only`, `skip`, `todo`; change `Fuzz.frequency` to fail rather than crash on bad input, disallow tests with blank or duplicate descriptions.
+| [**3.1.0**](https://github.com/elm-explorations/elm-test/tree/3.1.0) | Add `Expect.all`
+| [**3.0.0**](https://github.com/elm-explorations/elm-test/tree/3.0.0) | Update for Elm 0.18; switch the argument order of `Fuzz.andMap`.
+| [**2.1.0**](https://github.com/elm-explorations/elm-test/tree/2.1.0) | Switch to rose trees for `Fuzz.andThen`, other API additions.
+| [**2.0.0**](https://github.com/elm-explorations/elm-test/tree/2.0.0) | Scratch-rewrite to project-fuzzball
+| [**1.0.0**](https://github.com/elm-explorations/elm-test/tree/1.0.0) | ElmTest initial release
