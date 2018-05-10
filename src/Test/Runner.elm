@@ -96,6 +96,7 @@ fromTest : Int -> Random.Seed -> Test -> SeededRunners
 fromTest runs seed test =
     if runs < 1 then
         Invalid ("Test runner run count must be at least 1, not " ++ toString runs)
+
     else
         let
             distribution =
@@ -106,10 +107,12 @@ fromTest runs seed test =
                 distribution.all
                     |> List.concatMap fromRunnableTree
                     |> Plain
+
             else
                 distribution.all
                     |> List.concatMap fromRunnableTree
                     |> Skipping
+
         else
             distribution.only
                 |> List.concatMap fromRunnableTree
@@ -261,6 +264,7 @@ distributeSeedsHelp hashed runs seed test =
                 , only = List.map (Labeled description) next.only
                 , skipped = List.map (Labeled description) next.skipped
                 }
+
             else
                 let
                     intFromSeed =
@@ -521,6 +525,7 @@ shrink causedPass (Shrinkable { down, over }) =
         tryNext =
             if causedPass then
                 over
+
             else
                 down
     in

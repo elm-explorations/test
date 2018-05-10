@@ -4,7 +4,7 @@ module Util exposing (..)
 -}
 
 import Array exposing (Array)
-import Random.Pcg exposing (..)
+import Random exposing (..)
 import String
 
 

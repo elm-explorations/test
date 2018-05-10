@@ -7,7 +7,7 @@ If you need a complete RoseTree implementation, one can be found on elm-package.
 
 -}
 
-import Lazy.List as LazyList exposing ((+++), (:::), LazyList)
+import Lazy.List as LazyList exposing (LazyList, append, cons)
 
 
 {-| RoseTree type.
@@ -43,7 +43,7 @@ children (Rose _ c) =
 -}
 addChild : RoseTree a -> RoseTree a -> RoseTree a
 addChild child (Rose a c) =
-    Rose a (child ::: c)
+    Rose a (cons child c)
 
 
 {-| Map a function over a rosetree
@@ -59,6 +59,7 @@ filter predicate tree =
         maybeKeep x =
             if predicate x then
                 Just x
+
             else
                 Nothing
     in
@@ -78,9 +79,9 @@ filterMap f (Rose a c) =
 
 
 filterBranches : (a -> Bool) -> RoseTree a -> RoseTree a
-filterBranches predicate (Rose root branches) =
+filterBranches predicate (Rose root_ branches) =
     Rose
-        root
+        root_
         (LazyList.filterMap (filter predicate) branches)
 
 
@@ -88,4 +89,4 @@ filterBranches predicate (Rose root branches) =
 -}
 flatten : RoseTree (RoseTree a) -> RoseTree a
 flatten (Rose (Rose a c) cs) =
-    Rose a (c +++ LazyList.map flatten cs)
+    Rose a (append c (LazyList.map flatten cs))

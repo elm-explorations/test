@@ -1,6 +1,6 @@
 module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow)
 
-import Random.Pcg as Random exposing (Generator)
+import Random exposing (Generator)
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation(..))
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
@@ -61,6 +61,7 @@ duplicatedName =
                 (\oldNames ->
                     if Set.member newName oldNames then
                         Err newName
+
                     else
                         Ok <| Set.insert newName oldNames
                 )

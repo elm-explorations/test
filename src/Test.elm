@@ -46,6 +46,7 @@ concat tests =
             { description = "This `concat` has no tests in it. Let's give it some!"
             , reason = Invalid EmptyList
             }
+
     else
         case Internal.duplicatedName tests of
             Err duped ->
@@ -93,11 +94,13 @@ describe untrimmedDesc tests =
             { description = "This `describe` has a blank description. Let's give it a useful one!"
             , reason = Invalid BadDescription
             }
+
     else if List.isEmpty tests then
         Internal.failNow
             { description = "This `describe " ++ toString desc ++ "` has no tests in it. Let's give it some!"
             , reason = Invalid EmptyList
             }
+
     else
         case Internal.duplicatedName tests of
             Err duped ->
@@ -112,6 +115,7 @@ describe untrimmedDesc tests =
                         { description = "The test '" ++ desc ++ "' contains a child test of the same name. Let's rename them so we know which is which."
                         , reason = Invalid DuplicatedName
                         }
+
                 else
                     Internal.Labeled desc (Internal.Batch tests)
 
@@ -137,6 +141,7 @@ test untrimmedDesc thunk =
     in
     if String.isEmpty desc then
         Internal.blankDescriptionFailure
+
     else
         Internal.Labeled desc (Internal.UnitTest (\() -> [ thunk () ]))
 
@@ -297,6 +302,7 @@ fuzzWith options fuzzer desc getTest =
             { description = "Fuzz tests must have a run count of at least 1, not " ++ toString options.runs ++ "."
             , reason = Invalid NonpositiveFuzzCount
             }
+
     else
         fuzzWithHelp options (fuzz fuzzer desc getTest)
 
@@ -389,7 +395,7 @@ fuzz2 fuzzA fuzzB desc =
         fuzzer =
             Fuzz.tuple ( fuzzA, fuzzB )
     in
-    uncurry >> fuzz fuzzer desc
+    (\f ( a, b ) -> f a b) >> fuzz fuzzer desc
 
 
 {-| Run a [fuzz test](#fuzz) using three random inputs.
@@ -412,49 +418,6 @@ fuzz3 fuzzA fuzzB fuzzC desc =
     uncurry3 >> fuzz fuzzer desc
 
 
-{-| Run a [fuzz test](#fuzz) using four random inputs.
-
-This is a convenience function that lets you skip calling [`Fuzz.tuple4`](Fuzz#tuple4).
-
--}
-fuzz4 :
-    Fuzzer a
-    -> Fuzzer b
-    -> Fuzzer c
-    -> Fuzzer d
-    -> String
-    -> (a -> b -> c -> d -> Expectation)
-    -> Test
-fuzz4 fuzzA fuzzB fuzzC fuzzD desc =
-    let
-        fuzzer =
-            Fuzz.tuple4 ( fuzzA, fuzzB, fuzzC, fuzzD )
-    in
-    uncurry4 >> fuzz fuzzer desc
-
-
-{-| Run a [fuzz test](#fuzz) using five random inputs.
-
-This is a convenience function that lets you skip calling [`Fuzz.tuple5`](Fuzz#tuple5).
-
--}
-fuzz5 :
-    Fuzzer a
-    -> Fuzzer b
-    -> Fuzzer c
-    -> Fuzzer d
-    -> Fuzzer e
-    -> String
-    -> (a -> b -> c -> d -> e -> Expectation)
-    -> Test
-fuzz5 fuzzA fuzzB fuzzC fuzzD fuzzE desc =
-    let
-        fuzzer =
-            Fuzz.tuple5 ( fuzzA, fuzzB, fuzzC, fuzzD, fuzzE )
-    in
-    uncurry5 >> fuzz fuzzer desc
-
-
 
 -- INTERNAL HELPERS --
 
@@ -462,13 +425,3 @@ fuzz5 fuzzA fuzzB fuzzC fuzzD fuzzE desc =
 uncurry3 : (a -> b -> c -> d) -> ( a, b, c ) -> d
 uncurry3 fn ( a, b, c ) =
     fn a b c
-
-
-uncurry4 : (a -> b -> c -> d -> e) -> ( a, b, c, d ) -> e
-uncurry4 fn ( a, b, c, d ) =
-    fn a b c d
-
-
-uncurry5 : (a -> b -> c -> d -> e -> f) -> ( a, b, c, d, e ) -> f
-uncurry5 fn ( a, b, c, d, e ) =
-    fn a b c d e

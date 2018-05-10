@@ -80,6 +80,7 @@ format description reason =
         Invalid BadDescription ->
             if description == "" then
                 "The empty string is not a valid test description."
+
             else
                 "This is an invalid test description: " ++ description
 
@@ -101,6 +102,7 @@ format description reason =
                 extraStr =
                     if List.isEmpty extra then
                         ""
+
                     else
                         "\nThese keys are extra: "
                             ++ (extra |> String.join ", " |> (\d -> "[ " ++ d ++ " ]"))
@@ -108,6 +110,7 @@ format description reason =
                 missingStr =
                     if List.isEmpty missing then
                         ""
+
                     else
                         "\nThese keys are missing: "
                             ++ (missing |> String.join ", " |> (\d -> "[ " ++ d ++ " ]"))
@@ -118,6 +121,11 @@ format description reason =
                 , extraStr
                 , missingStr
                 ]
+
+
+toStringLists : List String -> String
+toStringLists =
+    String.join ", "
 
 
 listDiffToString :
@@ -133,21 +141,21 @@ listDiffToString index description { expected, actual } originals =
             , "This should never happen!"
             , "Please report this bug to https://github.com/elm-community/elm-test/issues - and include these lists: "
             , "\n"
-            , toString originals.originalExpected
+            , toStringLists originals.originalExpected
             , "\n"
-            , toString originals.originalActual
+            , toStringLists originals.originalActual
             ]
                 |> String.join ""
 
         ( first :: _, [] ) ->
             verticalBar (description ++ " was shorter than")
-                (toString originals.originalExpected)
-                (toString originals.originalActual)
+                (toStringLists originals.originalExpected)
+                (toStringLists originals.originalActual)
 
         ( [], first :: _ ) ->
             verticalBar (description ++ " was longer than")
-                (toString originals.originalExpected)
-                (toString originals.originalActual)
+                (toStringLists originals.originalExpected)
+                (toStringLists originals.originalActual)
 
         ( firstExpected :: restExpected, firstActual :: restActual ) ->
             if firstExpected == firstActual then
@@ -158,14 +166,15 @@ listDiffToString index description { expected, actual } originals =
                     , actual = restActual
                     }
                     originals
+
             else
                 -- We found elements that differ; fail!
                 String.join ""
                     [ verticalBar description
-                        (toString originals.originalExpected)
-                        (toString originals.originalActual)
+                        (toStringLists originals.originalExpected)
+                        (toStringLists originals.originalActual)
                     , "\n\nThe first diff is at index "
-                    , toString index
+                    , String.fromInt index
                     , ": it was `"
                     , firstActual
                     , "`, but `"

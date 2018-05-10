@@ -25,6 +25,7 @@ reproduces a bug.
 ## Tuple Fuzzers
 
 Instead of using a tuple, consider using `fuzzN`.
+
 @docs tuple, tuple3, tuple4, tuple5
 
 
@@ -45,8 +46,8 @@ import Fuzz.Internal as Internal
         , invalidReason
         )
 import Lazy
-import Lazy.List exposing ((+++), LazyList)
-import Random.Pcg as Random exposing (Generator)
+import Lazy.List exposing (LazyList, append)
+import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
 import Shrink exposing (Shrinker)
 import Util exposing (..)
@@ -93,6 +94,7 @@ Here is an example for a custom union type, assuming there is already a `genName
                         (\b ->
                             if b then
                                 Random.map Name genName
+
                             else
                                 Random.map Age (Random.int 0 120)
                         )
@@ -145,8 +147,10 @@ order =
         intToOrder i =
             if i == 0 then
                 LT
+
             else if i == 1 then
                 EQ
+
             else
                 GT
     in
@@ -185,6 +189,7 @@ intRange : Int -> Int -> Fuzzer Int
 intRange lo hi =
     if hi < lo then
         Err <| "Fuzz.intRange was given a lower bound of " ++ toString lo ++ " which is greater than the upper bound, " ++ toString hi ++ "."
+
     else
         custom
             (Random.frequency
@@ -224,6 +229,7 @@ floatRange : Float -> Float -> Fuzzer Float
 floatRange lo hi =
     if hi < lo then
         Err <| "Fuzz.floatRange was given a lower bound of " ++ toString lo ++ " which is greater than the upper bound, " ++ toString hi ++ "."
+
     else
         custom
             (Random.frequency
@@ -310,6 +316,7 @@ maybe fuzzer =
         toMaybe useNothing tree =
             if useNothing then
                 RoseTree.singleton Nothing
+
             else
                 RoseTree.map Just tree |> RoseTree.addChild (RoseTree.singleton Nothing)
     in
@@ -326,6 +333,7 @@ result fuzzerError fuzzerValue =
         toResult useError errorTree valueTree =
             if useError then
                 RoseTree.map Err errorTree
+
             else
                 RoseTree.map Ok valueTree
     in
@@ -351,7 +359,7 @@ list fuzzer =
         |> Result.map
             (\validFuzzer ->
                 genLength
-                    |> Random.andThen (flip Random.list validFuzzer)
+                    |> Random.andThen (\a -> Random.list a validFuzzer)
                     |> Random.map listShrinkHelp
             )
 
@@ -403,6 +411,7 @@ listShrinkRecurse listOfTrees =
                     \_ ->
                         Lazy.List.fromList [ dropFirstHalf listOfTrees, dropSecondHalf listOfTrees ]
                             |> Lazy.force
+
             else
                 Lazy.List.empty
 
@@ -438,7 +447,7 @@ listShrinkRecurse listOfTrees =
                 (List.take index list)
                 (List.drop (index + 1) list)
     in
-    Rose root (halved +++ shortened +++ shrunkenVals)
+    Rose root (append halved (append shortened shrunkenVals))
 
 
 {-| Given a fuzzer of a type, create a fuzzer of an array of that type.
@@ -453,28 +462,28 @@ array fuzzer =
 -}
 tuple : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
 tuple ( fuzzerA, fuzzerB ) =
-    map2 (,) fuzzerA fuzzerB
+    map2 (\a b -> ( a, b )) fuzzerA fuzzerB
 
 
 {-| Turn a 3-tuple of fuzzers into a fuzzer of 3-tuples.
 -}
 tuple3 : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
 tuple3 ( fuzzerA, fuzzerB, fuzzerC ) =
-    map3 (,,) fuzzerA fuzzerB fuzzerC
+    map3 (\a b c -> ( a, b, c )) fuzzerA fuzzerB fuzzerC
 
 
 {-| Turn a 4-tuple of fuzzers into a fuzzer of 4-tuples.
 -}
 tuple4 : ( Fuzzer a, Fuzzer b, Fuzzer c, Fuzzer d ) -> Fuzzer ( a, b, c, d )
 tuple4 ( fuzzerA, fuzzerB, fuzzerC, fuzzerD ) =
-    map4 (,,,) fuzzerA fuzzerB fuzzerC fuzzerD
+    map4 (\a b c d -> ( a, b, c, d )) fuzzerA fuzzerB fuzzerC fuzzerD
 
 
 {-| Turn a 5-tuple of fuzzers into a fuzzer of 5-tuples.
 -}
 tuple5 : ( Fuzzer a, Fuzzer b, Fuzzer c, Fuzzer d, Fuzzer e ) -> Fuzzer ( a, b, c, d, e )
 tuple5 ( fuzzerA, fuzzerB, fuzzerC, fuzzerD, fuzzerE ) =
-    map5 (,,,,) fuzzerA fuzzerB fuzzerC fuzzerD fuzzerE
+    map5 (\a b c d e -> ( a, b, c, d, e )) fuzzerA fuzzerB fuzzerC fuzzerD fuzzerE
 
 
 {-| Create a fuzzer that only and always returns the value provided, and performs no shrinking. This is hardly random,
@@ -553,6 +562,7 @@ conditionalHelper opts validFuzzer =
         Random.map
             (RoseTree.map opts.fallback >> RoseTree.filterBranches opts.condition)
             validFuzzer
+
     else
         validFuzzer
             |> Random.andThen
@@ -597,6 +607,7 @@ so:
     tree i =
         if i <= 0 then
             Fuzz.constant Leaf
+
         else
             Fuzz.frequency
                 [ ( 1, Fuzz.constant Leaf )
@@ -608,10 +619,13 @@ frequency : List ( Float, Fuzzer a ) -> Fuzzer a
 frequency list =
     if List.isEmpty list then
         invalid "You must provide at least one frequency pair."
+
     else if List.any (\( weight, _ ) -> weight < 0) list then
         invalid "No frequency weights can be less than 0."
+
     else if List.sum (List.map Tuple.first list) <= 0 then
         invalid "Frequency weights must sum to more than 0."
+
     else
         list
             |> List.map extractValid
@@ -621,7 +635,7 @@ frequency list =
 
 extractValid : ( a, Valid b ) -> Valid ( a, b )
 extractValid ( a, valid ) =
-    Result.map ((,) a) valid
+    Result.map (\b -> ( a, b )) valid
 
 
 {-| Choose one of the given fuzzers at random. Each fuzzer has an equal chance
@@ -637,6 +651,7 @@ oneOf : List (Fuzzer a) -> Fuzzer a
 oneOf list =
     if List.isEmpty list then
         invalid "You must pass at least one Fuzzer to Fuzz.oneOf."
+
     else
         list
             |> List.map (\fuzzer -> ( 1, fuzzer ))
