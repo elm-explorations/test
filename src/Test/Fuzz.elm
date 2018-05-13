@@ -153,13 +153,10 @@ shrinkAndAdd rootTree getExpectation rootsExpectation failures =
                 Nothing ->
                     ( failingValue, oldExpectation )
 
-        (Rose failingValue _) =
-            rootTree
-
-        ( minimalValue, finalExpectation ) =
+        ( rootMinimalValue, rootFinalExpectation ) =
             shrink rootsExpectation rootTree
     in
-    Dict.insert (toString minimalValue) finalExpectation failures
+    Dict.insert (Debug.toString rootMinimalValue) rootFinalExpectation failures
 
 
 formatExpectation : ( String, Expectation ) -> Expectation

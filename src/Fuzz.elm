@@ -1,4 +1,4 @@
-module Fuzz exposing (Fuzzer, andMap, array, bool, char, conditional, constant, custom, float, floatRange, frequency, int, intRange, invalid, list, map, map2, map3, map4, map5, maybe, oneOf, order, percentage, result, string, tuple, tuple3, tuple4, tuple5, unit)
+module Fuzz exposing (Fuzzer, andMap, array, bool, char, conditional, constant, custom, float, floatRange, frequency, int, intRange, invalid, list, map, map2, map3, map4, map5, maybe, oneOf, order, percentage, result, string, tuple, tuple3, unit)
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
 tests. You can typically pick out which ones you need according to their types.
@@ -26,7 +26,7 @@ reproduces a bug.
 
 Instead of using a tuple, consider using `fuzzN`.
 
-@docs tuple, tuple3, tuple4, tuple5
+@docs tuple, tuple3
 
 
 ## Uncommon Fuzzers
@@ -47,10 +47,10 @@ import Fuzz.Internal as Internal
         )
 import Lazy
 import Lazy.List exposing (LazyList, append)
+import MicroRandomExtra as Random
 import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
 import Shrink exposing (Shrinker)
-import Util exposing (..)
 
 
 {-| The representation of fuzzers is opaque. Conceptually, a `Fuzzer a`
@@ -62,7 +62,7 @@ type alias Fuzzer a =
 
 
 {-| Build a custom `Fuzzer a` by providing a `Generator a` and a `Shrinker a`.
-Generators are defined in [`mgold/elm-random-pcg`](http://package.elm-lang.org/packages/mgold/elm-random-pcg/latest),
+Generators are defined in [`elm-lang/random`](http://package.elm-lang.org/packages/elm-lang/random/latest),
 which is not core's Random module but has a compatible interface. Shrinkers are
 defined in [`eeue56/elm-shrink`](http://package.elm-lang.org/packages/eeue56/elm-shrink/latest/).
 
@@ -188,7 +188,7 @@ the ints x or bigger.
 intRange : Int -> Int -> Fuzzer Int
 intRange lo hi =
     if hi < lo then
-        Err <| "Fuzz.intRange was given a lower bound of " ++ toString lo ++ " which is greater than the upper bound, " ++ toString hi ++ "."
+        Err <| "Fuzz.intRange was given a lower bound of " ++ String.fromInt lo ++ " which is greater than the upper bound, " ++ String.fromInt hi ++ "."
 
     else
         custom
@@ -228,7 +228,7 @@ value, inclusive. Shrunken values will also be within the range.
 floatRange : Float -> Float -> Fuzzer Float
 floatRange lo hi =
     if hi < lo then
-        Err <| "Fuzz.floatRange was given a lower bound of " ++ toString lo ++ " which is greater than the upper bound, " ++ toString hi ++ "."
+        Err <| "Fuzz.floatRange was given a lower bound of " ++ String.fromFloat lo ++ " which is greater than the upper bound, " ++ String.fromFloat hi ++ "."
 
     else
         custom
@@ -291,12 +291,12 @@ string =
                 , ( 1, Random.int 11 50 )
                 , ( 1, Random.int 50 1000 )
                 ]
-                |> Random.andThen (lengthString asciiCharGenerator)
+                |> Random.andThen (Random.lengthString asciiCharGenerator)
 
         whitespaceGenerator : Generator String
         whitespaceGenerator =
             Random.int 1 10
-                |> Random.andThen (lengthString whitespaceCharGenerator)
+                |> Random.andThen (Random.lengthString whitespaceCharGenerator)
     in
     custom
         (Random.frequency
@@ -399,7 +399,7 @@ listShrinkRecurse listOfTrees =
 
         dropSecondHalf : List (RoseTree a) -> RoseTree (List a)
         dropSecondHalf list_ =
-            List.take (List.length list_ // 2) list_
+            List.keep (List.length list_ // 2) list_
                 |> listShrinkRecurse
 
         halved : LazyList (RoseTree (List a))
@@ -415,8 +415,8 @@ listShrinkRecurse listOfTrees =
             else
                 Lazy.List.empty
 
-        shrinkOne prefix list =
-            case list of
+        shrinkOne prefix aList =
+            case aList of
                 [] ->
                     Lazy.List.empty
 
@@ -430,7 +430,7 @@ listShrinkRecurse listOfTrees =
                         |> Lazy.List.map (\i -> i - 1)
                         |> Lazy.List.take n
                         |> Lazy.List.andThen
-                            (\i -> shrinkOne (List.take i listOfTrees) (List.drop i listOfTrees))
+                            (\i -> shrinkOne (List.keep i listOfTrees) (List.drop i listOfTrees))
                         |> Lazy.force
 
         shortened =
@@ -442,10 +442,10 @@ listShrinkRecurse listOfTrees =
                         |> Lazy.List.map listShrinkRecurse
                         |> Lazy.force
 
-        removeOne index list =
+        removeOne index aList =
             List.append
-                (List.take index list)
-                (List.drop (index + 1) list)
+                (List.keep index aList)
+                (List.drop (index + 1) aList)
     in
     Rose root (append halved (append shortened shrunkenVals))
 
@@ -470,20 +470,6 @@ tuple ( fuzzerA, fuzzerB ) =
 tuple3 : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
 tuple3 ( fuzzerA, fuzzerB, fuzzerC ) =
     map3 (\a b c -> ( a, b, c )) fuzzerA fuzzerB fuzzerC
-
-
-{-| Turn a 4-tuple of fuzzers into a fuzzer of 4-tuples.
--}
-tuple4 : ( Fuzzer a, Fuzzer b, Fuzzer c, Fuzzer d ) -> Fuzzer ( a, b, c, d )
-tuple4 ( fuzzerA, fuzzerB, fuzzerC, fuzzerD ) =
-    map4 (\a b c d -> ( a, b, c, d )) fuzzerA fuzzerB fuzzerC fuzzerD
-
-
-{-| Turn a 5-tuple of fuzzers into a fuzzer of 5-tuples.
--}
-tuple5 : ( Fuzzer a, Fuzzer b, Fuzzer c, Fuzzer d, Fuzzer e ) -> Fuzzer ( a, b, c, d, e )
-tuple5 ( fuzzerA, fuzzerB, fuzzerC, fuzzerD, fuzzerE ) =
-    map5 (\a b c d e -> ( a, b, c, d, e )) fuzzerA fuzzerB fuzzerC fuzzerD fuzzerE
 
 
 {-| Create a fuzzer that only and always returns the value provided, and performs no shrinking. This is hardly random,
@@ -568,8 +554,8 @@ conditionalHelper opts validFuzzer =
             |> Random.andThen
                 (\tree ->
                     case RoseTree.filter opts.condition tree of
-                        Just tree ->
-                            Random.constant tree
+                        Just subtree ->
+                            Random.constant subtree
 
                         Nothing ->
                             conditionalHelper { opts | retries = opts.retries - 1 } validFuzzer
@@ -616,18 +602,18 @@ so:
 
 -}
 frequency : List ( Float, Fuzzer a ) -> Fuzzer a
-frequency list =
-    if List.isEmpty list then
+frequency aList =
+    if List.isEmpty aList then
         invalid "You must provide at least one frequency pair."
 
-    else if List.any (\( weight, _ ) -> weight < 0) list then
+    else if List.any (\( weight, _ ) -> weight < 0) aList then
         invalid "No frequency weights can be less than 0."
 
-    else if List.sum (List.map Tuple.first list) <= 0 then
+    else if List.sum (List.map Tuple.first aList) <= 0 then
         invalid "Frequency weights must sum to more than 0."
 
     else
-        list
+        aList
             |> List.map extractValid
             |> combineValid
             |> Result.map Random.frequency
@@ -648,12 +634,12 @@ of being chosen; to customize the probabilities, use [`frequency`](#frequency).
 
 -}
 oneOf : List (Fuzzer a) -> Fuzzer a
-oneOf list =
-    if List.isEmpty list then
+oneOf aList =
+    if List.isEmpty aList then
         invalid "You must pass at least one Fuzzer to Fuzz.oneOf."
 
     else
-        list
+        aList
             |> List.map (\fuzzer -> ( 1, fuzzer ))
             |> frequency
 
@@ -684,7 +670,7 @@ map2RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2)
         shrink2 =
             Lazy.List.map (\subtree -> map2RoseTree transform rose1 subtree) children2
     in
-    Rose root (shrink1 +++ shrink2)
+    Rose root <| append shrink1 shrink2
 
 
 
@@ -707,7 +693,7 @@ map3RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2)
         shrink3 =
             Lazy.List.map (\childOf3 -> map3RoseTree transform rose1 rose2 childOf3) children3
     in
-    Rose root (shrink1 +++ shrink2 +++ shrink3)
+    Rose root <| append shrink1 (append shrink2 shrink3)
 
 
 map4RoseTree : (a -> b -> c -> d -> e) -> RoseTree a -> RoseTree b -> RoseTree c -> RoseTree d -> RoseTree e
@@ -728,7 +714,7 @@ map4RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2)
         shrink4 =
             Lazy.List.map (\childOf4 -> map4RoseTree transform rose1 rose2 rose3 childOf4) children4
     in
-    Rose root (shrink1 +++ shrink2 +++ shrink3 +++ shrink4)
+    Rose root <| append shrink1 (append shrink2 (append shrink3 shrink4))
 
 
 map5RoseTree : (a -> b -> c -> d -> e -> f) -> RoseTree a -> RoseTree b -> RoseTree c -> RoseTree d -> RoseTree e -> RoseTree f
@@ -752,4 +738,4 @@ map5RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2)
         shrink5 =
             Lazy.List.map (\childOf5 -> map5RoseTree transform rose1 rose2 rose3 rose4 childOf5) children5
     in
-    Rose root (shrink1 +++ shrink2 +++ shrink3 +++ shrink4 +++ shrink5)
+    Rose root <| append shrink1 (append shrink2 (append shrink3 (append shrink4 shrink5)))

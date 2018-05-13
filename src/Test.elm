@@ -1,4 +1,4 @@
-module Test exposing (FuzzOptions, Test, concat, describe, fuzz, fuzz2, fuzz3, fuzz4, fuzz5, fuzzWith, only, skip, test, todo)
+module Test exposing (FuzzOptions, Test, concat, describe, fuzz, fuzz2, fuzz3, fuzzWith, only, skip, test, todo)
 
 {-| A module containing functions for creating and managing tests.
 
@@ -12,7 +12,7 @@ module Test exposing (FuzzOptions, Test, concat, describe, fuzz, fuzz2, fuzz3, f
 
 ## Fuzz Testing
 
-@docs fuzz, fuzz2, fuzz3, fuzz4, fuzz5, fuzzWith, FuzzOptions
+@docs fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
 
 -}
 
@@ -97,7 +97,7 @@ describe untrimmedDesc tests =
 
     else if List.isEmpty tests then
         Internal.failNow
-            { description = "This `describe " ++ toString desc ++ "` has no tests in it. Let's give it some!"
+            { description = "This `describe " ++ desc ++ "` has no tests in it. Let's give it some!"
             , reason = Invalid EmptyList
             }
 
@@ -299,7 +299,7 @@ fuzzWith : FuzzOptions -> Fuzzer a -> String -> (a -> Expectation) -> Test
 fuzzWith options fuzzer desc getTest =
     if options.runs < 1 then
         Internal.failNow
-            { description = "Fuzz tests must have a run count of at least 1, not " ++ toString options.runs ++ "."
+            { description = "Fuzz tests must have a run count of at least 1, not " ++ String.fromInt options.runs ++ "."
             , reason = Invalid NonpositiveFuzzCount
             }
 
@@ -308,10 +308,10 @@ fuzzWith options fuzzer desc getTest =
 
 
 fuzzWithHelp : FuzzOptions -> Test -> Test
-fuzzWithHelp options test =
-    case test of
+fuzzWithHelp options aTest =
+    case aTest of
         Internal.UnitTest _ ->
-            test
+            aTest
 
         Internal.FuzzTest run ->
             Internal.FuzzTest (\seed _ -> run seed options.runs)

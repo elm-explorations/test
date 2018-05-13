@@ -351,12 +351,12 @@ which argument is which:
 
 -}
 within : FloatingPointTolerance -> Float -> Float -> Expectation
-within tolerance a b =
+within tolerance lower upper =
     nonNegativeToleranceError tolerance "within" <|
-        compareWith ("Expect.within " ++ String.fromFloat tolerance)
+        compareWith ("Expect.within " ++ Debug.toString tolerance)
             (withinCompare tolerance)
-            a
-            b
+            lower
+            upper
 
 
 {-| Passes if (and only if) a call to `within` with the same arguments would have failed.
@@ -364,7 +364,7 @@ within tolerance a b =
 notWithin : FloatingPointTolerance -> Float -> Float -> Expectation
 notWithin tolerance lower upper =
     nonNegativeToleranceError tolerance "notWithin" <|
-        compareWith ("Expect.notWithin " ++ String.fromFloat tolerance)
+        compareWith ("Expect.notWithin " ++ Debug.toString tolerance)
             (\a b -> not <| withinCompare tolerance a b)
             lower
             upper
@@ -461,7 +461,7 @@ err result =
     case result of
         Ok _ ->
             { description = "Expect.err"
-            , reason = Comparison "Err _" (toString result)
+            , reason = Comparison "Err _" (Debug.toString result)
             }
                 |> Test.Expectation.fail
 
@@ -503,7 +503,7 @@ equalLists expected actual =
 
     else
         { description = "Expect.equalLists"
-        , reason = ListDiff (List.map toString expected) (List.map toString actual)
+        , reason = ListDiff (List.map Debug.toString expected) (List.map Debug.toString actual)
         }
             |> Test.Expectation.fail
 
@@ -729,7 +729,9 @@ allHelp list query =
 reportFailure : String -> String -> String -> Expectation
 reportFailure comparison expected actual =
     { description = comparison
-    , reason = Comparison (toString expected) (toString actual)
+
+    -- We may need to wrap expected and actual in quotes to maintain 0.18 behavior
+    , reason = Comparison expected actual
     }
         |> Test.Expectation.fail
 
@@ -738,10 +740,10 @@ reportCollectionFailure : String -> a -> b -> List c -> List d -> Expectation
 reportCollectionFailure comparison expected actual missingKeys extraKeys =
     { description = comparison
     , reason =
-        { expected = toString expected
-        , actual = toString actual
-        , extra = List.map toString extraKeys
-        , missing = List.map toString missingKeys
+        { expected = Debug.toString expected
+        , actual = Debug.toString actual
+        , extra = List.map Debug.toString extraKeys
+        , missing = List.map Debug.toString missingKeys
         }
             |> CollectionDiff
     }
@@ -767,7 +769,7 @@ testWith makeReason label runTest expected actual =
 
     else
         { description = label
-        , reason = makeReason (toString expected) (toString actual)
+        , reason = makeReason (Debug.toString expected) (Debug.toString actual)
         }
             |> Test.Expectation.fail
 
@@ -792,11 +794,11 @@ absolute tolerance =
 relative : FloatingPointTolerance -> Float
 relative tolerance =
     case tolerance of
-        Relative relative ->
-            relative
+        Relative val ->
+            val
 
-        AbsoluteOrRelative _ relative ->
-            relative
+        AbsoluteOrRelative _ val ->
+            val
 
         _ ->
             0
