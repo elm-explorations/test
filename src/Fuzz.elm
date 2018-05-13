@@ -399,7 +399,7 @@ listShrinkRecurse listOfTrees =
 
         dropSecondHalf : List (RoseTree a) -> RoseTree (List a)
         dropSecondHalf list_ =
-            List.keep (List.length list_ // 2) list_
+            List.take (List.length list_ // 2) list_
                 |> listShrinkRecurse
 
         halved : LazyList (RoseTree (List a))
@@ -430,7 +430,7 @@ listShrinkRecurse listOfTrees =
                         |> Lazy.List.map (\i -> i - 1)
                         |> Lazy.List.take n
                         |> Lazy.List.andThen
-                            (\i -> shrinkOne (List.keep i listOfTrees) (List.drop i listOfTrees))
+                            (\i -> shrinkOne (List.take i listOfTrees) (List.drop i listOfTrees))
                         |> Lazy.force
 
         shortened =
@@ -444,7 +444,7 @@ listShrinkRecurse listOfTrees =
 
         removeOne index aList =
             List.append
-                (List.keep index aList)
+                (List.take index aList)
                 (List.drop (index + 1) aList)
     in
     Rose root (append halved (append shortened shrunkenVals))
