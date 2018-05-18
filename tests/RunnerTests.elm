@@ -29,12 +29,14 @@ fromTest =
                         Invalid str ->
                             if runs > 0 then
                                 Expect.fail ("Expected a run count of " ++ toString runs ++ " to be valid, but was invalid with this message: " ++ toString str)
+
                             else
                                 Expect.pass
 
                         val ->
                             if runs > 0 then
                                 Expect.pass
+
                             else
                                 Expect.fail ("Expected a run count of " ++ toString runs ++ " to be invalid, but was valid with this value: " ++ toString val)
             , test "an only inside another only has no effect" <|

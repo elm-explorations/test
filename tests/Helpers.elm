@@ -54,6 +54,7 @@ passesToFails f expectations =
         |> (\list ->
                 if List.isEmpty list then
                     [ Expect.pass ]
+
                 else
                     list
            )
@@ -120,6 +121,7 @@ testShrinking =
                 Just g ->
                     if List.member g acceptable then
                         Nothing
+
                     else
                         Just <| "Got shrunken value " ++ g ++ " but expected " ++ String.join " or " acceptable
     in

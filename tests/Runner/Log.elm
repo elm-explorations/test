@@ -46,6 +46,7 @@ summarize { output, passed, failed, autoFail } =
         headline =
             if failed > 0 then
                 output ++ "\n\nTEST RUN FAILED"
+
             else
                 case autoFail of
                     Nothing ->
@@ -74,6 +75,7 @@ logOutput summary =
                     |> flip Debug.log 1
                     |> (\_ -> Debug.crash "FAILED TEST RUN")
                     |> (\_ -> ())
+
             else
                 output
                     |> flip Debug.log 0

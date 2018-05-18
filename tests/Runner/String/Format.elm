@@ -22,6 +22,7 @@ format description reason =
         Invalid BadDescription ->
             if description == "" then
                 "The empty string is not a valid test description."
+
             else
                 "This is an invalid test description: " ++ description
 
@@ -43,6 +44,7 @@ format description reason =
                 extraStr =
                     if List.isEmpty extra then
                         ""
+
                     else
                         "\nThese keys are extra: "
                             ++ (extra |> String.join ", " |> (\d -> "[ " ++ d ++ " ]"))
@@ -50,6 +52,7 @@ format description reason =
                 missingStr =
                     if List.isEmpty missing then
                         ""
+
                     else
                         "\nThese keys are missing: "
                             ++ (missing |> String.join ", " |> (\d -> "[ " ++ d ++ " ]"))
@@ -111,6 +114,7 @@ listDiffToString index description { expected, actual } originals =
                     , actual = restActual
                     }
                     originals
+
             else
                 -- We found elements that differ; fail!
                 String.join ""
