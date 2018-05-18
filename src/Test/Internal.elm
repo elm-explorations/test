@@ -1,5 +1,6 @@
 module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
 
+import Elm.Kernel.Debug
 import Random exposing (Generator)
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation(..))
@@ -71,5 +72,5 @@ duplicatedName =
 
 
 toString : a -> String
-toString _ =
-    Debug.todo "Implement Test.Internal.toString with Elm.Kernel.toString"
+toString =
+    Elm.Kernel.Debug.toString
