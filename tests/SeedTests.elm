@@ -1,8 +1,8 @@
 module SeedTests exposing (fixedSeed, noAutoFail, tests)
 
-import Expect exposing (FloatingPointTolerance(Absolute, AbsoluteOrRelative, Relative))
+import Expect exposing (FloatingPointTolerance(..))
 import Fuzz exposing (..)
-import Random.Pcg as Random
+import Random
 import Test exposing (..)
 
 

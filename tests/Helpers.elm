@@ -2,7 +2,7 @@ module Helpers exposing (different, expectPass, expectToFail, randomSeedFuzzer, 
 
 import Expect
 import Fuzz exposing (Fuzzer)
-import Random.Pcg as Random
+import Random
 import Shrink
 import Test exposing (Test)
 import Test.Expectation exposing (Expectation(..))
@@ -144,8 +144,11 @@ same a b =
         ( Test.Expectation.Fail _, Test.Expectation.Fail _ ) ->
             Test.Expectation.Pass
 
-        ( a, b ) ->
-            Test.Expectation.fail { description = "expected both arguments to fail, or both to succeed", reason = Equality (toString a) (toString b) }
+        ( _, _ ) ->
+            Test.Expectation.fail
+                { description = "expected both arguments to fail, or both to succeed"
+                , reason = Equality (Internal.toString a) (Internal.toString b)
+                }
 
 
 different : Expectation -> Expectation -> Expectation
@@ -157,5 +160,8 @@ different a b =
         ( Test.Expectation.Fail _, Test.Expectation.Pass ) ->
             Test.Expectation.Pass
 
-        ( a, b ) ->
-            Test.Expectation.fail { description = "expected one argument to fail", reason = Equality (toString a) (toString b) }
+        ( _, _ ) ->
+            Test.Expectation.fail
+                { description = "expected one argument to fail"
+                , reason = Equality (Internal.toString a) (Internal.toString b)
+                }

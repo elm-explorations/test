@@ -1,4 +1,4 @@
-module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow)
+module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
 
 import Random exposing (Generator)
 import Set exposing (Set)
@@ -68,3 +68,8 @@ duplicatedName =
     in
     List.concatMap names
         >> List.foldl insertOrFail (Ok Set.empty)
+
+
+toString : a -> String
+toString _ =
+    Debug.todo "Implement Test.Internal.toString with Elm.Kernel.toString"

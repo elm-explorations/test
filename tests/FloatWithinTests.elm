@@ -1,6 +1,6 @@
 module FloatWithinTests exposing (floatWithinTests)
 
-import Expect exposing (FloatingPointTolerance(Absolute, AbsoluteOrRelative, Relative))
+import Expect exposing (FloatingPointTolerance(..))
 import Fuzz exposing (..)
 import Helpers exposing (..)
 import Test exposing (..)
@@ -119,8 +119,8 @@ floatWithinTests =
                             a |> Expect.notWithin (Absolute (abs epsilon)) b
                     in
                     different withinTest notWithinTest
-            , fuzz4 float float float float "within and notWithin should never agree on absolute or relative tolerance" <|
-                \absoluteEpsilon relativeEpsilon a b ->
+            , fuzz2 (tuple ( float, float )) (tuple ( float, float )) "within and notWithin should never agree on absolute or relative tolerance" <|
+                \( absoluteEpsilon, relativeEpsilon ) ( a, b ) ->
                     let
                         withinTest =
                             a |> Expect.within (AbsoluteOrRelative (abs absoluteEpsilon) (abs relativeEpsilon)) b

@@ -4,22 +4,16 @@ import Expect
 import Fuzz exposing (..)
 import Helpers exposing (..)
 import Lazy.List
-import Random.Pcg as Random
+import Random
 import RoseTree
 import Test exposing (..)
+import Test.Internal as Internal
 import Test.Runner
 
 
 die : Fuzzer Int
 die =
     Fuzz.intRange 1 6
-
-
-seed : Fuzzer Random.Seed
-seed =
-    Fuzz.custom
-        (Random.int Random.minInt Random.maxInt |> Random.map Random.initialSeed)
-        (always Lazy.List.empty)
 
 
 fuzzerTests : Test
@@ -32,12 +26,6 @@ fuzzerTests =
             , fuzz3 string string string "fuzz3" <|
                 \a b c ->
                     testStringLengthIsPreserved [ a, b, c ]
-            , fuzz4 string string string string "fuzz4" <|
-                \a b c d ->
-                    testStringLengthIsPreserved [ a, b, c, d ]
-            , fuzz5 string string string string string "fuzz5" <|
-                \a b c d e ->
-                    testStringLengthIsPreserved [ a, b, c, d, e ]
             ]
         , fuzz
             (intRange 1 6)
@@ -48,14 +36,11 @@ fuzzerTests =
             "Fuzz.frequency"
             (Expect.greaterThan 0)
         , fuzz (result string int) "Fuzz.result" <| \r -> Expect.pass
-        , fuzz (andThen (\i -> intRange 0 (2 ^ i)) (intRange 1 8))
-            "Fuzz.andThen"
-            (Expect.atMost 256)
         , fuzz
-            (map2 (,) die die
+            (map2 (\a b -> ( a, b )) die die
                 |> conditional
                     { retries = 10
-                    , fallback = \( a, b ) -> ( a, (b + 1) % 6 )
+                    , fallback = \( a, b ) -> ( a, (b + 1) |> modBy 6 )
                     , condition = \( a, b ) -> a /= b
                     }
             )
@@ -63,7 +48,7 @@ fuzzerTests =
           <|
             \( roll1, roll2 ) ->
                 roll1 |> Expect.notEqual roll2
-        , fuzz seed "conditional: shrunken values all pass condition" <|
+        , fuzz randomSeedFuzzer "conditional: shrunken values all pass condition" <|
             \seed ->
                 let
                     evenInt : Fuzzer Int
@@ -77,14 +62,7 @@ fuzzerTests =
 
                     even : Int -> Bool
                     even n =
-                        (n % 2) == 0
-
-                    shrinkable : Test.Runner.Shrinkable Int
-                    shrinkable =
-                        Test.Runner.fuzz evenInt
-                            |> flip Random.step seed
-                            |> Tuple.first
-                            |> Tuple.second
+                        (n |> modBy 2) == 0
 
                     testShrinkable : Test.Runner.Shrinkable Int -> Expect.Expectation
                     testShrinkable shrinkable =
@@ -97,9 +75,13 @@ fuzzerTests =
                                     testShrinkable next
 
                                 else
-                                    Expect.fail <| "Shrunken value does not pass conditional: " ++ toString value
+                                    Expect.fail <| "Shrunken value does not pass conditional: " ++ Internal.toString value
                 in
-                testShrinkable shrinkable
+                Test.Runner.fuzz evenInt
+                    |> (\a -> Random.step a seed)
+                    |> Tuple.first
+                    |> Tuple.second
+                    |> testShrinkable
         , describe "Whitebox testing using Fuzz.Internal"
             [ fuzz randomSeedFuzzer "the same value is generated with and without shrinking" <|
                 \seed ->
@@ -108,16 +90,20 @@ fuzzerTests =
                             Random.step gen seed
 
                         aFuzzer =
-                            tuple5
+                            tuple3
                                 ( tuple ( list int, array float )
-                                , maybe bool
-                                , result unit char
-                                , tuple3
-                                    ( percentage
-                                    , map2 (+) int int
-                                    , frequency [ ( 1, constant True ), ( 3, constant False ) ]
+                                , tuple
+                                    ( maybe bool
+                                    , result unit char
                                     )
-                                , tuple3 ( intRange 0 100, floatRange -51 pi, map abs int )
+                                , tuple
+                                    ( tuple3
+                                        ( percentage
+                                        , map2 (+) int int
+                                        , frequency [ ( 1, constant True ), ( 3, constant False ) ]
+                                        )
+                                    , tuple3 ( intRange 0 100, floatRange -51 pi, map abs int )
+                                    )
                                 )
 
                         valNoShrink =
@@ -148,21 +134,6 @@ shrinkingTests =
                         || (j == 0)
                         || (k == 0)
                         |> Expect.true "(1,1,1)"
-            , fuzz4 int int int int "Every 4-tuple of ints has a zero" <|
-                \i j k l ->
-                    (i == 0)
-                        || (j == 0)
-                        || (k == 0)
-                        || (l == 0)
-                        |> Expect.true "(1,1,1,1)"
-            , fuzz5 int int int int int "Every 5-tuple of ints has a zero" <|
-                \i j k l m ->
-                    (i == 0)
-                        || (j == 0)
-                        || (k == 0)
-                        || (l == 0)
-                        || (m == 0)
-                        |> Expect.true "(1,1,1,1,1)"
             , fuzz (list int) "All lists are sorted" <|
                 \aList ->
                     let
@@ -179,9 +150,6 @@ shrinkingTests =
                                     True
                     in
                     checkPair aList |> Expect.true "[1,0]|[0,-1]"
-            , fuzz (intRange 1 8 |> andThen (\i -> intRange 0 (2 ^ i))) "Fuzz.andThen shrinks a number" <|
-                \i ->
-                    i <= 2 |> Expect.true "3"
             ]
 
 
@@ -208,7 +176,7 @@ manualFuzzerTests =
                                 )
 
                     failsTest n =
-                        n % 2 == 0
+                        (n |> modBy 2) == 0
 
                     pair =
                         Random.step (Test.Runner.fuzz fuzzer) seed
@@ -277,7 +245,7 @@ manualFuzzerTests =
 
                     allEven : List Int -> Bool
                     allEven xs =
-                        List.all (\x -> x % 2 == 0) xs
+                        List.all (\x -> (x |> modBy 2) == 0) xs
 
                     initialShrink : ShrinkResult (List Int)
                     initialShrink =

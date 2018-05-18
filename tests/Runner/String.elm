@@ -12,7 +12,7 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 -}
 
 import Expect exposing (Expectation)
-import Random.Pcg as Random
+import Random
 import Runner.String.Format
 import Test exposing (Test)
 import Test.Runner exposing (Runner, SeededRunners(..))
