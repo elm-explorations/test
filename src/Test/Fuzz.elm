@@ -7,7 +7,7 @@ import Lazy.List
 import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
 import Test.Expectation exposing (Expectation(..))
-import Test.Internal exposing (Test(..), blankDescriptionFailure, failNow)
+import Test.Internal as Internal exposing (Test(..), blankDescriptionFailure, failNow)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -156,7 +156,7 @@ shrinkAndAdd rootTree getExpectation rootsExpectation failures =
         ( rootMinimalValue, rootFinalExpectation ) =
             shrink rootsExpectation rootTree
     in
-    Dict.insert (Debug.toString rootMinimalValue) rootFinalExpectation failures
+    Dict.insert (Internal.toString rootMinimalValue) rootFinalExpectation failures
 
 
 formatExpectation : ( String, Expectation ) -> Expectation
