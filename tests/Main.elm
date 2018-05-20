@@ -15,12 +15,12 @@ import SeedTests
 import Tests
 
 
-main : Program Never () msg
+main : Program () () msg
 main =
     let
         program =
-            Platform.program
-                { init = ( (), Cmd.none )
+            Platform.worker
+                { init = \() -> ( (), Cmd.none )
                 , update = \_ _ -> ( (), Cmd.none )
                 , subscriptions = \_ -> Sub.none
                 }
@@ -69,14 +69,14 @@ combineSummaries first second =
             ( Nothing, Nothing ) ->
                 Nothing
 
-            ( Nothing, second ) ->
-                second
+            ( Nothing, secondAutoFail ) ->
+                secondAutoFail
 
-            ( first, Nothing ) ->
-                first
+            ( firstAutoFail, Nothing ) ->
+                firstAutoFail
 
-            ( Just first, Just second ) ->
-                [ first, second ]
+            ( Just firstAutoFail, Just secondAutoFail ) ->
+                [ firstAutoFail, secondAutoFail ]
                     |> String.join "\n"
                     |> Just
     }

@@ -18,7 +18,7 @@ if the tests all passed, and 1 if any failed.
 
 -}
 
-import Random.Pcg as Random
+import Random
 import Runner.String exposing (Summary)
 import String
 import Test exposing (Test)
@@ -46,6 +46,7 @@ summarize { output, passed, failed, autoFail } =
         headline =
             if failed > 0 then
                 output ++ "\n\nTEST RUN FAILED"
+
             else
                 case autoFail of
                     Nothing ->
@@ -57,8 +58,8 @@ summarize { output, passed, failed, autoFail } =
     String.join "\n"
         [ output
         , headline ++ "\n"
-        , "Passed: " ++ toString passed
-        , "Failed: " ++ toString failed
+        , "Passed: " ++ String.fromInt passed
+        , "Failed: " ++ String.fromInt failed
         ]
 
 
@@ -71,12 +72,13 @@ logOutput summary =
         _ =
             if summary.failed > 0 || summary.autoFail /= Nothing then
                 output
-                    |> flip Debug.log 1
-                    |> (\_ -> Debug.crash "FAILED TEST RUN")
+                    |> (\a -> Debug.log a 1)
+                    |> (\_ -> Debug.todo "FAILED TEST RUN")
                     |> (\_ -> ())
+
             else
                 output
-                    |> flip Debug.log 0
+                    |> (\a -> Debug.log a 0)
                     |> (\_ -> ())
     in
     ()
