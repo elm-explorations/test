@@ -241,13 +241,6 @@ distributeSeedsHelp hashed runs seed test =
             let
                 ( firstSeed, nextSeed ) =
                     Random.step Random.independentSeed seed
-                        |> maintainElm18RandomPcgBehavior
-
-                -- In https://github.com/elm-lang/random/commit/8796daa0b7a7d2c00bab6a12300ec838e20c09fb,
-                -- the output of Random.independentSeed was changed.  This function is applied to the result
-                -- so that seed values given by old version of elm-test still give the same test results.
-                maintainElm18RandomPcgBehavior ( a, b ) =
-                    ( b, a )
             in
             { seed = nextSeed
             , all = [ Runnable (Thunk (\_ -> aRun firstSeed runs)) ]
