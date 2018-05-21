@@ -127,6 +127,7 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 import Dict exposing (Dict)
 import Set exposing (Set)
 import Test.Expectation
+import Test.Internal as Internal
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -353,7 +354,7 @@ which argument is which:
 within : FloatingPointTolerance -> Float -> Float -> Expectation
 within tolerance lower upper =
     nonNegativeToleranceError tolerance "within" <|
-        compareWith ("Expect.within " ++ Debug.toString tolerance)
+        compareWith ("Expect.within " ++ Internal.toString tolerance)
             (withinCompare tolerance)
             lower
             upper
@@ -364,7 +365,7 @@ within tolerance lower upper =
 notWithin : FloatingPointTolerance -> Float -> Float -> Expectation
 notWithin tolerance lower upper =
     nonNegativeToleranceError tolerance "notWithin" <|
-        compareWith ("Expect.notWithin " ++ Debug.toString tolerance)
+        compareWith ("Expect.notWithin " ++ Internal.toString tolerance)
             (\a b -> not <| withinCompare tolerance a b)
             lower
             upper
@@ -461,7 +462,7 @@ err result =
     case result of
         Ok _ ->
             { description = "Expect.err"
-            , reason = Comparison "Err _" (Debug.toString result)
+            , reason = Comparison "Err _" (Internal.toString result)
             }
                 |> Test.Expectation.fail
 
@@ -503,7 +504,7 @@ equalLists expected actual =
 
     else
         { description = "Expect.equalLists"
-        , reason = ListDiff (List.map Debug.toString expected) (List.map Debug.toString actual)
+        , reason = ListDiff (List.map Internal.toString expected) (List.map Internal.toString actual)
         }
             |> Test.Expectation.fail
 
@@ -740,10 +741,10 @@ reportCollectionFailure : String -> a -> b -> List c -> List d -> Expectation
 reportCollectionFailure comparison expected actual missingKeys extraKeys =
     { description = comparison
     , reason =
-        { expected = Debug.toString expected
-        , actual = Debug.toString actual
-        , extra = List.map Debug.toString extraKeys
-        , missing = List.map Debug.toString missingKeys
+        { expected = Internal.toString expected
+        , actual = Internal.toString actual
+        , extra = List.map Internal.toString extraKeys
+        , missing = List.map Internal.toString missingKeys
         }
             |> CollectionDiff
     }
@@ -769,7 +770,7 @@ testWith makeReason label runTest expected actual =
 
     else
         { description = label
-        , reason = makeReason (Debug.toString expected) (Debug.toString actual)
+        , reason = makeReason (Internal.toString expected) (Internal.toString actual)
         }
             |> Test.Expectation.fail
 

@@ -8,6 +8,8 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 
 -}
 
+import Browser
+import Html
 import Platform
 import Runner.Log
 import Runner.String exposing (Summary)
@@ -19,11 +21,8 @@ main : Program () () msg
 main =
     let
         program =
-            Platform.worker
-                { init = \() -> ( (), Cmd.none )
-                , update = \_ _ -> ( (), Cmd.none )
-                , subscriptions = \_ -> Sub.none
-                }
+            --TODO: ideally use Platform.worker here, but it doesn't compile with the current Elm 0.19 alpha (2018-05-19)
+            Browser.staticPage (Html.text "")
     in
     runAllTests program
 
