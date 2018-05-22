@@ -70,6 +70,13 @@ expectationTests =
                 test "fails with empty list" <|
                     \_ -> "dummy subject" |> Expect.all []
             ]
+        , describe "Expect.equal"
+            [ expectToFail <|
+                test "fails when equating two floats (see #230)" <|
+                    \_ -> 1.41 |> Expect.equal 1.41
+            , test "succeeds when equating two ints" <|
+                \_ -> 141 |> Expect.equal 141
+            ]
         ]
 
 
