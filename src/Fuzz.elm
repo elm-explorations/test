@@ -1,4 +1,4 @@
-module Fuzz exposing (Fuzzer, andMap, array, bool, char, conditional, constant, custom, float, floatRange, frequency, int, intRange, invalid, list, map, map2, map3, map4, map5, maybe, oneOf, order, percentage, result, string, tuple, tuple3, unit)
+module Fuzz exposing (Fuzzer, andMap, array, bool, char, constant, custom, float, floatRange, frequency, int, intRange, invalid, list, map, map2, map3, map4, map5, maybe, oneOf, order, percentage, result, string, tuple, tuple3, unit)
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
 tests. You can typically pick out which ones you need according to their types.
@@ -19,7 +19,7 @@ reproduces a bug.
 
 ## Working with Fuzzers
 
-@docs Fuzzer, oneOf, constant, map, map2, map3, map4, map5, andMap, frequency, conditional
+@docs Fuzzer, oneOf, constant, map, map2, map3, map4, map5, andMap, frequency
 
 
 ## Tuple Fuzzers
@@ -525,41 +525,6 @@ Note that shrinking may be better using mapN.
 andMap : Fuzzer a -> Fuzzer (a -> b) -> Fuzzer b
 andMap =
     map2 (|>)
-
-
-{-| Conditionally filter a fuzzer to remove occasional undesirable
-input. Takes a limit for how many retries to attempt, and a fallback
-function to, if no acceptable input can be found, create one from an
-unacceptable one. Also takes a condition to determine if the input is
-acceptable or not, and finally the fuzzer itself.
-
-A good number of max retries is ten. A large number of retries might
-blow the stack.
-
--}
-conditional : { retries : Int, fallback : a -> a, condition : a -> Bool } -> Fuzzer a -> Fuzzer a
-conditional opts fuzzer =
-    Result.map (conditionalHelper opts) fuzzer
-
-
-conditionalHelper : { retries : Int, fallback : a -> a, condition : a -> Bool } -> ValidFuzzer a -> ValidFuzzer a
-conditionalHelper opts validFuzzer =
-    if opts.retries <= 0 then
-        Random.map
-            (RoseTree.map opts.fallback >> RoseTree.filterBranches opts.condition)
-            validFuzzer
-
-    else
-        validFuzzer
-            |> Random.andThen
-                (\tree ->
-                    case RoseTree.filter opts.condition tree of
-                        Just subtree ->
-                            Random.constant subtree
-
-                        Nothing ->
-                            conditionalHelper { opts | retries = opts.retries - 1 } validFuzzer
-                )
 
 
 {-| Create a new `Fuzzer` by providing a list of probabilistic weights to use
