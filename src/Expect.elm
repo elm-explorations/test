@@ -161,6 +161,8 @@ which argument is which:
 
     -}
 
+Do not equate `Float` values; use [`within`](#within) instead.
+
 -}
 equal : a -> a -> Expectation
 equal =
@@ -217,6 +219,8 @@ which argument is which:
     -1
 
     -}
+
+Do not equate `Float` values; use [`notWithin`](#notWithin) instead.
 
 -}
 lessThan : comparable -> comparable -> Expectation
@@ -754,8 +758,34 @@ reportCollectionFailure comparison expected actual missingKeys extraKeys =
 {-| String arg is label, e.g. "Expect.equal".
 -}
 equateWith : String -> (a -> b -> Bool) -> b -> a -> Expectation
-equateWith =
-    testWith Equality
+equateWith reason comparison b a =
+    let
+        isJust x =
+            case x of
+                Just _ ->
+                    True
+
+                Nothing ->
+                    False
+
+        isFloat x =
+            isJust (String.toFloat x) && not (isJust (String.toInt x))
+
+        usesFloats =
+            isFloat (Internal.toString a) || isFloat (Internal.toString b)
+
+        floatError =
+            if String.contains reason "not" then
+                "Do not use Expect.notEqual with floats. Use Float.notWithin instead."
+
+            else
+                "Do not use Expect.equal with floats. Use Float.within instead."
+    in
+    if usesFloats then
+        fail floatError
+
+    else
+        testWith Equality reason comparison b a
 
 
 compareWith : String -> (a -> b -> Bool) -> b -> a -> Expectation

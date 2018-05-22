@@ -6,7 +6,6 @@ module Test.Runner
         , formatLabels
         , fromTest
         , fuzz
-        , getFailure
         , getFailureReason
         , isTodo
         , shrink
@@ -25,7 +24,7 @@ can be found in the `README`.
 
 ## Expectations
 
-@docs getFailure, getFailureReason, isTodo
+@docs getFailureReason, isTodo
 
 
 ## Formatting
@@ -358,38 +357,6 @@ fnvHashString hash str =
 fnvHash : Int -> Int -> Int
 fnvHash a b =
     Bitwise.xor a b * 16777619 |> Bitwise.shiftRightZfBy 0
-
-
-{-| **DEPRECATED.** Please use [`getFailureReason`](#getFailureReason) instead.
-This function will be removed in the next major version.
-
-Return `Nothing` if the given [`Expectation`](#Expectation) is a [`pass`](#pass).
-
-If it is a [`fail`](#fail), return a record containing the failure message,
-along with the given inputs if it was a fuzz test. (If no inputs were involved,
-the record's `given` field will be `Nothing`).
-
-For example, if a fuzz test generates random integers, this might return
-`{ message = "it was supposed to be positive", given = "-1" }`
-
-    getFailure (Expect.fail "this failed")
-    -- Just { message = "this failed", given = "" }
-
-    getFailure (Expect.pass)
-    -- Nothing
-
--}
-getFailure : Expectation -> Maybe { given : Maybe String, message : String }
-getFailure expectation =
-    case expectation of
-        Test.Expectation.Pass ->
-            Nothing
-
-        Test.Expectation.Fail { given, description, reason } ->
-            Just
-                { given = given
-                , message = Test.Runner.Failure.format description reason
-                }
 
 
 {-| Return `Nothing` if the given [`Expectation`](#Expectation) is a [`pass`](#pass).
