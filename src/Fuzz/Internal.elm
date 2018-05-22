@@ -1,4 +1,4 @@
-module Fuzz.Internal exposing (Fuzzer, Valid, ValidFuzzer, combineValid, invalidReason, map)
+module Fuzz.Internal exposing (Fuzzer, map)
 
 import Lazy
 import Lazy.List exposing (LazyList)
@@ -7,33 +7,12 @@ import RoseTree exposing (RoseTree(..))
 
 
 type alias Fuzzer a =
-    Valid (ValidFuzzer a)
-
-
-type alias Valid a =
-    Result String a
-
-
-type alias ValidFuzzer a =
     Generator (RoseTree a)
-
-
-combineValid : List (Valid a) -> Valid (List a)
-combineValid valids =
-    case valids of
-        [] ->
-            Ok []
-
-        (Ok x) :: rest ->
-            Result.map ((::) x) (combineValid rest)
-
-        (Err reason) :: _ ->
-            Err reason
 
 
 map : (a -> b) -> Fuzzer a -> Fuzzer b
 map fn fuzzer =
-    (Result.map << Random.map << RoseTree.map) fn fuzzer
+    (Random.map << RoseTree.map) fn fuzzer
 
 
 sequenceRoseTree : RoseTree (Generator a) -> Generator (RoseTree a)
@@ -64,23 +43,3 @@ runAll xs seed =
                             Random.step firstGenerator seed
                     in
                     Lazy.List.Cons x (runAll rest newSeed)
-
-
-getValid : Valid a -> Maybe a
-getValid valid =
-    case valid of
-        Ok x ->
-            Just x
-
-        Err _ ->
-            Nothing
-
-
-invalidReason : Valid a -> Maybe String
-invalidReason valid =
-    case valid of
-        Ok _ ->
-            Nothing
-
-        Err reason ->
-            Just reason

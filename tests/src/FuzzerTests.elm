@@ -32,7 +32,7 @@ fuzzerTests =
             "intRange"
             (Expect.greaterThan 0)
         , fuzz
-            (frequency [ ( 1, intRange 1 6 ), ( 1, intRange 1 20 ) ])
+            (frequency ( 1, intRange 1 6 ) [ ( 1, intRange 1 20 ) ])
             "Fuzz.frequency"
             (Expect.greaterThan 0)
         , fuzz (result string int) "Fuzz.result" <| \r -> Expect.pass
@@ -54,17 +54,17 @@ fuzzerTests =
                                     ( tuple3
                                         ( percentage
                                         , map2 (+) int int
-                                        , frequency [ ( 1, constant True ), ( 3, constant False ) ]
+                                        , frequency ( 1, constant True ) [ ( 3, constant False ) ]
                                         )
                                     , tuple3 ( intRange 0 100, floatRange -51 pi, map abs int )
                                     )
                                 )
 
                         valNoShrink =
-                            aFuzzer |> Result.map (Random.map RoseTree.root >> step >> Tuple.first)
+                            aFuzzer |> (Random.map RoseTree.root >> step >> Tuple.first)
 
                         valWithShrink =
-                            aFuzzer |> Result.map (step >> Tuple.first >> RoseTree.root)
+                            aFuzzer |> (step >> Tuple.first >> RoseTree.root)
                     in
                     Expect.equal valNoShrink valWithShrink
             , shrinkingTests
@@ -111,6 +111,13 @@ type alias ShrinkResult a =
     Maybe ( a, Test.Runner.Shrinkable a )
 
 
+initialShrinkResult : Fuzzer a -> Random.Seed -> ShrinkResult a
+initialShrinkResult fuzzer seed =
+    Random.step (Test.Runner.fuzz fuzzer) seed
+        |> Tuple.first
+        |> Just
+
+
 manualFuzzerTests : Test
 manualFuzzerTests =
     describe "Test.Runner.{fuzz, shrink}"
@@ -133,9 +140,7 @@ manualFuzzerTests =
                         (n |> modBy 2) == 0
 
                     pair =
-                        Random.step (Test.Runner.fuzz fuzzer) seed
-                            |> Tuple.first
-                            |> Just
+                        initialShrinkResult fuzzer seed
 
                     unfold acc maybePair =
                         case maybePair of
@@ -168,9 +173,7 @@ manualFuzzerTests =
                         String.contains "e"
 
                     pair =
-                        Random.step (Test.Runner.fuzz fuzzer) seed
-                            |> Tuple.first
-                            |> Just
+                        initialShrinkResult fuzzer seed
 
                     unfold acc maybePair =
                         case maybePair of
@@ -203,9 +206,7 @@ manualFuzzerTests =
 
                     initialShrink : ShrinkResult (List Int)
                     initialShrink =
-                        Random.step (Test.Runner.fuzz fuzzer) seed
-                            |> Tuple.first
-                            |> Just
+                        initialShrinkResult fuzzer seed
 
                     shrink : Maybe (List Int) -> ShrinkResult (List Int) -> Maybe (List Int)
                     shrink shrunken lastShrink =

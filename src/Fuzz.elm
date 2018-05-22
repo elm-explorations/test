@@ -1,4 +1,4 @@
-module Fuzz exposing (Fuzzer, andMap, array, bool, char, constant, custom, float, floatRange, frequency, int, intRange, invalid, list, map, map2, map3, map4, map5, maybe, oneOf, order, percentage, result, string, tuple, tuple3, unit)
+module Fuzz exposing (Fuzzer, andMap, array, bool, char, constant, custom, float, floatRange, frequency, int, intRange, list, map, map2, map3, map4, map5, maybe, oneOf, order, percentage, result, string, tuple, tuple3, unit)
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
 tests. You can typically pick out which ones you need according to their types.
@@ -37,14 +37,7 @@ Instead of using a tuple, consider using `fuzzN`.
 
 import Array exposing (Array)
 import Char
-import Fuzz.Internal as Internal
-    exposing
-        ( Fuzzer
-        , Valid
-        , ValidFuzzer
-        , combineValid
-        , invalidReason
-        )
+import Fuzz.Internal as Internal exposing (Fuzzer)
 import Lazy
 import Lazy.List exposing (LazyList, append)
 import MicroRandomExtra as Random
@@ -118,8 +111,7 @@ custom generator shrinker =
         shrinkTree a =
             Rose a (Lazy.lazy <| \_ -> Lazy.force <| Lazy.List.map shrinkTree (shrinker a))
     in
-    Ok <|
-        Random.map shrinkTree generator
+    Random.map shrinkTree generator
 
 
 {-| A fuzzer for the unit value. Unit is a type with only one value, commonly
@@ -129,7 +121,6 @@ unit : Fuzzer ()
 unit =
     RoseTree.singleton ()
         |> Random.constant
-        |> Ok
 
 
 {-| A fuzzer for bool values.
@@ -188,7 +179,7 @@ the ints x or bigger.
 intRange : Int -> Int -> Fuzzer Int
 intRange lo hi =
     if hi < lo then
-        Err <| "Fuzz.intRange was given a lower bound of " ++ String.fromInt lo ++ " which is greater than the upper bound, " ++ String.fromInt hi ++ "."
+        intRange hi lo
 
     else
         custom
@@ -228,7 +219,7 @@ value, inclusive. Shrunken values will also be within the range.
 floatRange : Float -> Float -> Fuzzer Float
 floatRange lo hi =
     if hi < lo then
-        Err <| "Fuzz.floatRange was given a lower bound of " ++ String.fromFloat lo ++ " which is greater than the upper bound, " ++ String.fromFloat hi ++ "."
+        floatRange hi lo
 
     else
         custom
@@ -320,7 +311,7 @@ maybe fuzzer =
             else
                 RoseTree.map Just tree |> RoseTree.addChild (RoseTree.singleton Nothing)
     in
-    (Result.map << Random.map2 toMaybe) (Random.oneIn 4) fuzzer
+    Random.map2 toMaybe (Random.oneIn 4) fuzzer
 
 
 {-| Given fuzzers for an error type and a success type, create a fuzzer for
@@ -337,7 +328,7 @@ result fuzzerError fuzzerValue =
             else
                 RoseTree.map Ok valueTree
     in
-    (Result.map2 <| Random.map3 toResult (Random.oneIn 4)) fuzzerError fuzzerValue
+    Random.map3 toResult (Random.oneIn 4) fuzzerError fuzzerValue
 
 
 {-| Given a fuzzer of a type, create a fuzzer of a list of that type.
@@ -355,13 +346,9 @@ list fuzzer =
                 , ( 0.5, Random.int 100 400 )
                 ]
     in
-    fuzzer
-        |> Result.map
-            (\validFuzzer ->
-                genLength
-                    |> Random.andThen (\a -> Random.list a validFuzzer)
-                    |> Random.map listShrinkHelp
-            )
+    genLength
+        |> Random.andThen (\a -> Random.list a fuzzer)
+        |> Random.map listShrinkHelp
 
 
 listShrinkHelp : List (RoseTree a) -> RoseTree (List a)
@@ -477,7 +464,7 @@ and so this function is best used as a helper when creating more complicated fuz
 -}
 constant : a -> Fuzzer a
 constant x =
-    Ok <| Random.constant (RoseTree.singleton x)
+    Random.constant (RoseTree.singleton x)
 
 
 {-| Map a function over a fuzzer. This applies to both the generated and the shrunken values.
@@ -491,28 +478,28 @@ map =
 -}
 map2 : (a -> b -> c) -> Fuzzer a -> Fuzzer b -> Fuzzer c
 map2 transform fuzzA fuzzB =
-    (Result.map2 << Random.map2 << map2RoseTree) transform fuzzA fuzzB
+    (Random.map2 << map2RoseTree) transform fuzzA fuzzB
 
 
 {-| Map over three fuzzers.
 -}
 map3 : (a -> b -> c -> d) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d
 map3 transform fuzzA fuzzB fuzzC =
-    (Result.map3 << Random.map3 << map3RoseTree) transform fuzzA fuzzB fuzzC
+    (Random.map3 << map3RoseTree) transform fuzzA fuzzB fuzzC
 
 
 {-| Map over four fuzzers.
 -}
 map4 : (a -> b -> c -> d -> e) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e
 map4 transform fuzzA fuzzB fuzzC fuzzD =
-    (Result.map4 << Random.map4 << map4RoseTree) transform fuzzA fuzzB fuzzC fuzzD
+    (Random.map4 << map4RoseTree) transform fuzzA fuzzB fuzzC fuzzD
 
 
 {-| Map over five fuzzers.
 -}
 map5 : (a -> b -> c -> d -> e -> f) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f
 map5 transform fuzzA fuzzB fuzzC fuzzD fuzzE =
-    (Result.map5 << Random.map5 << map5RoseTree) transform fuzzA fuzzB fuzzC fuzzD fuzzE
+    (Random.map5 << map5RoseTree) transform fuzzA fuzzB fuzzC fuzzD fuzzE
 
 
 {-| Map over many fuzzers. This can act as mapN for N > 5.
@@ -534,8 +521,8 @@ between -1 and -100, and a 3/4 chance of generating one between 1 and 100,
 you could do this:
 
     Fuzz.frequency
-    [ ( 1, Fuzz.intRange -100 -1 )
-    , ( 3, Fuzz.intRange 1 100 )
+    ( 1, Fuzz.intRange -100 -1 )
+    [ ( 3, Fuzz.intRange 1 100 )
     ]
 
 There are a few circumstances in which this function will return an invalid
@@ -561,69 +548,30 @@ so:
 
         else
             Fuzz.frequency
-                [ ( 1, Fuzz.constant Leaf )
-                , ( 2, Fuzz.map2 Branch (tree (i - 1)) (tree (i - 1)) )
+                ( 1, Fuzz.constant Leaf )
+                [ ( 2, Fuzz.map2 Branch (tree (i - 1)) (tree (i - 1)) )
                 ]
 
 -}
-frequency : List ( Float, Fuzzer a ) -> Fuzzer a
-frequency aList =
-    if List.isEmpty aList then
-        invalid "You must provide at least one frequency pair."
-
-    else if List.any (\( weight, _ ) -> weight < 0) aList then
-        invalid "No frequency weights can be less than 0."
-
-    else if List.sum (List.map Tuple.first aList) <= 0 then
-        invalid "Frequency weights must sum to more than 0."
-
-    else
-        let
-            toRandom validList =
-                case validList of
-                    [] ->
-                        invalid "You must provide at least one frequency pair."
-
-                    first :: rest ->
-                        Ok (Random.frequency first rest)
-        in
-        aList
-            |> List.map extractValid
-            |> combineValid
-            |> Result.andThen toRandom
-
-
-extractValid : ( a, Valid b ) -> Valid ( a, b )
-extractValid ( a, valid ) =
-    Result.map (\b -> ( a, b )) valid
+frequency : ( Float, Fuzzer a ) -> List ( Float, Fuzzer a ) -> Fuzzer a
+frequency first rest =
+    Random.frequency first rest
 
 
 {-| Choose one of the given fuzzers at random. Each fuzzer has an equal chance
 of being chosen; to customize the probabilities, use [`frequency`](#frequency).
 
     Fuzz.oneOf
-        [ Fuzz.intRange 0 3
-        , Fuzz.intRange 7 9
+        (Fuzz.intRange 0 3)
+        [ Fuzz.intRange 7 9
         ]
 
 -}
-oneOf : List (Fuzzer a) -> Fuzzer a
-oneOf aList =
-    if List.isEmpty aList then
-        invalid "You must pass at least one Fuzzer to Fuzz.oneOf."
-
-    else
-        aList
-            |> List.map (\fuzzer -> ( 1, fuzzer ))
-            |> frequency
-
-
-{-| A fuzzer that is invalid for the provided reason. Any fuzzers built with it
-are also invalid. Any tests using an invalid fuzzer fail.
--}
-invalid : String -> Fuzzer a
-invalid reason =
-    Err reason
+oneOf : Fuzzer a -> List (Fuzzer a) -> Fuzzer a
+oneOf first rest =
+    frequency
+        ( 1, first )
+        (rest |> List.map (\fuzzer -> ( 1, fuzzer )))
 
 
 map2RoseTree : (a -> b -> c) -> RoseTree a -> RoseTree b -> RoseTree c
