@@ -168,8 +168,8 @@ int =
     let
         generator =
             Random.frequency
-                [ ( 3, Random.int -50 50 )
-                , ( 0.2, Random.constant 0 )
+                ( 3, Random.int -50 50 )
+                [ ( 0.2, Random.constant 0 )
                 , ( 1, Random.int 0 (Random.maxInt - Random.minInt) )
                 , ( 1, Random.int (Random.minInt - Random.maxInt) 0 )
                 ]
@@ -193,8 +193,8 @@ intRange lo hi =
     else
         custom
             (Random.frequency
-                [ ( 8, Random.int lo hi )
-                , ( 1, Random.constant lo )
+                ( 8, Random.int lo hi )
+                [ ( 1, Random.constant lo )
                 , ( 1, Random.constant hi )
                 ]
             )
@@ -212,8 +212,8 @@ float =
     let
         generator =
             Random.frequency
-                [ ( 3, Random.float -50 50 )
-                , ( 0.5, Random.constant 0 )
+                ( 3, Random.float -50 50 )
+                [ ( 0.5, Random.constant 0 )
                 , ( 1, Random.float -1 1 )
                 , ( 1, Random.float 0 (toFloat <| Random.maxInt - Random.minInt) )
                 , ( 1, Random.float (toFloat <| Random.minInt - Random.maxInt) 0 )
@@ -233,8 +233,8 @@ floatRange lo hi =
     else
         custom
             (Random.frequency
-                [ ( 8, Random.float lo hi )
-                , ( 1, Random.constant lo )
+                ( 8, Random.float lo hi )
+                [ ( 1, Random.constant lo )
                 , ( 1, Random.constant hi )
                 ]
             )
@@ -249,8 +249,8 @@ percentage =
     let
         generator =
             Random.frequency
-                [ ( 8, Random.float 0 1 )
-                , ( 1, Random.constant 0 )
+                ( 8, Random.float 0 1 )
+                [ ( 1, Random.constant 0 )
                 , ( 1, Random.constant 1 )
                 ]
     in
@@ -286,8 +286,8 @@ string =
         asciiGenerator : Generator String
         asciiGenerator =
             Random.frequency
-                [ ( 3, Random.int 1 10 )
-                , ( 0.2, Random.constant 0 )
+                ( 3, Random.int 1 10 )
+                [ ( 0.2, Random.constant 0 )
                 , ( 1, Random.int 11 50 )
                 , ( 1, Random.int 50 1000 )
                 ]
@@ -300,8 +300,8 @@ string =
     in
     custom
         (Random.frequency
-            [ ( 9, asciiGenerator )
-            , ( 1, whitespaceGenerator )
+            ( 9, asciiGenerator )
+            [ ( 1, whitespaceGenerator )
             ]
         )
         Shrink.string
@@ -348,8 +348,8 @@ list fuzzer =
     let
         genLength =
             Random.frequency
-                [ ( 1, Random.constant 0 )
-                , ( 1, Random.constant 1 )
+                ( 1, Random.constant 0 )
+                [ ( 1, Random.constant 1 )
                 , ( 3, Random.int 2 10 )
                 , ( 2, Random.int 10 100 )
                 , ( 0.5, Random.int 100 400 )
@@ -578,10 +578,19 @@ frequency aList =
         invalid "Frequency weights must sum to more than 0."
 
     else
+        let
+            toRandom validList =
+                case validList of
+                    [] ->
+                        invalid "You must provide at least one frequency pair."
+
+                    first :: rest ->
+                        Ok (Random.frequency first rest)
+        in
         aList
             |> List.map extractValid
             |> combineValid
-            |> Result.map Random.frequency
+            |> Result.andThen toRandom
 
 
 extractValid : ( a, Valid b ) -> Valid ( a, b )
