@@ -36,52 +36,6 @@ fuzzerTests =
             "Fuzz.frequency"
             (Expect.greaterThan 0)
         , fuzz (result string int) "Fuzz.result" <| \r -> Expect.pass
-        , fuzz
-            (map2 (\a b -> ( a, b )) die die
-                |> conditional
-                    { retries = 10
-                    , fallback = \( a, b ) -> ( a, (b + 1) |> modBy 6 )
-                    , condition = \( a, b ) -> a /= b
-                    }
-            )
-            "conditional: reroll dice until they are not equal"
-          <|
-            \( roll1, roll2 ) ->
-                roll1 |> Expect.notEqual roll2
-        , fuzz randomSeedFuzzer "conditional: shrunken values all pass condition" <|
-            \seed ->
-                let
-                    evenInt : Fuzzer Int
-                    evenInt =
-                        Fuzz.intRange 0 10
-                            |> Fuzz.conditional
-                                { retries = 3
-                                , fallback = (+) 1
-                                , condition = even
-                                }
-
-                    even : Int -> Bool
-                    even n =
-                        (n |> modBy 2) == 0
-
-                    testShrinkable : Test.Runner.Shrinkable Int -> Expect.Expectation
-                    testShrinkable shrinkable =
-                        case Test.Runner.shrink False shrinkable of
-                            Nothing ->
-                                Expect.pass
-
-                            Just ( value, next ) ->
-                                if even value then
-                                    testShrinkable next
-
-                                else
-                                    Expect.fail <| "Shrunken value does not pass conditional: " ++ Internal.toString value
-                in
-                Test.Runner.fuzz evenInt
-                    |> (\a -> Random.step a seed)
-                    |> Tuple.first
-                    |> Tuple.second
-                    |> testShrinkable
         , describe "Whitebox testing using Fuzz.Internal"
             [ fuzz randomSeedFuzzer "the same value is generated with and without shrinking" <|
                 \seed ->
