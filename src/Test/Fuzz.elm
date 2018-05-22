@@ -4,10 +4,10 @@ import Dict exposing (Dict)
 import Fuzz exposing (Fuzzer)
 import Fuzz.Internal exposing (ValidFuzzer)
 import Lazy.List
-import Random.Pcg as Random exposing (Generator)
+import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
 import Test.Expectation exposing (Expectation(..))
-import Test.Internal exposing (Test(..), blankDescriptionFailure, failNow)
+import Test.Internal as Internal exposing (Test(..), blankDescriptionFailure, failNow)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -21,6 +21,7 @@ fuzzTest fuzzer untrimmedDesc getExpectation =
     in
     if String.isEmpty desc then
         blankDescriptionFailure
+
     else
         case fuzzer of
             Err reason ->
@@ -47,6 +48,7 @@ validatedFuzzTest fuzzer desc getExpectation =
             -- Make sure if we passed, we don't do any more work.
             if Dict.isEmpty failures then
                 [ Pass ]
+
             else
                 failures
                     |> Dict.toList
@@ -88,6 +90,7 @@ getFailures fuzzer getExpectation initialSeed totalRuns =
             in
             if remainingRuns <= 1 then
                 newFailures
+
             else
                 helper nextSeed (remainingRuns - 1) newFailures
     in
@@ -150,13 +153,10 @@ shrinkAndAdd rootTree getExpectation rootsExpectation failures =
                 Nothing ->
                     ( failingValue, oldExpectation )
 
-        (Rose failingValue _) =
-            rootTree
-
-        ( minimalValue, finalExpectation ) =
+        ( rootMinimalValue, rootFinalExpectation ) =
             shrink rootsExpectation rootTree
     in
-    Dict.insert (toString minimalValue) finalExpectation failures
+    Dict.insert (Internal.toString rootMinimalValue) rootFinalExpectation failures
 
 
 formatExpectation : ( String, Expectation ) -> Expectation

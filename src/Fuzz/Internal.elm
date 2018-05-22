@@ -1,9 +1,9 @@
 module Fuzz.Internal exposing (Fuzzer, Valid, ValidFuzzer, combineValid, invalidReason, map)
 
 import Lazy
-import Lazy.List exposing ((:::), LazyList)
-import Random.Pcg as Random exposing (Generator)
-import RoseTree exposing (RoseTree(Rose))
+import Lazy.List exposing (LazyList)
+import Random exposing (Generator)
+import RoseTree exposing (RoseTree(..))
 
 
 type alias Fuzzer a =

@@ -1,9 +1,10 @@
 module SeedTests exposing (fixedSeed, noAutoFail, tests)
 
-import Expect exposing (FloatingPointTolerance(Absolute, AbsoluteOrRelative, Relative))
+import Expect exposing (FloatingPointTolerance(..))
 import Fuzz exposing (..)
-import Random.Pcg as Random
+import Random
 import Test exposing (..)
+
 
 
 -- NOTE: These tests are only here so that we can watch out for regressions. All constants in this file are what the implementation happened to output, not what we expected the implementation to output.
@@ -11,12 +12,12 @@ import Test exposing (..)
 
 expectedNum : Int
 expectedNum =
-    -3954212174
+    20
 
 
 oneSeedAlreadyDistributed : Int
 oneSeedAlreadyDistributed =
-    198384431
+    590423180
 
 
 fixedSeed : Random.Seed
@@ -94,19 +95,19 @@ tests =
     , Test.concat
         [ fuzz int "top-level fuzz tests don't affect subsequent top-level fuzz tests, since they use their labels to get different seeds" <|
             \num ->
-                Expect.equal num 409469537
+                Expect.equal num -8
         , describe "Seed test"
             [ fuzzTest ]
         , describe "another top-level fuzz test"
             [ fuzz int "it still gets different values, due to computing the seed as a hash of the label, and these labels must be unique" <|
                 \num ->
-                    Expect.equal num 0
+                    Expect.equal num -1079557009
             ]
         ]
     , describe "Fuzz tests with different outer describe texts get different seeds"
         [ fuzz int "It receives the expected number" <|
             \num ->
-                Expect.equal num 2049737128
+                Expect.equal num 3556635839
         ]
     ]
 

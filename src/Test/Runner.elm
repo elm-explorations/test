@@ -46,8 +46,8 @@ import Char
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Lazy.List as LazyList exposing (LazyList)
-import Random.Pcg as Random
-import RoseTree exposing (RoseTree(Rose))
+import Random
+import RoseTree exposing (RoseTree(..))
 import String
 import Test exposing (Test)
 import Test.Expectation
@@ -95,7 +95,8 @@ your Elm code; it's easy and makes your tests reproducible.
 fromTest : Int -> Random.Seed -> Test -> SeededRunners
 fromTest runs seed test =
     if runs < 1 then
-        Invalid ("Test runner run count must be at least 1, not " ++ toString runs)
+        Invalid ("Test runner run count must be at least 1, not " ++ String.fromInt runs)
+
     else
         let
             distribution =
@@ -106,10 +107,12 @@ fromTest runs seed test =
                 distribution.all
                     |> List.concatMap fromRunnableTree
                     |> Plain
+
             else
                 distribution.all
                     |> List.concatMap fromRunnableTree
                     |> Skipping
+
         else
             distribution.only
                 |> List.concatMap fromRunnableTree
@@ -227,20 +230,20 @@ distributeSeeds =
 distributeSeedsHelp : Bool -> Int -> Random.Seed -> Test -> Distribution
 distributeSeedsHelp hashed runs seed test =
     case test of
-        Internal.UnitTest run ->
+        Internal.UnitTest aRun ->
             { seed = seed
-            , all = [ Runnable (Thunk (\_ -> run ())) ]
+            , all = [ Runnable (Thunk (\_ -> aRun ())) ]
             , only = []
             , skipped = []
             }
 
-        Internal.FuzzTest run ->
+        Internal.FuzzTest aRun ->
             let
                 ( firstSeed, nextSeed ) =
                     Random.step Random.independentSeed seed
             in
             { seed = nextSeed
-            , all = [ Runnable (Thunk (\_ -> run firstSeed runs)) ]
+            , all = [ Runnable (Thunk (\_ -> aRun firstSeed runs)) ]
             , only = []
             , skipped = []
             }
@@ -261,6 +264,7 @@ distributeSeedsHelp hashed runs seed test =
                 , only = List.map (Labeled description) next.only
                 , skipped = List.map (Labeled description) next.skipped
                 }
+
             else
                 let
                     intFromSeed =
@@ -505,7 +509,7 @@ fuzz fuzzer =
                     )
 
         Err reason ->
-            Debug.crash <| "Cannot call `fuzz` with an invalid fuzzer: " ++ reason
+            Debug.todo <| "Cannot call `fuzz` with an invalid fuzzer: " ++ reason
 
 
 {-| Given a Shrinkable, attempt to shrink the value further. Pass `False` to
@@ -521,6 +525,7 @@ shrink causedPass (Shrinkable { down, over }) =
         tryNext =
             if causedPass then
                 over
+
             else
                 down
     in

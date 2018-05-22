@@ -12,7 +12,7 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 -}
 
 import Expect exposing (Expectation)
-import Random.Pcg as Random
+import Random
 import Runner.String.Format
 import Test exposing (Test)
 import Test.Runner exposing (Runner, SeededRunners(..))
@@ -29,7 +29,7 @@ toOutput : Summary -> SeededRunners -> Summary
 toOutput summary seededRunners =
     let
         render =
-            List.foldl (toOutputHelp [])
+            List.foldl toOutputHelp
     in
     case seededRunners of
         Plain runners ->
@@ -45,14 +45,14 @@ toOutput summary seededRunners =
             { output = message, passed = 0, failed = 0, autoFail = Nothing }
 
 
-toOutputHelp : List String -> Runner -> Summary -> Summary
-toOutputHelp labels runner summary =
+toOutputHelp : Runner -> Summary -> Summary
+toOutputHelp runner summary =
     runner.run ()
-        |> List.foldl fromExpectation summary
+        |> List.foldl (fromExpectation runner.labels) summary
 
 
-fromExpectation : Expectation -> Summary -> Summary
-fromExpectation expectation summary =
+fromExpectation : List String -> Expectation -> Summary -> Summary
+fromExpectation labels expectation summary =
     case Test.Runner.getFailureReason expectation of
         Nothing ->
             { summary | passed = summary.passed + 1 }
@@ -71,7 +71,7 @@ fromExpectation expectation summary =
                             "Given " ++ g ++ "\n\n"
 
                 newOutput =
-                    "\n\n" ++ (prefix ++ indentLines message) ++ "\n"
+                    "\n\n" ++ outputLabels labels ++ "\n" ++ (prefix ++ indentLines message) ++ "\n"
             in
             { summary
                 | output = summary.output ++ newOutput
