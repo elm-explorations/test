@@ -467,16 +467,11 @@ Shrinkable. The value is what a fuzz test would have received as input.
 -}
 fuzz : Fuzzer a -> Random.Generator ( a, Shrinkable a )
 fuzz fuzzer =
-    case fuzzer of
-        Ok validFuzzer ->
-            validFuzzer
-                |> Random.map
-                    (\(Rose root children) ->
-                        ( root, Shrinkable { down = children, over = LazyList.empty } )
-                    )
-
-        Err reason ->
-            Debug.todo <| "Cannot call `fuzz` with an invalid fuzzer: " ++ reason
+    fuzzer
+        |> Random.map
+            (\(Rose root children) ->
+                ( root, Shrinkable { down = children, over = LazyList.empty } )
+            )
 
 
 {-| Given a Shrinkable, attempt to shrink the value further. Pass `False` to

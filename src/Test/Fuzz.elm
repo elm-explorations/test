@@ -2,7 +2,6 @@ module Test.Fuzz exposing (fuzzTest)
 
 import Dict exposing (Dict)
 import Fuzz exposing (Fuzzer)
-import Fuzz.Internal exposing (ValidFuzzer)
 import Lazy.List
 import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
@@ -11,7 +10,7 @@ import Test.Internal as Internal exposing (Test(..), blankDescriptionFailure, fa
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
-{-| Reject always-failing tests because of bad names or invalid fuzzers.
+{-| Reject always-failing tests because of bad names
 -}
 fuzzTest : Fuzzer a -> String -> (a -> Expectation) -> Test
 fuzzTest fuzzer untrimmedDesc getExpectation =
@@ -23,21 +22,12 @@ fuzzTest fuzzer untrimmedDesc getExpectation =
         blankDescriptionFailure
 
     else
-        case fuzzer of
-            Err reason ->
-                failNow
-                    { description = reason
-                    , reason = Invalid InvalidFuzzer
-                    }
-
-            Ok validFuzzer ->
-                -- Preliminary checks passed; run the fuzz test
-                validatedFuzzTest validFuzzer desc getExpectation
+        validatedFuzzTest fuzzer desc getExpectation
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : ValidFuzzer a -> String -> (a -> Expectation) -> Test
+validatedFuzzTest : Fuzzer a -> String -> (a -> Expectation) -> Test
 validatedFuzzTest fuzzer desc getExpectation =
     let
         run seed runs =
@@ -61,7 +51,7 @@ type alias Failures =
     Dict String Expectation
 
 
-getFailures : ValidFuzzer a -> (a -> Expectation) -> Random.Seed -> Int -> Dict String Expectation
+getFailures : Fuzzer a -> (a -> Expectation) -> Random.Seed -> Int -> Dict String Expectation
 getFailures fuzzer getExpectation initialSeed totalRuns =
     {- Fuzz test algorithm with memoization and opt-in RoseTrees:
        Generate a single value from the fuzzer's genVal random generator
@@ -100,7 +90,7 @@ getFailures fuzzer getExpectation initialSeed totalRuns =
 {-| Knowing that a value in not in the cache, determine if it causes the test to pass or fail.
 -}
 findNewFailure :
-    ValidFuzzer a
+    Fuzzer a
     -> (a -> Expectation)
     -> Failures
     -> Random.Seed
