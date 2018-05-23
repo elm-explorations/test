@@ -42,22 +42,22 @@ oneIn n =
     map ((==) 1) (int 1 n)
 
 
-frequency : List ( Float, Generator a ) -> Generator a
-frequency pairs =
+frequency : ( Float, Generator a ) -> List ( Float, Generator a ) -> Generator a
+frequency firstPair restPairs =
     let
         total =
-            List.sum <| List.map (abs << Tuple.first) pairs
+            List.sum <| List.map (abs << Tuple.first) (firstPair :: restPairs)
 
-        pick choices n =
-            case choices of
-                ( k, g ) :: rest ->
-                    if n <= k then
+        pick ( k, g ) restChoices n =
+            if n <= k then
+                g
+
+            else
+                case restChoices of
+                    [] ->
                         g
 
-                    else
-                        pick rest (n - k)
-
-                _ ->
-                    Debug.todo "Empty list passed to Random.Extra.frequency!"
+                    next :: rest ->
+                        pick next rest (n - k)
     in
-    float 0 total |> andThen (pick pairs)
+    float 0 total |> andThen (pick firstPair restPairs)

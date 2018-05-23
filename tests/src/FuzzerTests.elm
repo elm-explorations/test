@@ -111,6 +111,18 @@ type alias ShrinkResult a =
     Maybe ( a, Test.Runner.Shrinkable a )
 
 
+initialShrinkResult : Fuzzer a -> Random.Seed -> ShrinkResult a
+initialShrinkResult fuzzer seed =
+    case Test.Runner.fuzz fuzzer of
+        Ok generator ->
+            Random.step generator seed
+                |> Tuple.first
+                |> Just
+
+        Err _ ->
+            Nothing
+
+
 manualFuzzerTests : Test
 manualFuzzerTests =
     describe "Test.Runner.{fuzz, shrink}"
@@ -133,9 +145,7 @@ manualFuzzerTests =
                         (n |> modBy 2) == 0
 
                     pair =
-                        Random.step (Test.Runner.fuzz fuzzer) seed
-                            |> Tuple.first
-                            |> Just
+                        initialShrinkResult fuzzer seed
 
                     unfold acc maybePair =
                         case maybePair of
@@ -168,9 +178,7 @@ manualFuzzerTests =
                         String.contains "e"
 
                     pair =
-                        Random.step (Test.Runner.fuzz fuzzer) seed
-                            |> Tuple.first
-                            |> Just
+                        initialShrinkResult fuzzer seed
 
                     unfold acc maybePair =
                         case maybePair of
@@ -203,9 +211,7 @@ manualFuzzerTests =
 
                     initialShrink : ShrinkResult (List Int)
                     initialShrink =
-                        Random.step (Test.Runner.fuzz fuzzer) seed
-                            |> Tuple.first
-                            |> Just
+                        initialShrinkResult fuzzer seed
 
                     shrink : Maybe (List Int) -> ShrinkResult (List Int) -> Maybe (List Int)
                     shrink shrunken lastShrink =

@@ -465,7 +465,7 @@ type Shrinkable a
 {-| Given a fuzzer, return a random generator to produce a value and a
 Shrinkable. The value is what a fuzz test would have received as input.
 -}
-fuzz : Fuzzer a -> Random.Generator ( a, Shrinkable a )
+fuzz : Fuzzer a -> Result String (Random.Generator ( a, Shrinkable a ))
 fuzz fuzzer =
     case fuzzer of
         Ok validFuzzer ->
@@ -474,9 +474,10 @@ fuzz fuzzer =
                     (\(Rose root children) ->
                         ( root, Shrinkable { down = children, over = LazyList.empty } )
                     )
+                |> Ok
 
         Err reason ->
-            Debug.todo <| "Cannot call `fuzz` with an invalid fuzzer: " ++ reason
+            Err <| "Cannot call `fuzz` with an invalid fuzzer: " ++ reason
 
 
 {-| Given a Shrinkable, attempt to shrink the value further. Pass `False` to
