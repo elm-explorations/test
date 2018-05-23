@@ -42,6 +42,7 @@ These functions give you the ability to run fuzzers separate of running fuzz tes
 
 import Bitwise
 import Char
+import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Lazy.List as LazyList exposing (LazyList)
@@ -138,7 +139,12 @@ countRunnables runnable =
 
 run : Runnable -> List Expectation
 run (Thunk fn) =
-    fn ()
+    runThunk fn
+
+
+runThunk : (() -> List Expectation) -> List Expectation
+runThunk =
+    Elm.Kernel.Test.runThunk
 
 
 fromRunnableTree : RunnableTree -> List Runner
