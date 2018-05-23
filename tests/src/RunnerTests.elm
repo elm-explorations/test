@@ -6,6 +6,7 @@ import Helpers exposing (expectPass)
 import Random
 import Test exposing (..)
 import Test.Runner exposing (SeededRunners(..))
+import Test.Runner.Failure
 
 
 all : Test
@@ -186,6 +187,28 @@ fromTest =
                             runners
                                 |> List.length
                                 |> Expect.equal 1
+
+                        val ->
+                            Expect.fail ("Expected SeededRunner to be Plain, but was " ++ Debug.toString val)
+            ]
+        , describe "catching exceptions"
+            [ test "when a test raises an exception, it is turned into a failure" <|
+                \() ->
+                    case toSeededRunners (test "crashes" <| \() -> Debug.todo "crash") of
+                        Plain [ runner ] ->
+                            runner.run ()
+                                |> List.head
+                                |> Maybe.andThen Test.Runner.getFailureReason
+                                |> Expect.equal
+                                    (Just
+                                        { given = Nothing
+                                        , description = "This test failed because it threw an exception: \"Error: TODO in module `RunnerTests` on line 197\n\ncrash\""
+                                        , reason = Test.Runner.Failure.Custom
+                                        }
+                                    )
+
+                        Plain runners ->
+                            Expect.fail ("Expected SeededRunner to have one runner, but had " ++ Debug.toString runners)
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Plain, but was " ++ Debug.toString val)
