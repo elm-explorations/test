@@ -7,6 +7,7 @@ import Random
 import Test exposing (..)
 import Test.Internal as Internal
 import Test.Runner exposing (SeededRunners(..))
+import Test.Runner.Failure
 
 
 all : Test
@@ -187,6 +188,28 @@ fromTest =
                             runners
                                 |> List.length
                                 |> Expect.equal 1
+
+                        val ->
+                            Expect.fail ("Expected SeededRunner to be Plain, but was " ++ Internal.toString val)
+            ]
+        , describe "catching exceptions"
+            [ test "when a test raises an exception, it is turned into a failure" <|
+                \() ->
+                    case toSeededRunners (test "crashes" <| \() -> Debug.todo "crash") of
+                        Plain [ runner ] ->
+                            runner.run ()
+                                |> List.head
+                                |> Maybe.andThen Test.Runner.getFailureReason
+                                |> Expect.equal
+                                    (Just
+                                        { given = Nothing
+                                        , description = "TODO"
+                                        , reason = Test.Runner.Failure.TODO
+                                        }
+                                    )
+
+                        Plain runners ->
+                            Expect.fail ("Expected SeededRunner to have one runner, but had " ++ Internal.toString runners)
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Plain, but was " ++ Internal.toString val)
