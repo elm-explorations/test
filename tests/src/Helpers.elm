@@ -1,12 +1,13 @@
-module Helpers exposing (different, expectPass, expectToFail, randomSeedFuzzer, same, succeeded, testShrinking, testStringLengthIsPreserved)
+module Helpers exposing (different, expectPass, randomSeedFuzzer, same, succeeded, testStringLengthIsPreserved)
 
-import Expect
+-- import Test.Expectation exposing (Expectation(..))
+
+import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Random
 import Shrink
 import Test exposing (Test)
-import Test.Expectation exposing (Expectation(..))
-import Test.Internal as Internal
+import Test.Runner
 import Test.Runner.Failure exposing (Reason(..))
 
 
@@ -23,18 +24,23 @@ testStringLengthIsPreserved strings =
         |> Expect.equal (String.length (List.foldl (++) "" strings))
 
 
-expectToFail : Test -> Test
-expectToFail =
-    expectFailureHelper (always Nothing)
+
+-- expectToFail : Test -> Test
+-- expectToFail expectation =
+--     case Test.Runner.getFailureReason expectation of
+--         Nothing ->
+--             Expect.fail "Expected this test to fail, but it passed!"
+--         Just _ ->
+--             Expect.pass
 
 
 succeeded : Expectation -> Bool
 succeeded expectation =
-    case expectation of
-        Pass ->
+    case Test.Runner.getFailureReason expectation of
+        Nothing ->
             True
 
-        Fail _ ->
+        Just _ ->
             False
 
 
@@ -70,62 +76,54 @@ passToFail :
     -> Expectation
     -> Maybe String
 passToFail f expectation =
-    case expectation of
-        Pass ->
+    case Test.Runner.getFailureReason expectation of
+        Nothing ->
             Just "Expected this test to fail, but it passed!"
 
-        Fail record ->
+        Just record ->
             f record
 
 
-expectFailureHelper : ({ description : String, given : Maybe String, reason : Reason } -> Maybe String) -> Test -> Test
-expectFailureHelper f test =
-    case test of
-        Internal.UnitTest runTest ->
-            Internal.UnitTest <|
-                \() ->
-                    passesToFails f (runTest ())
 
-        Internal.FuzzTest runTest ->
-            Internal.FuzzTest <|
-                \seed runs ->
-                    passesToFails f (runTest seed runs)
-
-        Internal.Labeled desc labeledTest ->
-            Internal.Labeled desc (expectFailureHelper f labeledTest)
-
-        Internal.Batch tests ->
-            Internal.Batch (List.map (expectFailureHelper f) tests)
-
-        Internal.Skipped subTest ->
-            expectFailureHelper f subTest
-                |> Internal.Skipped
-
-        Internal.Only subTest ->
-            expectFailureHelper f subTest
-                |> Internal.Only
-
-
-testShrinking : Test -> Test
-testShrinking =
-    let
-        handleFailure { given, description } =
-            let
-                acceptable =
-                    String.split "|" description
-            in
-            case given of
-                Nothing ->
-                    Just "Expected this test to have a given value!"
-
-                Just g ->
-                    if List.member g acceptable then
-                        Nothing
-
-                    else
-                        Just <| "Got shrunken value " ++ g ++ " but expected " ++ String.join " or " acceptable
-    in
-    expectFailureHelper handleFailure
+-- expectFailureHelper : ({ description : String, given : Maybe String, reason : Reason } -> Maybe String) -> Test -> Test
+-- expectFailureHelper f test =
+--     case Test.Runner.getFailureReason test of
+--         Internal.UnitTest runTest ->
+--             Internal.UnitTest <|
+--                 \() ->
+--                     passesToFails f (runTest ())
+--         Internal.FuzzTest runTest ->
+--             Internal.FuzzTest <|
+--                 \seed runs ->
+--                     passesToFails f (runTest seed runs)
+--         Internal.Labeled desc labeledTest ->
+--             Internal.Labeled desc (expectFailureHelper f labeledTest)
+--         Internal.Batch tests ->
+--             Internal.Batch (List.map (expectFailureHelper f) tests)
+--         Internal.Skipped subTest ->
+--             expectFailureHelper f subTest
+--                 |> Internal.Skipped
+--         Internal.Only subTest ->
+--             expectFailureHelper f subTest
+--                 |> Internal.Only
+-- testShrinking : Test -> Test
+-- testShrinking =
+--     let
+--         handleFailure { given, description } =
+--             let
+--                 acceptable =
+--                     String.split "|" description
+--             in
+--             case given of
+--                 Nothing ->
+--                     Just "Expected this test to have a given value!"
+--                 Just g ->
+--                     if List.member g acceptable then
+--                         Nothing
+--                     else
+--                         Just <| "Got shrunken value " ++ g ++ " but expected " ++ String.join " or " acceptable
+--     in
+--     expectFailureHelper handleFailure
 
 
 {-| get a good distribution of random seeds, and don't shrink our seeds!
@@ -137,31 +135,31 @@ randomSeedFuzzer =
 
 same : Expectation -> Expectation -> Expectation
 same a b =
-    case ( a, b ) of
-        ( Test.Expectation.Pass, Test.Expectation.Pass ) ->
-            Test.Expectation.Pass
+    case ( Test.Runner.getFailureReason a, Test.Runner.getFailureReason b ) of
+        ( Nothing, Nothing ) ->
+            Expect.pass
 
-        ( Test.Expectation.Fail _, Test.Expectation.Fail _ ) ->
-            Test.Expectation.Pass
+        ( Just _, Just _ ) ->
+            Expect.pass
 
-        ( _, _ ) ->
-            Test.Expectation.fail
-                { description = "expected both arguments to fail, or both to succeed"
-                , reason = Equality (Internal.toString a) (Internal.toString b)
-                }
+        ( reasonA, reasonB ) ->
+            Expect.equal reasonA reasonB
+                |> Expect.onFail "expected both arguments to fail, or both to succeed"
 
 
 different : Expectation -> Expectation -> Expectation
 different a b =
-    case ( a, b ) of
-        ( Test.Expectation.Pass, Test.Expectation.Fail _ ) ->
-            Test.Expectation.Pass
+    case ( Test.Runner.getFailureReason a, Test.Runner.getFailureReason b ) of
+        ( Nothing, Just _ ) ->
+            Expect.pass
 
-        ( Test.Expectation.Fail _, Test.Expectation.Pass ) ->
-            Test.Expectation.Pass
+        ( Just _, Nothing ) ->
+            Expect.pass
 
-        ( _, _ ) ->
-            Test.Expectation.fail
-                { description = "expected one argument to fail"
-                , reason = Equality (Internal.toString a) (Internal.toString b)
-                }
+        ( Nothing, Nothing ) ->
+            Expect.fail "expected only one argument to fail, but both passed"
+
+        ( Just reasonA, Just reasonB ) ->
+            [ reasonA, reasonB ]
+                |> Expect.equal []
+                |> Expect.onFail "expected only one argument to fail"

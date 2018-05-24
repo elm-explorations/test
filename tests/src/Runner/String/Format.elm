@@ -1,7 +1,6 @@
 module Runner.String.Format exposing (format)
 
 import Diff exposing (Change(..))
-import Test.Internal as Internal
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -90,21 +89,21 @@ listDiffToString index description { expected, actual } originals =
             , "This should never happen!"
             , "Please report this bug to https://github.com/elm-community/elm-test/issues - and include these lists: "
             , "\n"
-            , Internal.toString originals.originalExpected
+            , Debug.toString originals.originalExpected
             , "\n"
-            , Internal.toString originals.originalActual
+            , Debug.toString originals.originalActual
             ]
                 |> String.join ""
 
         ( first :: _, [] ) ->
             verticalBar (description ++ " was shorter than")
-                (Internal.toString originals.originalExpected)
-                (Internal.toString originals.originalActual)
+                (Debug.toString originals.originalExpected)
+                (Debug.toString originals.originalActual)
 
         ( [], first :: _ ) ->
             verticalBar (description ++ " was longer than")
-                (Internal.toString originals.originalExpected)
-                (Internal.toString originals.originalActual)
+                (Debug.toString originals.originalExpected)
+                (Debug.toString originals.originalActual)
 
         ( firstExpected :: restExpected, firstActual :: restActual ) ->
             if firstExpected == firstActual then
@@ -120,10 +119,10 @@ listDiffToString index description { expected, actual } originals =
                 -- We found elements that differ; fail!
                 String.join ""
                     [ verticalBar description
-                        (Internal.toString originals.originalExpected)
-                        (Internal.toString originals.originalActual)
+                        (Debug.toString originals.originalExpected)
+                        (Debug.toString originals.originalActual)
                     , "\n\nThe first diff is at index "
-                    , Internal.toString index
+                    , Debug.toString index
                     , ": it was `"
                     , firstActual
                     , "`, but `"
