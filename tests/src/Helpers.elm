@@ -1,13 +1,11 @@
-module Helpers exposing (different, expectPass, randomSeedFuzzer, same, succeeded, testStringLengthIsPreserved)
-
--- import Test.Expectation exposing (Expectation(..))
+module Helpers exposing (different, expectPass, expectTestToFail, expectToFail, randomSeedFuzzer, same, succeeded, testShrinking, testStringLengthIsPreserved)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Random
 import Shrink
 import Test exposing (Test)
-import Test.Runner
+import Test.Runner exposing (Runner, SeededRunners)
 import Test.Runner.Failure exposing (Reason(..))
 
 
@@ -24,14 +22,30 @@ testStringLengthIsPreserved strings =
         |> Expect.equal (String.length (List.foldl (++) "" strings))
 
 
+expectToFail : Expectation -> Expectation
+expectToFail expectation =
+    case Test.Runner.getFailureReason expectation of
+        Nothing ->
+            Expect.fail "Expected this test to fail, but it passed!"
 
--- expectToFail : Test -> Test
--- expectToFail expectation =
---     case Test.Runner.getFailureReason expectation of
---         Nothing ->
---             Expect.fail "Expected this test to fail, but it passed!"
---         Just _ ->
---             Expect.pass
+        Just _ ->
+            Expect.pass
+
+
+expectTestToFail : Test -> Expectation
+expectTestToFail test =
+    let
+        seed =
+            Random.initialSeed 99
+    in
+    test
+        |> Test.Runner.fromTest 100 seed
+        |> getRunners
+        |> List.concatMap (.run >> (\run -> run ()))
+        |> List.map expectToFail
+        |> List.map always
+        |> Expect.all
+        |> (\all -> all ())
 
 
 succeeded : Expectation -> Bool
@@ -44,86 +58,93 @@ succeeded expectation =
             False
 
 
-passesToFails :
-    ({ reason : Reason
-     , description : String
-     , given : Maybe String
-     }
-     -> Maybe String
-    )
-    -> List Expectation
-    -> List Expectation
-passesToFails f expectations =
-    expectations
-        |> List.filterMap (passToFail f)
-        |> List.map Expect.fail
-        |> (\list ->
-                if List.isEmpty list then
-                    [ Expect.pass ]
-
-                else
-                    list
-           )
-
-
 passToFail :
     ({ reason : Reason
      , description : String
      , given : Maybe String
      }
-     -> Maybe String
+     -> Result String ()
     )
     -> Expectation
-    -> Maybe String
+    -> Expectation
 passToFail f expectation =
-    case Test.Runner.getFailureReason expectation of
-        Nothing ->
-            Just "Expected this test to fail, but it passed!"
+    let
+        result =
+            case Test.Runner.getFailureReason expectation of
+                Nothing ->
+                    Err "Expected this test to fail, but it passed!"
 
-        Just record ->
-            f record
+                Just record ->
+                    f record
+    in
+    case result of
+        Ok () ->
+            Expect.pass
+
+        Err message ->
+            Expect.fail message
 
 
+getRunners : SeededRunners -> List Runner
+getRunners seededRunners =
+    case seededRunners of
+        Test.Runner.Plain runners ->
+            runners
 
--- expectFailureHelper : ({ description : String, given : Maybe String, reason : Reason } -> Maybe String) -> Test -> Test
--- expectFailureHelper f test =
---     case Test.Runner.getFailureReason test of
---         Internal.UnitTest runTest ->
---             Internal.UnitTest <|
---                 \() ->
---                     passesToFails f (runTest ())
---         Internal.FuzzTest runTest ->
---             Internal.FuzzTest <|
---                 \seed runs ->
---                     passesToFails f (runTest seed runs)
---         Internal.Labeled desc labeledTest ->
---             Internal.Labeled desc (expectFailureHelper f labeledTest)
---         Internal.Batch tests ->
---             Internal.Batch (List.map (expectFailureHelper f) tests)
---         Internal.Skipped subTest ->
---             expectFailureHelper f subTest
---                 |> Internal.Skipped
---         Internal.Only subTest ->
---             expectFailureHelper f subTest
---                 |> Internal.Only
--- testShrinking : Test -> Test
--- testShrinking =
---     let
---         handleFailure { given, description } =
---             let
---                 acceptable =
---                     String.split "|" description
---             in
---             case given of
---                 Nothing ->
---                     Just "Expected this test to have a given value!"
---                 Just g ->
---                     if List.member g acceptable then
---                         Nothing
---                     else
---                         Just <| "Got shrunken value " ++ g ++ " but expected " ++ String.join " or " acceptable
---     in
---     expectFailureHelper handleFailure
+        Test.Runner.Only runners ->
+            runners
+
+        Test.Runner.Skipping runners ->
+            runners
+
+        Test.Runner.Invalid _ ->
+            []
+
+
+expectFailureHelper :
+    ({ description : String
+     , given : Maybe String
+     , reason : Reason
+     }
+     -> Result String ()
+    )
+    -> Test
+    -> Test
+expectFailureHelper f test =
+    let
+        seed =
+            Random.initialSeed 99
+    in
+    test
+        |> Test.Runner.fromTest 100 seed
+        |> getRunners
+        |> List.concatMap (.run >> (\run -> run ()))
+        |> List.map (passToFail f)
+        |> List.map (\result -> \() -> result)
+        |> List.indexedMap (\i t -> Test.test (String.fromInt i) t)
+        |> Test.describe "testShrinking"
+
+
+testShrinking : Test -> Test
+testShrinking =
+    let
+        handleFailure { given, description } =
+            let
+                acceptable =
+                    String.split "|" description
+            in
+            case given of
+                Nothing ->
+                    Err "Expected this test to have a given value!"
+
+                Just g ->
+                    if List.member g acceptable then
+                        Ok ()
+
+                    else
+                        Err <| "Got shrunken value " ++ g ++ " but expected " ++ String.join " or " acceptable
+    in
+    expectFailureHelper handleFailure
 
 
 {-| get a good distribution of random seeds, and don't shrink our seeds!

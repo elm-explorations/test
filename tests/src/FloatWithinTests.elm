@@ -21,20 +21,25 @@ floatWithinTests =
                 \radius ->
                     (radius * pi)
                         |> Expect.within (Relative 0.001) (radius * 3.14)
-
-            -- , expectToFail <|
-            --     test "approximation of pi is not considered too accurate" <|
-            --         \_ -> 3.14 |> Expect.within (Absolute 0.001) pi
-            -- , expectToFail <|
-            --     fuzz (floatRange 0.000001 100000) "too high absolute tolerance of circle circumference using pi approximation" <|
-            --         \radius ->
-            --             (radius * pi)
-            --                 |> Expect.within (Absolute 0.001) (radius * 3.14)
-            -- , expectToFail <|
-            --     fuzz (floatRange 0.000001 100000) "too high relative tolerance of circle circumference using pi approximation" <|
-            --         \radius ->
-            --             (radius * pi)
-            --                 |> Expect.within (Relative 0.0001) (radius * 3.14)
+            , test "approximation of pi is not considered too accurate" <|
+                \_ ->
+                    3.14
+                        |> Expect.within (Absolute 0.001) pi
+                        |> expectToFail
+            , test "too high absolute tolerance of circle circumference using pi approximation" <|
+                \() ->
+                    expectTestToFail <|
+                        fuzz (floatRange 0.000001 100000) "x" <|
+                            \radius ->
+                                (radius * pi)
+                                    |> Expect.within (Absolute 0.001) (radius * 3.14)
+            , test "too high relative tolerance of circle circumference using pi approximation" <|
+                \() ->
+                    expectTestToFail <|
+                        fuzz (floatRange 0.000001 100000) "x" <|
+                            \radius ->
+                                (radius * pi)
+                                    |> Expect.within (Relative 0.0001) (radius * 3.14)
             ]
         , describe "use-cases with negative nominal and/or actual values"
             [ test "negative nominal and actual with Absolute" <|
@@ -53,13 +58,16 @@ floatWithinTests =
                 \_ -> -0.001 |> Expect.within (Absolute 3.3) 3
             , test "negative actual and positive nominal with Relative" <|
                 \_ -> -0.001 |> Expect.within (Relative 1.1) 3
-
-            -- , expectToFail <|
-            --     test "negative nominal should fail as actual is close, but positive with Absolute" <|
-            --         \_ -> 2.9 |> Expect.within (Absolute 0.1) -3
-            -- , expectToFail <|
-            --     test "negative nominal should fail as actual is close, but positive with Relative" <|
-            --         \_ -> 2.9 |> Expect.within (Relative 0.1) -3
+            , test "negative nominal should fail as actual is close, but positive with Absolute" <|
+                \_ ->
+                    2.9
+                        |> Expect.within (Absolute 0.1) -3
+                        |> expectToFail
+            , test "negative nominal should fail as actual is close, but positive with Relative" <|
+                \_ ->
+                    2.9
+                        |> Expect.within (Relative 0.1) -3
+                        |> expectToFail
             ]
         , describe "edge-cases"
             [ fuzz2 float float "self equality" <|

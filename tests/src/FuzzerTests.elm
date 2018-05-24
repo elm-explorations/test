@@ -1,7 +1,5 @@
 module FuzzerTests exposing (fuzzerTests)
 
--- import RoseTree
-
 import Expect
 import Fuzz exposing (..)
 import Helpers exposing (..)
@@ -36,72 +34,76 @@ fuzzerTests =
             "Fuzz.frequency"
             (Expect.greaterThan 0)
         , fuzz (result string int) "Fuzz.result" <| \r -> Expect.pass
+        , describe "Whitebox testing using Fuzz.Internal"
+            [ fuzz randomSeedFuzzer "the same value is generated with and without shrinking" <|
+                \seed ->
+                    let
+                        step gen =
+                            Random.step gen seed
 
-        -- , describe "Whitebox testing using Fuzz.Internal"
-        --     [ fuzz randomSeedFuzzer "the same value is generated with and without shrinking" <|
-        --         \seed ->
-        --             let
-        --                 step gen =
-        --                     Random.step gen seed
-        --                 aFuzzer =
-        --                     tuple3
-        --                         ( tuple ( list int, array float )
-        --                         , tuple
-        --                             ( maybe bool
-        --                             , result unit char
-        --                             )
-        --                         , tuple
-        --                             ( tuple3
-        --                                 ( percentage
-        --                                 , map2 (+) int int
-        --                                 , frequency [ ( 1, constant True ), ( 3, constant False ) ]
-        --                                 )
-        --                             , tuple3 ( intRange 0 100, floatRange -51 pi, map abs int )
-        --                             )
-        --                         )
-        --                 valNoShrink =
-        --                     aFuzzer |> Result.map (Random.map RoseTree.root >> step >> Tuple.first)
-        --                 valWithShrink =
-        --                     aFuzzer |> Result.map (step >> Tuple.first >> RoseTree.root)
-        --             in
-        --             Expect.equal valNoShrink valWithShrink
-        --     , shrinkingTests
-        --     , manualFuzzerTests
-        --     ]
+                        aFuzzer =
+                            tuple3
+                                ( tuple ( list int, array float )
+                                , tuple
+                                    ( maybe bool
+                                    , result unit char
+                                    )
+                                , tuple
+                                    ( tuple3
+                                        ( percentage
+                                        , map2 (+) int int
+                                        , frequency [ ( 1, constant True ), ( 3, constant False ) ]
+                                        )
+                                    , tuple3 ( intRange 0 100, floatRange -51 pi, map abs int )
+                                    )
+                                )
+                                |> Test.Runner.fuzz
+
+                        valNoShrink =
+                            aFuzzer |> Result.map (Random.map Tuple.first >> step >> Tuple.first)
+
+                        valWithShrink =
+                            aFuzzer |> Result.map (step >> Tuple.first >> Tuple.first)
+                    in
+                    Expect.equal valNoShrink valWithShrink
+            , shrinkingTests
+            , manualFuzzerTests
+            ]
         ]
 
 
+shrinkingTests : Test
+shrinkingTests =
+    testShrinking <|
+        describe "tests that fail intentionally to test shrinking"
+            [ fuzz2 int int "Every pair of ints has a zero" <|
+                \i j ->
+                    (i == 0)
+                        || (j == 0)
+                        |> Expect.true "(1,1)"
+            , fuzz3 int int int "Every triple of ints has a zero" <|
+                \i j k ->
+                    (i == 0)
+                        || (j == 0)
+                        || (k == 0)
+                        |> Expect.true "(1,1,1)"
+            , fuzz (list int) "All lists are sorted" <|
+                \aList ->
+                    let
+                        checkPair l =
+                            case l of
+                                a :: b :: more ->
+                                    if a > b then
+                                        False
 
--- shrinkingTests : Test
--- shrinkingTests =
---     testShrinking <|
---         describe "tests that fail intentionally to test shrinking"
---             [ fuzz2 int int "Every pair of ints has a zero" <|
---                 \i j ->
---                     (i == 0)
---                         || (j == 0)
---                         |> Expect.true "(1,1)"
---             , fuzz3 int int int "Every triple of ints has a zero" <|
---                 \i j k ->
---                     (i == 0)
---                         || (j == 0)
---                         || (k == 0)
---                         |> Expect.true "(1,1,1)"
---             , fuzz (list int) "All lists are sorted" <|
---                 \aList ->
---                     let
---                         checkPair l =
---                             case l of
---                                 a :: b :: more ->
---                                     if a > b then
---                                         False
---                                     else
---                                         checkPair (b :: more)
---                                 _ ->
---                                     True
---                     in
---                     checkPair aList |> Expect.true "[1,0]|[0,-1]"
---             ]
+                                    else
+                                        checkPair (b :: more)
+
+                                _ ->
+                                    True
+                    in
+                    checkPair aList |> Expect.true "[1,0]|[0,-1]"
+            ]
 
 
 type alias ShrinkResult a =
