@@ -139,10 +139,15 @@ countRunnables runnable =
 
 run : Runnable -> List Expectation
 run (Thunk fn) =
-    runThunk fn
+    case runThunk fn of
+        Ok tests ->
+            tests
+
+        Err message ->
+            [ Expect.fail ("This test failed because it threw an exception: \"" ++ message ++ "\"") ]
 
 
-runThunk : (() -> List Expectation) -> List Expectation
+runThunk : (() -> a) -> Result String a
 runThunk =
     Elm.Kernel.Test.runThunk
 
