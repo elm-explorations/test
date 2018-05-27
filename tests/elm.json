@@ -7,7 +7,7 @@
     "dependencies": {
         "eeue56/elm-lazy-list": "2.0.0",
         "eeue56/elm-shrink": "2.0.0",
-        "elm-explorations/test": "1.0.0",
+        "elm-explorations/test": "1.0.1",
         "elm/browser": "1.0.0",
         "elm/core": "1.0.0",
         "elm/html": "1.0.0",
