@@ -5,9 +5,7 @@ import Fuzz exposing (..)
 import Helpers exposing (..)
 import Lazy.List
 import Random
-import RoseTree
 import Test exposing (..)
-import Test.Internal as Internal
 import Test.Runner
 
 
@@ -59,12 +57,13 @@ fuzzerTests =
                                     , tuple3 ( intRange 0 100, floatRange -51 pi, map abs int )
                                     )
                                 )
+                                |> Test.Runner.fuzz
 
                         valNoShrink =
-                            aFuzzer |> Result.map (Random.map RoseTree.root >> step >> Tuple.first)
+                            aFuzzer |> Result.map (Random.map Tuple.first >> step >> Tuple.first)
 
                         valWithShrink =
-                            aFuzzer |> Result.map (step >> Tuple.first >> RoseTree.root)
+                            aFuzzer |> Result.map (step >> Tuple.first >> Tuple.first)
                     in
                     Expect.equal valNoShrink valWithShrink
             , shrinkingTests
