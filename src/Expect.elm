@@ -16,6 +16,7 @@ module Expect
         , lessThan
         , notEqual
         , notWithin
+        , ok
         , onFail
         , pass
         , true
@@ -63,7 +64,7 @@ or both. For an in-depth look, see our [Guide to Floating Point Comparison](#gui
 
 ## Collections
 
-@docs err, equalLists, equalDicts, equalSets
+@docs ok, err, equalLists, equalDicts, equalSets
 
 
 ## Customizing
@@ -434,10 +435,53 @@ false message bool =
 
 
 {-| Passes if the
+[`Result`](https://package.elm-lang.org/packages/lang/core/latest/Result) is
+an `Ok` rather than `Err`. This is useful for tests where you expect not to see
+an error, but you don't care what the actual result is.
+
+_(Tip: If your function returns a `Maybe` instead, consider `Expect.notEqual Nothing`.)_
+
+    -- Passes
+    String.toInt "not an int"
+        |> Expect.err
+
+Test failures will be printed with the unexpected `Ok` value contrasting with
+any `Err`.
+
+    -- Fails
+    String.toInt "20"
+        |> Expect.err
+
+    {-
+
+    Ok 20
+    ╷
+    │ Expect.err
+    ╵
+    Err _
+
+    -}
+
+-}
+ok : Result a b -> Expectation
+ok result =
+    case result of
+        Ok _ ->
+            pass
+
+        Err _ ->
+            { description = "Expect.ok"
+            , reason = Comparison "Ok _" (Internal.toString result)
+            }
+                |> Test.Expectation.fail
+
+
+{-| Passes if the
 [`Result`](http://package.elm-lang.org/packages/elm-lang/core/latest/Result) is
 an `Err` rather than `Ok`. This is useful for tests where you expect to get an
-error but you don't care about what the actual error is. If your possibly
-erroring function returns a `Maybe`, simply use `Expect.equal Nothing`.
+error but you don't care what the actual error is.
+
+_(Tip: If your function returns a `Maybe` instead, consider `Expect.equal Nothing`.)_
 
     -- Passes
     String.toInt "not an int"
