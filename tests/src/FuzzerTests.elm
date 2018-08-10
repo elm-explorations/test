@@ -235,3 +235,53 @@ manualFuzzerTests =
                     Nothing ->
                         Expect.pass
         ]
+
+
+whitespaceTest : Test
+whitespaceTest =
+    describe "fuzzing whitespace (taken from rtfeldman/elm-validate, which crashed when this first ran)"
+        [ fuzz whitespace "whitespace characters are blank" <|
+            \str ->
+                str
+                    |> Validate.isBlank
+                    |> Expect.true "Validate.isBlank should consider whitespace blank"
+        , fuzz2 whitespace whitespace "non-whitespace characters mean it's not blank" <|
+            \prefix suffix ->
+                (prefix ++ "_" ++ suffix)
+                    |> Validate.isBlank
+                    |> Expect.false "Validate.isBlank shouldn't consider strings containing non-whitespace characters blank"
+        ]
+
+
+whitespace : Fuzzer String
+whitespace =
+    [ ' ', ' ', '\t', '\n' ]
+        |> List.map Fuzz.constant
+        |> Fuzz.oneOf
+        |> Fuzz.list
+        |> Fuzz.map String.fromList
+
+
+email : Test
+email =
+    describe "email"
+        [ test "empty string is not a valid email" <|
+            \() ->
+                ""
+                    |> Validate.isValidEmail
+                    |> Expect.false "Validate.isValidEmail should have considered empty string blank"
+        , test "valid email is valid" <|
+            \() ->
+                "foo@bar.com"
+                    |> Validate.isValidEmail
+                    |> Expect.true "Validate.isValidEmail should have considered foo@bar.com a valid email address"
+        ]
+
+
+whitespace : Fuzzer String
+whitespace =
+    [ ' ', ' ', '\t', '\n' ]
+        |> List.map Fuzz.constant
+        |> Fuzz.oneOf
+        |> Fuzz.list
+        |> Fuzz.map String.fromList
