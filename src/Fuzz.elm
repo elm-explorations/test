@@ -14,7 +14,7 @@ reproduces a bug.
 
 ## Common Fuzzers
 
-@docs bool, int, intRange, float, floatRange, percentage, string, maybe, result, list, array
+@docs int, intRange, float, floatRange, percentage, string, bool, maybe, result, list, array
 
 
 ## Working with Fuzzers
@@ -132,7 +132,12 @@ unit =
         |> Ok
 
 
-{-| A fuzzer for bool values.
+{-| A fuzzer for boolean values. It's useful when building up fuzzers of complex
+types that contain a boolean somewhere.
+
+We recommend against writing tests fuzzing over booleans. Write a unit test for
+the true and false cases explicitly.
+
 -}
 bool : Fuzzer Bool
 bool =
