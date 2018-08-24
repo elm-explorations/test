@@ -62,13 +62,13 @@ type alias Fuzzer a =
 
 
 {-| Build a custom `Fuzzer a` by providing a `Generator a` and a `Shrinker a`.
-Generators are defined in [`elm-lang/random`](http://package.elm-lang.org/packages/elm-lang/random/latest),
+Generators are defined in [`elm/random`](http://package.elm-lang.org/packages/elm/random/latest),
 which is not core's Random module but has a compatible interface. Shrinkers are
 defined in [`eeue56/elm-shrink`](http://package.elm-lang.org/packages/eeue56/elm-shrink/latest/).
 
 Here is an example for a record:
 
-    import Random.Pcg as Random
+    import Random
     import Shrink
 
     type alias Position =
