@@ -193,7 +193,7 @@ append list1 list2 =
                     force list2
 
                 Cons first rest ->
-                    force (append (cons first rest) list2)
+                    Cons first (append rest list2)
 
 
 {-| Interleave the elements of a list in another list. The two lists get
