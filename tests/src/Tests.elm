@@ -8,6 +8,7 @@ import Helpers exposing (..)
 import Random
 import RunnerTests
 import Shrink
+import ShrinkTests
 import Test exposing (..)
 import Test.Runner
 import Test.Runner.Failure exposing (Reason(..))
@@ -22,6 +23,7 @@ all =
         , expectationTests
         , fuzzerTests
         , floatWithinTests
+        , ShrinkTests.all
         , RunnerTests.all
         ]
 

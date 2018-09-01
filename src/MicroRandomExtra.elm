@@ -1,4 +1,4 @@
-module MicroRandomExtra exposing (..)
+module MicroRandomExtra exposing (bool, frequency, lengthString, oneIn, sample)
 
 {-| Most of these are copied from elm-random-extra.
 -}

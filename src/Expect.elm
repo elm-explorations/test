@@ -1,27 +1,11 @@
-module Expect
-    exposing
-        ( Expectation
-        , FloatingPointTolerance(..)
-        , all
-        , atLeast
-        , atMost
-        , equal
-        , equalDicts
-        , equalLists
-        , equalSets
-        , err
-        , fail
-        , false
-        , greaterThan
-        , lessThan
-        , notEqual
-        , notWithin
-        , ok
-        , onFail
-        , pass
-        , true
-        , within
-        )
+module Expect exposing
+    ( Expectation, equal, notEqual, all
+    , lessThan, atMost, greaterThan, atLeast
+    , FloatingPointTolerance(..), within, notWithin
+    , true, false
+    , ok, err, equalLists, equalDicts, equalSets
+    , pass, fail, onFail
+    )
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
 
@@ -87,8 +71,9 @@ Let's say we want to figure out if our estimation of pi is precise enough.
 
 Is `3.14` within `0.01` of `pi`? Yes, because `3.13 < pi < 3.15`.
 
-    test "3.14 approximates pi with absolute precision" <| \_ ->
-        3.14 |> Expect.within (Absolute 0.01) pi
+    test "3.14 approximates pi with absolute precision" <|
+        \_ ->
+            3.14 |> Expect.within (Absolute 0.01) pi
 
 
 ### Relative Tolerance
@@ -336,6 +321,7 @@ minor inaccuracies introduced by floating point arithmetic.
     -- Fails because 0.1 + 0.2 == 0.30000000000000004 (0.1 is non-terminating in base 2)
     0.1 + 0.2 |> Expect.equal 0.3
 
+
     -- So instead write this test, which passes
     0.1 + 0.2 |> Expect.within (Absolute 0.000000001) 0.3
 
@@ -521,8 +507,8 @@ err result =
 {-| Passes if the arguments are equal lists.
 
     -- Passes
-    [1, 2, 3]
-        |> Expect.equalLists [1, 2, 3]
+    [ 1, 2, 3 ]
+        |> Expect.equalLists [ 1, 2, 3 ]
 
 Failures resemble code written in pipeline style, so you can tell
 which argument is which, and reports which index the lists first
@@ -560,7 +546,7 @@ equalLists expected actual =
 {-| Passes if the arguments are equal dicts.
 
     -- Passes
-    (Dict.fromList [ ( 1, "one" ), ( 2, "two" ) ])
+    Dict.fromList [ ( 1, "one" ), ( 2, "two" ) ]
         |> Expect.equalDicts (Dict.fromList [ ( 1, "one" ), ( 2, "two" ) ])
 
 Failures resemble code written in pipeline style, so you can tell
@@ -610,8 +596,8 @@ equalDicts expected actual =
 {-| Passes if the arguments are equal sets.
 
     -- Passes
-    (Set.fromList [1, 2])
-        |> Expect.equalSets (Set.fromList [1, 2])
+    Set.fromList [ 1, 2 ]
+        |> Expect.equalSets (Set.fromList [ 1, 2 ])
 
 Failures resemble code written in pipeline style, so you can tell
 which argument is which, and reports which keys were missing from

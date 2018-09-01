@@ -1,4 +1,8 @@
-module Shrink exposing (Shrinker, andMap, array, atLeastChar, atLeastFloat, atLeastInt, bool, char, character, convert, dropIf, float, int, keepIf, lazylist, list, map, maybe, merge, noShrink, order, result, shrink, string, tuple, tuple3, unit)
+module Shrink exposing
+    ( Shrinker, shrink
+    , noShrink, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
+    , convert, keepIf, dropIf, merge, map, andMap
+    )
 
 {-| Library containing a collection of basic shrinking strategies and
 helper functions to help you construct shrinking strategies.
@@ -53,6 +57,7 @@ shrink keepShrinking shrinker originalVal =
                 Lazy.List.Cons head tail ->
                     if keepShrinking head then
                         helper (shrinker head) head
+
                     else
                         helper tail val
     in
@@ -106,6 +111,7 @@ int : Shrinker Int
 int n =
     if n < 0 then
         cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
+
     else
         seriesInt 0 n
 
@@ -117,6 +123,7 @@ atLeastInt : Int -> Shrinker Int
 atLeastInt min n =
     if n < 0 && n >= min then
         cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
+
     else
         seriesInt (max 0 min) n
 
@@ -127,6 +134,7 @@ float : Shrinker Float
 float n =
     if n < 0 then
         cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
+
     else
         seriesFloat 0 n
 
@@ -138,6 +146,7 @@ atLeastFloat : Float -> Shrinker Float
 atLeastFloat min n =
     if n < 0 && n >= min then
         cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
+
     else
         seriesFloat (max 0 min) n
 
@@ -242,8 +251,10 @@ lazylist shrinker l =
                         \() ->
                             if k_ > n_ then
                                 force empty
+
                             else if Lazy.List.isEmpty l_ then
                                 force (cons empty empty)
+
                             else
                                 let
                                     first =
@@ -402,8 +413,10 @@ seriesInt : Int -> Int -> LazyList Int
 seriesInt low high =
     if low >= high then
         empty
+
     else if low == high - 1 then
         cons low empty
+
     else
         let
             low_ =
@@ -417,8 +430,10 @@ seriesFloat low high =
     if low >= high - 0.0001 then
         if high /= 0.000001 then
             Lazy.List.singleton (low + 0.000001)
+
         else
             empty
+
     else
         let
             low_ =

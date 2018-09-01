@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Main exposing (main)
 
 {-| HOW TO RUN THESE TESTS
 
@@ -21,8 +21,11 @@ main : Program () () msg
 main =
     let
         program =
-            --TODO: ideally use Platform.worker here, but it doesn't compile with the current Elm 0.19 alpha (2018-05-19)
-            Browser.staticPage (Html.text "")
+            Platform.worker
+                { init = \() -> ( (), Cmd.none )
+                , update = \_ () -> ( (), Cmd.none )
+                , subscriptions = \() -> Sub.none
+                }
     in
     runAllTests program
 

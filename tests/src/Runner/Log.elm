@@ -1,4 +1,7 @@
-module Runner.Log exposing (logOutput, run, runWithOptions)
+module Runner.Log exposing
+    ( run, runWithOptions
+    , logOutput
+    )
 
 {-| Log Runner
 

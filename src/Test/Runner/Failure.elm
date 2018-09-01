@@ -1,4 +1,4 @@
-module Test.Runner.Failure exposing (InvalidReason(..), Reason(..), format)
+module Test.Runner.Failure exposing (Reason(..), InvalidReason(..), format)
 
 {-| The reason a test failed.
 

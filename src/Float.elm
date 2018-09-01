@@ -1,12 +1,4 @@
-module Float
-    exposing
-        ( epsilon
-        , infinity
-        , maxAbsValue
-        , minAbsNormal
-        , minAbsValue
-        , nan
-        )
+module Float exposing (epsilon, infinity, nan, minAbsNormal, minAbsValue, maxAbsValue)
 
 {-| Float contains useful constants related to 64 bit floating point numbers,
 as specified in IEEE 754-2008.

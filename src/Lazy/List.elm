@@ -1,4 +1,16 @@
-module Lazy.List exposing (..)
+module Lazy.List exposing
+    ( LazyList, LazyListView(..)
+    , cons, empty, singleton
+    , isEmpty, head, tail, headAndTail, member, length
+    , toList, fromList, toArray, fromArray
+    , map, zip, reduce, flatten, append, foldl, foldr
+    , intersperse, interleave, reverse, cycle, iterate, repeat, take, takeWhile, drop, dropWhile
+    , keepIf, dropIf, filterMap, unique
+    , andMap, andThen
+    , numbers, sum, product
+    , map2, map3, map4, map5
+    , product2, product3
+    )
 
 {-| Lazy list implementation in Elm.
 
@@ -181,7 +193,7 @@ append list1 list2 =
                     force list2
 
                 Cons first rest ->
-                    force (append (cons first rest) list2)
+                    Cons first (append rest list2)
 
 
 {-| Interleave the elements of a list in another list. The two lists get
@@ -275,6 +287,7 @@ take n list =
         \() ->
             if n <= 0 then
                 Nil
+
             else
                 case force list of
                     Nil ->
@@ -297,6 +310,7 @@ takeWhile predicate list =
                 Cons first rest ->
                     if predicate first then
                         Cons first (takeWhile predicate rest)
+
                     else
                         Nil
 
@@ -309,6 +323,7 @@ drop n list =
         \() ->
             if n <= 0 then
                 force list
+
             else
                 case force list of
                     Nil ->
@@ -331,6 +346,7 @@ dropWhile predicate list =
                 Cons first rest ->
                     if predicate first then
                         force (dropWhile predicate rest)
+
                     else
                         force list
 
@@ -370,6 +386,7 @@ unique list =
                 Cons first rest ->
                     if member first rest then
                         force (unique rest)
+
                     else
                         Cons first (unique rest)
 
@@ -387,6 +404,7 @@ keepIf predicate list =
                 Cons first rest ->
                     if predicate first then
                         Cons first (keepIf predicate rest)
+
                     else
                         force (keepIf predicate rest)
 

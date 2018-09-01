@@ -1,17 +1,8 @@
-module Lazy
-    exposing
-        ( Lazy
-        , andThen
-        , apply
-        , evaluate
-        , force
-        , lazy
-        , map
-        , map2
-        , map3
-        , map4
-        , map5
-        )
+module Lazy exposing
+    ( Lazy, lazy, force, evaluate
+    , map, map2, map3, map4, map5
+    , apply, andThen
+    )
 
 {-| This library lets you delay a computation until later.
 
