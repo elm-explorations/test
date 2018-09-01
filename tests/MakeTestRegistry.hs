@@ -81,5 +81,5 @@ main =
                 , ( Name "eeue56" "elm-lazy", [ Version 1 0 1] )
                 , ( Name "eeue56" "elm-shrink", [ Version 2 0 0] )
                 , ( Name "jinjor" "elm-diff", [ Version 1 0 5] )
-                , ( Name "elm-explorations" "test", [ Version 1 0 0] )
+                , ( Name "elm-explorations" "test", [ Version 1 1 0] )
                 ]
