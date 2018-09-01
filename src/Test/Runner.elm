@@ -1,15 +1,9 @@
-module Test.Runner
-    exposing
-        ( Runner
-        , SeededRunners(..)
-        , Shrinkable
-        , formatLabels
-        , fromTest
-        , fuzz
-        , getFailureReason
-        , isTodo
-        , shrink
-        )
+module Test.Runner exposing
+    ( Runner, SeededRunners(..), fromTest
+    , getFailureReason, isTodo
+    , formatLabels
+    , Shrinkable, fuzz, shrink
+    )
 
 {-| This is an "experts only" module that exposes functions needed to run and
 display tests. A typical user will use an existing runner library for Node or

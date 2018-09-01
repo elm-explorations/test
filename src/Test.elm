@@ -1,4 +1,8 @@
-module Test exposing (FuzzOptions, Test, concat, describe, fuzz, fuzz2, fuzz3, fuzzWith, only, skip, test, todo)
+module Test exposing
+    ( Test, test
+    , describe, concat, todo, skip, only
+    , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
+    )
 
 {-| A module containing functions for creating and managing tests.
 
@@ -192,16 +196,17 @@ if you use a `skip` inside an `only`, it will still get skipped, and if you use
 an `only` inside a `skip`, it will also get skipped.
 
     describe "List"
-        [ only <| describe "reverse"
-            [ test "has no effect on an empty list" <|
-                \_ ->
-                    List.reverse []
-                        |> Expect.equal []
-            , fuzz int "has no effect on a one-item list" <|
-                \num ->
-                     List.reverse [ num ]
-                        |> Expect.equal [ num ]
-            ]
+        [ only <|
+            describe "reverse"
+                [ test "has no effect on an empty list" <|
+                    \_ ->
+                        List.reverse []
+                            |> Expect.equal []
+                , fuzz int "has no effect on a one-item list" <|
+                    \num ->
+                        List.reverse [ num ]
+                            |> Expect.equal [ num ]
+                ]
         , test "This will not get run, because of the `only` above!" <|
             \_ ->
                 List.length []
@@ -227,16 +232,17 @@ if you use a `skip` inside an `only`, it will still get skipped, and if you use
 an `only` inside a `skip`, it will also get skipped.
 
     describe "List"
-        [ skip <| describe "reverse"
-            [ test "has no effect on an empty list" <|
-                \_ ->
-                    List.reverse []
-                        |> Expect.equal []
-            , fuzz int "has no effect on a one-item list" <|
-                \num ->
-                     List.reverse [ num ]
-                        |> Expect.equal [ num ]
-            ]
+        [ skip <|
+            describe "reverse"
+                [ test "has no effect on an empty list" <|
+                    \_ ->
+                        List.reverse []
+                            |> Expect.equal []
+                , fuzz int "has no effect on a one-item list" <|
+                    \num ->
+                        List.reverse [ num ]
+                            |> Expect.equal [ num ]
+                ]
         , test "This is the only test that will get run; the other was skipped!" <|
             \_ ->
                 List.length []

@@ -1,4 +1,4 @@
-module RoseTree exposing (..)
+module RoseTree exposing (RoseTree(..), addChild, children, filter, filterBranches, filterMap, flatten, map, root, singleton)
 
 {-| RoseTree implementation in Elm using Lazy Lists.
 

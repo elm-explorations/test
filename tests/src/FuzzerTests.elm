@@ -3,10 +3,10 @@ module FuzzerTests exposing (fuzzerTests)
 import Expect
 import Fuzz exposing (..)
 import Helpers exposing (..)
-import Lazy.List
 import Random
 import Test exposing (..)
 import Test.Runner
+import Validate
 
 
 die : Fuzzer Int
@@ -253,15 +253,6 @@ whitespaceTest =
         ]
 
 
-whitespace : Fuzzer String
-whitespace =
-    [ ' ', ' ', '\t', '\n' ]
-        |> List.map Fuzz.constant
-        |> Fuzz.oneOf
-        |> Fuzz.list
-        |> Fuzz.map String.fromList
-
-
 email : Test
 email =
     describe "email"
@@ -280,7 +271,7 @@ email =
 
 whitespace : Fuzzer String
 whitespace =
-    [ ' ', ' ', '\t', '\n' ]
+    [ ' ', '\u{00A0}', '\t', '\n' ]
         |> List.map Fuzz.constant
         |> Fuzz.oneOf
         |> Fuzz.list

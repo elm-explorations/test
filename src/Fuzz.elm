@@ -1,4 +1,9 @@
-module Fuzz exposing (Fuzzer, andMap, array, bool, char, constant, custom, float, floatRange, frequency, int, intRange, invalid, list, map, map2, map3, map4, map5, maybe, oneOf, order, percentage, result, string, tuple, tuple3, unit)
+module Fuzz exposing
+    ( int, intRange, float, floatRange, percentage, string, bool, maybe, result, list, array
+    , Fuzzer, oneOf, constant, map, map2, map3, map4, map5, andMap, frequency
+    , tuple, tuple3
+    , custom, char, unit, order, invalid
+    )
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
 tests. You can typically pick out which ones you need according to their types.
@@ -539,9 +544,9 @@ between -1 and -100, and a 3/4 chance of generating one between 1 and 100,
 you could do this:
 
     Fuzz.frequency
-    [ ( 1, Fuzz.intRange -100 -1 )
-    , ( 3, Fuzz.intRange 1 100 )
-    ]
+        [ ( 1, Fuzz.intRange -100 -1 )
+        , ( 3, Fuzz.intRange 1 100 )
+        ]
 
 There are a few circumstances in which this function will return an invalid
 fuzzer, which causes it to fail any test that uses it:

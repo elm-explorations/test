@@ -1,4 +1,4 @@
-module Snippets exposing (..)
+module Snippets exposing (Person, andMapFail, andMapPass, andThenFail, andThenPass, boolFail, boolPass, charFail, charPass, conditionalFail, conditionalPass, even, evenWithConditional, floatFail, floatPass, intFail, intPass, intRangeFail, intRangePass, listIntFail, listIntPass, map5Fail, map5Pass, mapFail, mapPass, maybeIntFail, maybeIntPass, person, person2, resultFail, resultPass, sequence, stringFail, stringPass, variableList)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
