@@ -3,3 +3,4 @@ node_modules/
 elm-stuff/
 docs/
 *.html
+/documentation.json
