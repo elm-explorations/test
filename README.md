@@ -56,14 +56,10 @@ There are several ways you can run tests locally:
 Here's how to set up and run your tests using the CLI test runner:
 
 1. Run `npm install -g elm-test` if you haven't already.
-2. `cd` into the project's root directory that has your `elm-package.json`.
-3. Run `elm test init`. It will create a `tests` directory inside this one,
+2. `cd` into the project's root directory that has your `elm.json`.
+3. Run `elm-test init`. It will create a `tests` directory inside this one,
    with some files in it.
-4. Copy all the dependencies from `elm-package.json` into
-   `tests/elm-package.json`. These dependencies need to stay in sync, so make
-   sure whenever you change your dependencies in your current
-   `elm-package.json`, you make the same change to `tests/elm-package.json`.
-5. Run `elm test`.
+5. Run `elm-test`.
 6. Edit `tests/Example.elm` to introduce new tests.
 
 ### Running tests on CI
@@ -81,12 +77,13 @@ During development, you'll often want to focus on specific tests, silence failin
 wipSuite : Test
 wipSuite =
     describe "skip, only, and todo"
-        [ only <| describe "Marking this test as `only` means no other tests will be run!"
-            [ test "This test will be run" <|
-                  \_ -> 1 + 1 |> Expect.equal 2
-            , skip <| test "This test will be skipped, even though it's in an `only`!" <|
-                  \_ -> 2 + 3 |> Expect.equal 4
-            ]
+        [ only <|
+            describe "Marking this test as `only` means no other tests will be run!"
+                [ test "This test will be run" <|
+                    \_ -> 1 + 1 |> Expect.equal 2
+                , skip <| test "This test will be skipped, even though it's in an `only`!" <|
+                    \_ -> 2 + 3 |> Expect.equal 4
+                ]
         , test "This test will be skipped because it has no `only`" <|
             \_ -> "left" |> Expect.equal "right"
         , todo "Make sure all splines are reticulated"
