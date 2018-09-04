@@ -527,10 +527,13 @@ map5 transform fuzzA fuzzB fuzzC fuzzD fuzzE =
 
 {-| Map over many fuzzers. This can act as `mapN` for `N > 5`.
 The argument order is meant to accommodate chaining:
+
     map f aFuzzer
-    |> andMap anotherFuzzer
-    |> andMap aThirdFuzzer
+        |> andMap anotherFuzzer
+        |> andMap aThirdFuzzer
+
 Note that shrinking may be better using `mapN`.
+
 -}
 andMap : Fuzzer a -> Fuzzer (a -> b) -> Fuzzer b
 andMap =
