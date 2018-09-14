@@ -113,8 +113,6 @@ There are a few extra ideas that apply to testing webapps and reusable view pack
 1. Test your views using [elm-html-test](http://package.elm-lang.org/packages/eeue56/elm-html-test/latest).
 1. There is currently no Elm solution for integration or end-to-end testing. Use tools from outside the Elm ecosystem such as [Capybara](https://www.rubydoc.info/github/teamcapybara/capybara) or [Cypress](https://www.cypress.io).
 
-Use your favorite PhantomJS or Selenium webdriver, such as Capybara, or Cyp
-
 ## Upgrading
 ### From 3.1.0
 Make sure you grab the latest versions of the test runner that you are using:
