@@ -111,8 +111,9 @@ There are a few extra ideas that apply to testing webapps and reusable view pack
 
 1. Avoid importing your `Main` module. Most of your code belongs in other modules, so import those instead.
 1. Test your views using [elm-html-test](http://package.elm-lang.org/packages/eeue56/elm-html-test/latest).
-1. To test effects, consider using [elm-testable](http://package.elm-lang.org/packages/rogeriochaves/elm-testable/latest).
-1. There is currently no Elm solution for integration or end-to-end testing. Use your favorite PhantomJS or Selenium webdriver, such as Capybara.
+1. There is currently no Elm solution for integration or end-to-end testing. Use tools from outside the Elm ecosystem such as [Capybara](https://www.rubydoc.info/github/teamcapybara/capybara) or [Cypress](https://www.cypress.io).
+
+Use your favorite PhantomJS or Selenium webdriver, such as Capybara, or Cyp
 
 ## Upgrading
 ### From 3.1.0
