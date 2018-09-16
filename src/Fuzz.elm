@@ -187,7 +187,7 @@ int =
     custom generator Shrink.int
 
 
-{-| A fuzzer for int values within between a given minimum and maximum value,
+{-| A fuzzer for int values between a given minimum and maximum value,
 inclusive. Shrunken values will also be within the range.
 
 Remember that [Random.maxInt](http://package.elm-lang.org/packages/elm-lang/core/latest/Random#maxInt)
