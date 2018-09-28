@@ -8,6 +8,62 @@ module Shrink exposing
 helper functions to help you construct shrinking strategies.
 
 
+# What is this shrinking, I hear you ask?
+
+Why, it's a way to try and find the "smallest" example that fails, in order to
+give the tester better feedback on what went wrong.
+
+
+## But what is small?
+
+That's kind of arbitrary. When you write your own Shrinker, you decide what is
+small for the kind of data you're testing.
+
+Let's say I'm writing a Shrinker for binary trees :
+
+    -- oooh, a tree with nodes that contain subtrees and leaves that contain
+    -- values ; how exciting and potentially unreadable!
+    type Tree a
+        = Node (Tree a) (Tree a)
+        | Leaf a
+
+In this context, "smaller" should probably mean "with less nodes", to make the
+reason the test failed more obvious:
+
+    -- so if I shrink from this failing input:
+    Node (Node (Node (Leaf 987) (Node (Leaf 654) (Leaf 321))) (Node (Leaf 123))) (Leaf 123)
+    -- to this failing input:
+    Node (Leaf 987) (Leaf 123)
+    -- it will probably take less time for the developer inspecting the failing
+    -- input to see what went wrong (probably the second leaf of the root node)
+
+
+## Soooo a Shrinker is?...
+
+It's a function that takes an original failing input and gives back a LazyList
+of potentially failing inputs that will be tested against through the test that
+has failed given that original failing input.
+
+Once all of these potentially failing inputs have been tested, the "smallest"
+one that still fails will be presented to the tester for analysis of what went
+wrong.
+
+
+## How do I make my own shrinkers?
+
+Shrinkers should be deterministic, so no random generation here.
+
+Shrinkers have to return a LazyList, something that works a bit like a list
+that may or may not have another element each time we ask for one, but doesn't
+necessarily have them all committed to memory, occupying less space (especially
+interesting since there may quite a lot of elements, maybe and infinite number
+of them).
+
+Also, they should never produce the same value twice. Doing so may result in
+tests looping over wrong values that return endlessly, hanging or generating
+stack too deep kind of exceptions.
+
+
 # Shrinking Basics
 
 @docs Shrinker, shrink
@@ -33,18 +89,21 @@ import String
 
 
 {-| The shrinker type.
-A shrinker is a function that takes a value and returns a list of values that
-are in some sense "smaller" than the given value. If there are no such values
-conceptually, then the shrinker should just return the empty list.
+A shrinker is a function that takes a value and returns a lazy list of values
+that are in some sense "smaller" than the given value. If no such values exist,
+then the shrinker should just return the empty list.
 -}
 type alias Shrinker a =
     a -> LazyList a
 
 
 {-| Perform shrinking. Takes a predicate that returns `True` if you want
-shrinking to continue (e.g. the test failed). Also takes a shrinker and a value
-to shrink. It returns the shrunken value, or the input value if no shrunken
+shrinking to continue (most likely the failing test for which we are attempting
+to shrink the value). Also takes the shrinker and the value to shrink.
+
+It returns the shrunken value, or the input value if there are no shrunken
 values that satisfy the predicate are found.
+
 -}
 shrink : (a -> Bool) -> Shrinker a -> a -> a
 shrink keepShrinking shrinker originalVal =
@@ -331,11 +390,13 @@ tuple3 ( shrinkA, shrinkB, shrinkC ) ( a, b, c ) =
 If you use this function as follows:
 
     shrinkerB =
-        f g shrinkerA
+        convert f g shrinkerA
 
-Make sure that
+Make sure that:
 
     `f(g(x)) == x` for all x
+    -- (putting something into g then feeding the output into f must give back
+    -- just that original something, whatever it is)
 
 Or else this process will generate garbage.
 
