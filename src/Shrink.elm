@@ -8,21 +8,20 @@ module Shrink exposing
 helper functions to help you construct shrinking strategies.
 
 
-# What is this shrinking, I hear you ask?
+# What is this shrinking?
 
-Why, it's a way to try and find the "smallest" example that fails, in order to
-give the tester better feedback on what went wrong.
+It's a way to try and find the "smallest" example that fails, in order to give
+the tester better feedback on what went wrong.
 
 
-## But what is small?
+## What is "small"?
 
 That's kind of arbitrary. When you write your own Shrinker, you decide what is
-small for the kind of data you're testing.
+small for the kind of data you're testing with.
 
 Let's say I'm writing a Shrinker for binary trees :
 
-    -- oooh, a tree with nodes that contain subtrees and leaves that contain
-    -- values ; how exciting and potentially unreadable!
+    -- randomly-generated binary trees might soon become unreadable
     type Tree a
         = Node (Tree a) (Tree a)
         | Leaf a
@@ -30,7 +29,7 @@ Let's say I'm writing a Shrinker for binary trees :
 In this context, "smaller" should probably mean "with less nodes", to make the
 reason the test failed more obvious:
 
-    -- so if I shrink from this failing input:
+    -- shrinking from this failing input:
     Node (Node (Node (Leaf 987) (Node (Leaf 654) (Leaf 321))) (Node (Leaf 123))) (Leaf 123)
     -- to this failing input:
     Node (Leaf 987) (Leaf 123)
@@ -38,26 +37,33 @@ reason the test failed more obvious:
     -- input to see what went wrong (probably the second leaf of the root node)
 
 
-## Soooo a Shrinker is?...
+## What is a Shrinker?
 
 It's a function that takes an original failing input and gives back a LazyList
-of potentially failing inputs that will be tested against through the test that
-has failed given that original failing input.
+of potentially failing inputs. Those will be passed to the test that failed
+given that original failing input.
 
-Once all of these potentially failing inputs have been tested, the "smallest"
-one that still fails will be presented to the tester for analysis of what went
-wrong.
+The fuzzy test is rerun with the first "smaller" value. If the test now passes,
+we discard that smaller value and try the next one in the list. If instead the
+test still fails, the rest of the list is discarded and that "smallest" value is
+recursively shrunk.
+
+Once we can't find anymore "smaller" shrunken values that make the test fail,
+the smallest we found thus far is presented as the smallest failing value.
 
 
-## How do I make my own shrinkers?
+## How to make you own shrinkers?
 
 Shrinkers should be deterministic, so no random generation here.
 
-Shrinkers have to return a LazyList, something that works a bit like a list
-that may or may not have another element each time we ask for one, but doesn't
-necessarily have them all committed to memory, occupying less space (especially
-interesting since there may quite a lot of elements, maybe and infinite number
-of them).
+Shrinkers have to return a LazyList, something that works a bit like a list.
+That LazyList may or may not have another element each time we ask for one,
+and doesn't necessarily have them all committed to memory. That allows it to
+take less space (interesting since there may be quite a lot of elements).
+
+That LazyList should also provide a constant number of shrunk values (if it
+provided an infinite number of them, tests using it might hang indefinitely
+at the shrinking phase).
 
 Also, they should never produce the same value twice. Doing so may result in
 tests looping over wrong values that return endlessly, hanging or generating
