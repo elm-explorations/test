@@ -61,7 +61,7 @@ It's a function that takes an original failing input and gives back a LazyList
 of potentially failing inputs. Those will be passed to the test that failed
 given that original failing input.
 
-The fuzzy test is rerun with the first "smaller" value. If the test now passes,
+The fuzz test is rerun with the first "smaller" value. If the test now passes,
 we discard that smaller value and try the next one in the list. If instead the
 test still fails, the rest of the list is discarded and that "smallest" value is
 recursively shrunk.
