@@ -70,7 +70,7 @@ Once we can't find anymore "smaller" shrunken values that make the test fail,
 the smallest we found thus far is presented as the smallest failing value.
 
 
-## How to make you own shrinkers?
+## How do I make my own Shrinkers?
 
 Shrinkers should be deterministic, so no random generation here.
 
