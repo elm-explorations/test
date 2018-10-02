@@ -14,7 +14,25 @@ It's a way to try and find the "smallest" example that fails, in order to give
 the tester better feedback on what went wrong.
 
 
-## What is "small"?
+## Why do Fuzzers need Shrinking?
+
+Say we test that fuzzes an Int and it fails with this value:
+
+    657123
+
+What is so special with this value? Is it because it's a positive value?
+Is it because it's a multiple of 3? Is it because it has 6 digits?
+
+Shrinkers help obtaining a simpler case that still fails. Say after shrinking
+we find we still fail the test with the value:
+
+    9
+
+This is a simpler value, it contains less noise and will lead the developer to
+the failure more directly. That's what Shrinkers are for.
+
+
+## What is "small" (or "simple")?
 
 That's kind of arbitrary. When you write your own Shrinker, you decide what is
 small for the kind of data you're testing with.
