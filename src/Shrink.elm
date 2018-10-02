@@ -72,7 +72,10 @@ the smallest we found thus far is presented as the smallest failing value.
 
 ## How do I make my own Shrinkers?
 
-Shrinkers should be deterministic, so no random generation here.
+Shrinkers must be deterministic, since they do not have access to a random
+number generator. It's the generator part of the fuzzer that's meant to find
+rare edge cases; it's the shrinkers job to make the failures as understandable
+as possible.
 
 Shrinkers have to return a LazyList, something that works a bit like a list.
 That LazyList may or may not have another element each time we ask for one,
