@@ -86,9 +86,16 @@ That LazyList should also provide a constant number of shrunk values (if it
 provided an infinite number of them, tests using it might hang indefinitely
 at the shrinking phase).
 
-Also, they should never produce the same value twice. Doing so may result in
-tests looping over wrong values that return endlessly, hanging or generating
-stack too deep kind of exceptions.
+Also, the shrinking process should never produce the same value twice, even
+through several shrinking attempts. Doing so may result in tests looping over
+wrong values that return endlessly, hanging or generating stack too deep kind
+of exceptions.
+
+    -- so, for example, a shrinker producing these outputs from these inputs could
+    -- make a test loop indefinitely:
+    shrinker 123 == [ 456, ... ]
+    shrinker 456 == [ 789, ... ]
+    shrinker 789 == [ 123, ... ] -- here we re-produce our first value and loop
 
 
 # Shrinking Basics
