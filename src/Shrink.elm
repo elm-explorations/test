@@ -88,7 +88,7 @@ at the shrinking phase).
 
 Also, the shrinking process should never produce the same value twice, even
 through several shrinking attempts. Doing so may result in tests looping over
-wrong values that return endlessly, hanging or generating stack too deep kind
+wrong values, hanging or generating stack too deep kind
 of exceptions.
 
     -- so, for example, a shrinker producing these outputs from these inputs could
