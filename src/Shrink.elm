@@ -95,7 +95,7 @@ of exceptions.
     -- make a test loop indefinitely:
     shrinker 123 == [ 456, ... ]
     shrinker 456 == [ 789, ... ]
-    shrinker 789 == [ 123, ... ] -- here we re-produce our first value and loop
+    shrinker 789 == [ 123, ... ] -- here we reproduce our first value and loop
 
 
 # Shrinking Basics
