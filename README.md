@@ -1,4 +1,4 @@
-# elm test [![Travis build Status](https://travis-ci.org/elm-explorations/test.svg?branch=master)](http://travis-ci.org/elm-explorations/test)
+# elm test [![Travis build Status](http://travis-ci.org/elm-explorations/test.svg?branch=master)](https://travis-ci.org/elm-explorations/test)
 
 Write unit and fuzz tests for Elm code.
 
@@ -39,10 +39,10 @@ suite =
 
 This code uses a few common functions:
 
-* [`describe`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Test#test) to add a description string to a list of tests
-* [`test`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Test#test) to write a unit test
-* [`Expect`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Expect) to determine if a test should pass or fail
-* [`fuzz`](http://package.elm-lang.org/packages/elm-explorations/elm-test/latest/Test#fuzz) to run a function that produces a test several times with randomly-generated inputs
+* [`describe`](https://package.elm-lang.org/packages/elm-explorations/test/latest/Test#describe) to add a description string to a list of tests
+* [`test`](https://package.elm-lang.org/packages/elm-explorations/test/latest/Test#test) to write a unit test
+* [`Expect`](https://package.elm-lang.org/packages/elm-explorations/test/latest/Expect) to determine if a test should pass or fail
+* [`fuzz`](https://package.elm-lang.org/packages/elm-explorations/test/latest/Test#fuzz) to run a function that produces a test several times with randomly-generated inputs
 
 Check out [a large real-world test suite](https://github.com/rtfeldman/elm-css/tree/master/tests) for more.
 
@@ -110,7 +110,7 @@ If you run this example, or any suite that uses one of these three functions, it
 There are a few extra ideas that apply to testing webapps and reusable view packages:
 
 1. Avoid importing your `Main` module. Most of your code belongs in other modules, so import those instead.
-1. Test your views using [elm-html-test](http://package.elm-lang.org/packages/eeue56/elm-html-test/latest).
+1. Test your views using [elm-html-test](https://package.elm-lang.org/packages/eeue56/elm-html-test/latest).
 1. There is currently no Elm solution for integration or end-to-end testing. Use tools from outside the Elm ecosystem such as [Capybara](https://www.rubydoc.info/github/teamcapybara/capybara) or [Cypress](https://www.cypress.io).
 
 ## Upgrading
