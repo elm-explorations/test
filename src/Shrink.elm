@@ -8,34 +8,43 @@ module Shrink exposing
 helper functions to help you construct shrinking strategies.
 
 
-# What is this shrinking?
+## Quick Reference
 
-It's a way to try and find the "smallest" example that fails, in order to give
-the tester better feedback on what went wrong.
-
-
-## Why do Fuzzers need Shrinking?
-
-Say we test that fuzzes an Int and it fails with this value:
-
-    657123
-
-What is so special with this value? Is it because it's a positive value?
-Is it because it's a multiple of 3? Is it because it has 6 digits?
-
-Shrinkers help obtaining a simpler case that still fails. Say after shrinking
-we find we still fail the test with the value:
-
-    9
-
-This is a simpler value, it contains less noise and will lead the developer to
-the failure more directly. That's what Shrinkers are for.
+  - [Shrinking Basics](#shrinking-basics)
+  - [Readymade Shrinkers](#readymade-shrinkers)
+  - [Functions on Shrinkers](#functions-on-shrinkers)
+  - [What are Shrinkers and why do we need them?](#what-are-shrinkers-and-why-do-we-need-them)
 
 
-## What is "small" (or "simple")?
+## Shrinking Basics
 
-That's kind of arbitrary. When you write your own Shrinker, you decide what is
-small for the kind of data you're testing with.
+@docs Shrinker, shrink
+
+
+## Readymade Shrinkers
+
+@docs noShrink, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
+
+
+## Functions on Shrinkers
+
+@docs convert, keepIf, dropIf, merge, map, andMap
+
+
+## What are Shrinkers and why do we need them?
+
+Shrinking is a way to try and find the "smallest" example that fails, in order
+to give the tester better feedback on what went wrong.
+
+Shrinkers are functions that, given a failing value, offer "smaller", "simpler"
+values to test against.
+
+
+### What is "small" (or "simple")?
+
+That's kind of arbitrary, and depends on what kind of values you're fuzzing.
+When you write your own Shrinker, you decide what is small for the kind of data
+you're testing with.
 
 Let's say I'm writing a Shrinker for binary trees :
 
@@ -48,29 +57,31 @@ In this context, "smaller" should probably mean "with less nodes", to make the
 reason the test failed more obvious:
 
     -- shrinking from this failing input:
-    Node (Node (Node (Leaf 987) (Node (Leaf 654) (Leaf 321))) (Node (Leaf 123))) (Leaf 123)
+    Node (Node (Node (Leaf 8) (Node (Leaf -1) (Leaf 7))) (Node (Leaf 3))) (Leaf 4)
     -- to this failing input:
-    Node (Leaf 987) (Leaf 123)
+    Leaf -1
     -- it will probably take less time for the developer inspecting the failing
-    -- input to see what went wrong (probably the second leaf of the root node)
+    -- input to understand what went wrong (probably when there's a `Leaf -1` in
+    -- the tree)
 
 
-## What is a Shrinker?
+### How does shrinking work?
 
-It's a function that takes an original failing input and gives back a LazyList
-of potentially failing inputs. Those will be passed to the test that failed
-given that original failing input.
+When a test fails with a random value, this value is fed to the shrinker who
+returns a LazyList of potentially failing inputs. Those will be passed to the
+test that failed given that original failing input.
 
 The fuzz test is rerun with the first "smaller" value. If the test now passes,
-we discard that smaller value and try the next one in the list. If instead the
-test still fails, the rest of the list is discarded and that "smallest" value is
-recursively shrunk.
+we discard that "smaller" value and try the next one in the list. If instead the
+test still fails, the rest of the list is discarded and that "smaller" value is
+recursively shrunk, until no "smaller" value can be found.
 
-Once we can't find anymore "smaller" shrunken values that make the test fail,
-the smallest we found thus far is presented as the smallest failing value.
+Once we can't find anymore "smaller" values that make the test fail, the last we
+found thus far is presented as the "smallest" failing value. If none has been
+found, the original failing value is presented instead.
 
 
-## How do I make my own Shrinkers?
+### How do I make my own Shrinkers?
 
 Shrinkers must be deterministic, since they do not have access to a random
 number generator. It's the generator part of the fuzzer that's meant to find
@@ -82,35 +93,18 @@ That LazyList may or may not have another element each time we ask for one,
 and doesn't necessarily have them all committed to memory. That allows it to
 take less space (interesting since there may be quite a lot of elements).
 
-That LazyList should also provide a constant number of shrunk values (if it
+That LazyList should also provide a finite number of shrunk values (if it
 provided an infinite number of them, tests using it might hang indefinitely
 at the shrinking phase).
 
-Also, the shrinking process should never produce the same value twice, even
-through several shrinking attempts. Doing so may result in tests looping over
-wrong values, hanging or generating stack too deep kind
-of exceptions.
+Shrinkers must never shrink values in a circle, like:
 
-    -- so, for example, a shrinker producing these outputs from these inputs could
-    -- make a test loop indefinitely:
-    shrinker 123 == [ 456, ... ]
-    shrinker 456 == [ 789, ... ]
-    shrinker 789 == [ 123, ... ] -- here we reproduce our first value and loop
+    loopinBooleanShrinker True == [ False ]
 
+    loopinBooleanShrinker False == [ True ]
 
-# Shrinking Basics
-
-@docs Shrinker, shrink
-
-
-# Shrinkers
-
-@docs noShrink, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
-
-
-# Functions on Shrinkers
-
-@docs convert, keepIf, dropIf, merge, map, andMap
+Doing so will also result in tests hanging indefinitely, testing and re-testing
+the same values in a circle.
 
 -}
 
@@ -388,10 +382,9 @@ Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
 tuple : ( Shrinker a, Shrinker b ) -> Shrinker ( a, b )
 tuple ( shrinkA, shrinkB ) ( a, b ) =
-    append (Lazy.List.map (Tuple.pair a) (shrinkB b))
-        (append (Lazy.List.map (\first -> ( first, b )) (shrinkA a))
-            (Lazy.List.map2 Tuple.pair (shrinkA a) (shrinkB b))
-        )
+    Lazy.List.map2 Tuple.pair (shrinkA a) (shrinkB b)
+        |> append (Lazy.List.map (\a2 -> ( a2, b )) (shrinkA a))
+        |> append (Lazy.List.map (\b2 -> ( a, b2 )) (shrinkB b))
 
 
 {-| 3-Tuple shrinker constructor.
@@ -399,18 +392,13 @@ Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
 tuple3 : ( Shrinker a, Shrinker b, Shrinker c ) -> Shrinker ( a, b, c )
 tuple3 ( shrinkA, shrinkB, shrinkC ) ( a, b, c ) =
-    append (Lazy.List.map (\c1 -> ( a, b, c1 )) (shrinkC c))
-        (append (Lazy.List.map (\b2 -> ( a, b2, c )) (shrinkB b))
-            (append (Lazy.List.map (\a2 -> ( a2, b, c )) (shrinkA a))
-                (append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (shrinkB b) (shrinkC c))
-                    (append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (shrinkA a) (shrinkC c))
-                        (append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (shrinkA a) (shrinkB b))
-                            (Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (shrinkA a) (shrinkB b) (shrinkC c))
-                        )
-                    )
-                )
-            )
-        )
+    Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (shrinkA a) (shrinkB b) (shrinkC c)
+        |> append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (shrinkA a) (shrinkB b))
+        |> append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (shrinkA a) (shrinkC c))
+        |> append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (shrinkB b) (shrinkC c))
+        |> append (Lazy.List.map (\a2 -> ( a2, b, c )) (shrinkA a))
+        |> append (Lazy.List.map (\b2 -> ( a, b2, c )) (shrinkB b))
+        |> append (Lazy.List.map (\c1 -> ( a, b, c1 )) (shrinkC c))
 
 
 
