@@ -7,6 +7,10 @@ module Shrink exposing
 {-| Library containing a collection of basic shrinkers and helper functions to
 make your own.
 
+Shrinking is part of fuzzing, and the provided fuzzers have shrinkers already
+built into them. You really only have to write your own shrinkers if you use
+`Fuzz.custom`.
+
 
 ## Quick Reference
 
