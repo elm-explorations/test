@@ -61,7 +61,39 @@ In this context, "smaller" should probably mean "with fewer nodes", to make the
 reason the test failed more obvious:
 
     -- shrinking from this failing input:
-    Node (Node (Node (Leaf 8) (Node (Leaf -1) (Leaf 7))) (Node (Leaf 3))) (Leaf 4)
+    Node
+    ( Node
+      ( Node
+        ( Node
+          ( Leaf 888 )
+          ( Leaf 9090 )
+        )
+        (Node
+          ( Leaf -1 )
+          ( Node
+            ( Leaf 731 )
+            ( Node
+              ( Leaf 9621 )
+              ( Leaf -12 )
+            )
+          )
+        )
+      )
+      ( Node
+        ( Leaf -350 )
+        ( Leaf 124 )
+      )
+    )
+    ( Node
+      ( Leaf 45 )
+      ( Node
+        ( Leaf 123 )
+        ( Node
+          ( Leaf 999111 )
+          ( Leaf -148148 )
+        )
+      )
+    )
     -- to this failing input:
     Leaf -1
     -- it will probably take less time for the developer inspecting the failing
