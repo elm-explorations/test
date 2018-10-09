@@ -105,16 +105,17 @@ reason the test failed more obvious:
 
 When a test fails with a random value, this value is fed to the shrinker which
 returns a bunch of potentially failing inputs. Those will be passed to the
-test that failed given that original failing input.
+failing test.
 
-The fuzz test is rerun with the first "smaller" value. If the test now passes,
-we discard that "smaller" value and try the next one in the list. If instead the
-test still fails, the rest of the list is discarded and that "smaller" value is
-recursively shrunk, until no "smaller" value can be found.
+  - when the test passes, we discard the smaller value we tried it with and try
+    another one in the list
+  - when the test still fails, the rest of the list is discarded and that new
+    smaller failing value is recursively shrunk, until no smaller failing value
+    can be found
 
-Once we can't find anymore "smaller" values that make the test fail, the last we
-found thus far is presented as the "smallest" failing value. If none has been
-found, the original failing value is presented instead.
+Once we can't find anymore smaller failing value, the last we found thus far is
+presented as the smallest failing value. If none has been found, the original
+failing value is presented instead.
 
 
 ### How do I make my own Shrinkers?
