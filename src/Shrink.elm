@@ -131,7 +131,7 @@ and doesn't necessarily have them all committed to memory. That allows it to
 take less space (interesting since there may be quite a lot of elements).
 
 That LazyList should also provide a finite number of shrunk values (if it
-provided an infinite number of them, tests using it might hang indefinitely
+provided an infinite number of them, tests using it might continue indefinitely
 at the shrinking phase).
 
 Shrinkers must never shrink values in a circle, like:
@@ -140,7 +140,7 @@ Shrinkers must never shrink values in a circle, like:
 
     loopinBooleanShrinker False == [ True ]
 
-Doing so will also result in tests hanging indefinitely, testing and re-testing
+Doing so will also result in tests looping indefinitely, testing and re-testing
 the same values in a circle.
 
 -}
