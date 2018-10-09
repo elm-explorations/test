@@ -4,8 +4,8 @@ module Shrink exposing
     , convert, keepIf, dropIf, merge, map, andMap
     )
 
-{-| Library containing a collection of basic shrinking strategies and
-helper functions to help you construct shrinking strategies.
+{-| Library containing a collection of basic shrinkers and helper functions to
+make your own.
 
 
 ## Quick Reference
