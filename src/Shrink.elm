@@ -104,7 +104,7 @@ reason the test failed more obvious:
 ### How does shrinking work?
 
 When a test fails with a random value, this value is fed to the shrinker which
-returns a LazyList of potentially failing inputs. Those will be passed to the
+returns a bunch of potentially failing inputs. Those will be passed to the
 test that failed given that original failing input.
 
 The fuzz test is rerun with the first "smaller" value. If the test now passes,
