@@ -166,8 +166,8 @@ type alias Shrinker a =
 shrinking to continue (most likely the failing test for which we are attempting
 to shrink the value). Also takes the shrinker and the value to shrink.
 
-It returns the shrunken value, or the input value if there are no shrunken
-values that satisfy the predicate are found.
+It returns the shrunken value, or the input value if no shrunken values that
+satisfy the predicate are found.
 
 -}
 shrink : (a -> Bool) -> Shrinker a -> a -> a
