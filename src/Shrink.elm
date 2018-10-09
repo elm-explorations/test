@@ -382,9 +382,10 @@ Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
 tuple : ( Shrinker a, Shrinker b ) -> Shrinker ( a, b )
 tuple ( shrinkA, shrinkB ) ( a, b ) =
-    Lazy.List.map2 Tuple.pair (shrinkA a) (shrinkB b)
-        |> append (Lazy.List.map (\a2 -> ( a2, b )) (shrinkA a))
-        |> append (Lazy.List.map (\b2 -> ( a, b2 )) (shrinkB b))
+    append (Lazy.List.map (Tuple.pair a) (shrinkB b))
+        (append (Lazy.List.map (\first -> ( first, b )) (shrinkA a))
+            (Lazy.List.map2 Tuple.pair (shrinkA a) (shrinkB b))
+        )
 
 
 {-| 3-Tuple shrinker constructor.
@@ -392,13 +393,18 @@ Takes a tuple of shrinkers and returns a shrinker of tuples.
 -}
 tuple3 : ( Shrinker a, Shrinker b, Shrinker c ) -> Shrinker ( a, b, c )
 tuple3 ( shrinkA, shrinkB, shrinkC ) ( a, b, c ) =
-    Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (shrinkA a) (shrinkB b) (shrinkC c)
-        |> append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (shrinkA a) (shrinkB b))
-        |> append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (shrinkA a) (shrinkC c))
-        |> append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (shrinkB b) (shrinkC c))
-        |> append (Lazy.List.map (\a2 -> ( a2, b, c )) (shrinkA a))
-        |> append (Lazy.List.map (\b2 -> ( a, b2, c )) (shrinkB b))
-        |> append (Lazy.List.map (\c1 -> ( a, b, c1 )) (shrinkC c))
+    append (Lazy.List.map (\c1 -> ( a, b, c1 )) (shrinkC c))
+        (append (Lazy.List.map (\b2 -> ( a, b2, c )) (shrinkB b))
+            (append (Lazy.List.map (\a2 -> ( a2, b, c )) (shrinkA a))
+                (append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (shrinkB b) (shrinkC c))
+                    (append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (shrinkA a) (shrinkC c))
+                        (append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (shrinkA a) (shrinkB b))
+                            (Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (shrinkA a) (shrinkB b) (shrinkC c))
+                        )
+                    )
+                )
+            )
+        )
 
 
 
