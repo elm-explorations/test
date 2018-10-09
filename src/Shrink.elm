@@ -57,7 +57,7 @@ Let's say I'm writing a Shrinker for binary trees :
         = Node (Tree a) (Tree a)
         | Leaf a
 
-In this context, "smaller" should probably mean "with less nodes", to make the
+In this context, "smaller" should probably mean "with fewer nodes", to make the
 reason the test failed more obvious:
 
     -- shrinking from this failing input:
