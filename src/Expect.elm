@@ -321,7 +321,6 @@ minor inaccuracies introduced by floating point arithmetic.
     -- Fails because 0.1 + 0.2 == 0.30000000000000004 (0.1 is non-terminating in base 2)
     0.1 + 0.2 |> Expect.equal 0.3
 
-
     -- So instead write this test, which passes
     0.1 + 0.2 |> Expect.within (Absolute 0.000000001) 0.3
 
