@@ -1,17 +1,23 @@
 module Tests exposing (all)
 
+import Attributes
+import Descendant
+import Events
 import Expect exposing (FloatingPointTolerance(..))
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
+import Queries
 import Random
 import RunnerTests
+import Selectors
 import Shrink
 import ShrinkTests
 import Test exposing (..)
 import Test.Runner
 import Test.Runner.Failure exposing (Reason(..))
+import TestExample
 
 
 all : Test
@@ -25,6 +31,19 @@ all =
         , floatWithinTests
         , ShrinkTests.all
         , RunnerTests.all
+        , elmHtmlTests
+        ]
+
+
+elmHtmlTests : Test
+elmHtmlTests =
+    describe "elm-html-test"
+        [ Attributes.all
+        , Descendant.all
+        , Events.all
+        , Queries.all
+        , Selectors.all
+        , TestExample.all
         ]
 
 
