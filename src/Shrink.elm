@@ -37,8 +37,16 @@ built into them. You really only have to write your own shrinkers if you use
 
 ## What are Shrinkers and why do we need them?
 
-Shrinking is a way to try and find the "smallest" example that fails, in order
-to give the tester better feedback on what went wrong.
+Fuzzers consist of two parts; a Generator and a Shrinker.
+
+The Generator takes a random Seed as input and returns a random value of
+the desired type, based on the Seed. When a test fails on one of those random
+values, the shrinker takes the failing value and makes it smaller/simpler for
+you so you can guess more easily what property of that value caused the test
+to fail.
+
+Shrinking is a way to try and find the "smallest", "simplest" example that
+fails, in order to give the tester better feedback on what went wrong.
 
 Shrinkers are functions that, given a failing value, offer "smaller", "simpler"
 values to test against.
@@ -107,19 +115,24 @@ number in a leaf is what causes the test to fail.
 
 ### How does shrinking work?
 
-When a test fails with a random value, this value is fed to the shrinker which
-returns a bunch of potentially failing inputs. Those will be passed to the
-failing test.
+A shrinker takes a value and returns a short list of smaller values.
 
-  - when the test passes, we discard the smaller value we tried it with and try
-    another one in the list
-  - when the test still fails, the rest of the list is discarded and that new
-    smaller failing value is recursively shrunk, until no smaller failing value
-    can be found
+Once elm-test finds a failing fuzz test, it tries to shrink the input using
+the shrinker. We'll then try the smaller values as inputs to that test. If one
+of the smaller values also fail, we continue shrinking from there instead.
+Once the shrinker says that there are no smaller values, or no smaller values
+fail the fuzz test, we stop shrinking.
 
-Once we can't find anymore smaller failing value, the last we found thus far is
-presented as the smallest failing value. If none has been found, the original
-failing value is presented instead.
+It's helpful to think of Shrinkers as returning simpler values rather than
+smaller values. For example, 1 is smaller/simpler than 47142, and -1 is
+smaller/simpler than -47142.
+
+Whether or not the shrunken value is actually smaller isn't that important,
+as long as we aren't shrinking in a loop. The bool shrinker shrinks False to
+True, but not vice versa. If it did, and your test failed no matter if this
+variable was True or False, there would always be a smaller/simpler value, so
+we'd never stop shrinking! We would just re-test the same values over and over
+again, forever!
 
 
 ### How do I make my own Shrinkers?
