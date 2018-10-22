@@ -101,8 +101,8 @@ Now let's say we shrink it to the following simpler value:
     Leaf -1
 
 It will probably take less time for the developer inspecting the failing input
-to understand what went wrong (probably when there's a `Leaf` holding a negative
-number in the tree).
+to understand what went wrong. Next, the developer could check wether a negative
+number in a leaf is what causes the test to fail.
 
 
 ### How does shrinking work?
