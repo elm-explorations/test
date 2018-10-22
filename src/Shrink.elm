@@ -57,48 +57,52 @@ Let's say I'm writing a Shrinker for binary trees :
         = Node (Tree a) (Tree a)
         | Leaf a
 
-In this context, "smaller" should probably mean "with fewer nodes", to make the
-reason the test failed more obvious:
+Now let's say the test fails with the following randomly-generated tree:
 
-    -- shrinking from this failing input:
     Node
-    ( Node
-      ( Node
-        ( Node
-          ( Leaf 888 )
-          ( Leaf 9090 )
+        (Node
+            (Node
+                (Node
+                    (Leaf 888)
+                    (Leaf 9090)
+                )
+                (Node
+                    (Leaf -1)
+                    (Node
+                        (Leaf 731)
+                        (Node
+                            (Leaf 9621)
+                            (Leaf -12)
+                        )
+                    )
+                )
+            )
+            (Node
+                (Leaf -350)
+                (Leaf 124)
+            )
         )
         (Node
-          ( Leaf -1 )
-          ( Node
-            ( Leaf 731 )
-            ( Node
-              ( Leaf 9621 )
-              ( Leaf -12 )
+            (Leaf 45)
+            (Node
+                (Leaf 123)
+                (Node
+                    (Leaf 999111)
+                    (Leaf -148148)
+                )
             )
-          )
         )
-      )
-      ( Node
-        ( Leaf -350 )
-        ( Leaf 124 )
-      )
-    )
-    ( Node
-      ( Leaf 45 )
-      ( Node
-        ( Leaf 123 )
-        ( Node
-          ( Leaf 999111 )
-          ( Leaf -148148 )
-        )
-      )
-    )
-    -- to this failing input:
+
+This is a pretty big tree, there are many nodes and leaves, and it's difficult
+to tell which is responsible for the failing.
+
+Now let's say we shrink it to the following simpler value:
+
     Leaf -1
-    -- it will probably take less time for the developer inspecting the failing
-    -- input to understand what went wrong (probably when there's a `Leaf -1` in
-    -- the tree)
+
+It will probably take less time for the developer inspecting the failing input
+to understand what went wrong (probably when there's a `Leaf` holding a negative
+number in the tree).
 
 
 ### How does shrinking work?
