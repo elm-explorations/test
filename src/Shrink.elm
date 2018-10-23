@@ -104,7 +104,7 @@ test fail:
 
 This is a pretty big tree, there are many nodes and leaves, and it's difficult
 to tell which is responsible for the failing. If we don't attempt to shrink it,
-the developper will have a hard time pointing out why it fails.
+the developer will have a hard time pointing out why it fails.
 
 Now let's pass it through a shrinker, and test the resulting value until we find
 this new value that still fails the test:
