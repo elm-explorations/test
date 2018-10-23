@@ -58,7 +58,7 @@ That's kind of arbitrary, and depends on what kind of values you're fuzzing.
 When you write your own Shrinker, you decide what is small for the kind of data
 you're testing with.
 
-Let's say I'm writing a Shrinker for binary trees :
+Let's say I'm writing a Shrinker for binary trees:
 
     -- randomly-generated binary trees might soon become unreadable
     type Tree a
