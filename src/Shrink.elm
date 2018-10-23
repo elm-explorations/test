@@ -58,14 +58,15 @@ That's kind of arbitrary, and depends on what kind of values you're fuzzing.
 When you write your own Shrinker, you decide what is small for the kind of data
 you're testing with.
 
-Let's say I'm writing a Shrinker for binary trees:
+Let's say I'm writing a Fuzzer for binary trees:
 
     -- randomly-generated binary trees might soon become unreadable
     type Tree a
         = Node (Tree a) (Tree a)
         | Leaf a
 
-Now let's say the test fails with the following randomly-generated tree:
+Now let's say its random Generator produced the following tree that makes the
+test fail:
 
     Node
         (Node
@@ -102,14 +103,16 @@ Now let's say the test fails with the following randomly-generated tree:
         )
 
 This is a pretty big tree, there are many nodes and leaves, and it's difficult
-to tell which is responsible for the failing.
+to tell which is responsible for the failing. If we don't attempt to shrink it,
+the developper will have a hard time pointing out why it fails.
 
-Now let's say we shrink it to the following simpler value:
+Now let's pass it through a shrinker, and test the resulting value until we find
+this new value that still fails the test:
 
     Leaf -1
 
-It will probably take less time for the developer inspecting the failing input
-to understand what went wrong. Next, the developer could check whether a negative
+It will take less time for the developer inspecting the failing input to
+understand what went wrong. Next, they should probably check whether a negative
 number in a leaf is what causes the test to fail.
 
 
