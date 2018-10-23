@@ -25,6 +25,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
 import Test.Html.Query as Query
 import Test.Html.Query.Internal as QueryInternal
+import Test.Internal as Internal
 
 
 {-| A simulated event.
@@ -83,7 +84,14 @@ expect msg (Event event (QueryInternal.Single showTrace query)) =
         Ok foundMsg ->
             foundMsg
                 |> Expect.equal msg
-                |> QueryInternal.failWithQuery showTrace ("Event.expectEvent: Expected the msg \u{001B}[32m" ++ toString msg ++ "\u{001B}[39m from the event \u{001B}[31m" ++ toString event ++ "\u{001B}[39m but could not find the event.") query
+                |> QueryInternal.failWithQuery showTrace
+                    ("Event.expectEvent: Expected the msg \u{001B}[32m"
+                        ++ Internal.toString msg
+                        ++ "\u{001B}[39m from the event \u{001B}[31m"
+                        ++ Internal.toString event
+                        ++ "\u{001B}[39m but could not find the event."
+                    )
+                    query
 
 
 {-| Returns a Result with the Msg produced by the event simulated on a node.
@@ -116,7 +124,11 @@ toResult (Event ( eventName, jsEvent ) (QueryInternal.Single showTrace query)) =
 
         Ok single ->
             findEvent eventName single
-                |> Result.andThen (\foundEvent -> Decode.decodeValue foundEvent jsEvent)
+                |> Result.andThen
+                    (\foundEvent ->
+                        Decode.decodeValue foundEvent jsEvent
+                            |> Result.mapError Decode.errorToString
+                    )
 
 
 

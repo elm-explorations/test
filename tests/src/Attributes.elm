@@ -28,7 +28,7 @@ all =
                     |> Expect.equal (namedBoolAttr "checked" True)
         , test "can generate a Style selector" <|
             \() ->
-                Attr.style [ ( "margin", "0" ) ]
+                Attr.style "margin" "0"
                     |> Selector.attribute
                     |> Expect.equal (Style [ ( "margin", "0" ) ])
         , describe "classes" <|

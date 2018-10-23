@@ -2,6 +2,10 @@
 - [ ] Pull in tests from elm-html-in-elm
 - [ ] make sure things we do want to publish are exposed in elm.json
 - [ ] one-by-one remove things we don't want to publish from elm.json, and fix up any broken tests
+    - [ ] Test.Html.Selector.Internal
+    - [ ] Test.Html.Descendant
+    - [ ] Html.Inert
+    - [ ] ElmHtml.InternalTypes
 - [ ] figure out how Html.Inert.fromHtml can return a Result in the error case without making Query.fromHtml need to return a Result.
 - maybe...
     - [ ] reorganize and rename modules

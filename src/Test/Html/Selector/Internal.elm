@@ -1,9 +1,17 @@
 module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString)
 
+{-| TODO: don't expose this module
+
+@docs Selector, hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString
+
+-}
+
 import ElmHtml.InternalTypes exposing (ElmHtml)
 import ElmHtml.Query
 
 
+{-| TODO: don't expose this module
+-}
 type Selector
     = All (List Selector)
     | Classes (List String)
@@ -17,6 +25,8 @@ type Selector
     | Invalid
 
 
+{-| TODO: don't expose this module
+-}
 selectorToString : Selector -> String
 selectorToString criteria =
     let
@@ -77,6 +87,8 @@ selectorToString criteria =
             "invalid"
 
 
+{-| TODO: don't expose this module
+-}
 styleToString : List ( String, String ) -> String
 styleToString style =
     style
@@ -84,6 +96,8 @@ styleToString style =
         |> String.join " "
 
 
+{-| TODO: don't expose this module
+-}
 hasAll : List Selector -> List (ElmHtml msg) -> Bool
 hasAll selectors elems =
     case selectors of
@@ -98,6 +112,8 @@ hasAll selectors elems =
                 hasAll rest elems
 
 
+{-| TODO: don't expose this module
+-}
 queryAll : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
 queryAll selectors list =
     case selectors of
@@ -109,6 +125,8 @@ queryAll selectors list =
                 |> queryAll rest
 
 
+{-| TODO: don't expose this module
+-}
 queryAllChildren : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
 queryAllChildren selectors list =
     case selectors of
@@ -120,6 +138,8 @@ queryAllChildren selectors list =
                 |> queryAllChildren rest
 
 
+{-| TODO: don't expose this module
+-}
 query :
     (ElmHtml.Query.Selector -> ElmHtml msg -> List (ElmHtml msg))
     -> (List Selector -> List (ElmHtml msg) -> List (ElmHtml msg))
@@ -183,6 +203,8 @@ query fn fnAll selector list =
                     []
 
 
+{-| TODO: don't expose this module
+-}
 namedAttr : String -> String -> Selector
 namedAttr name value =
     Attribute
@@ -191,6 +213,8 @@ namedAttr name value =
         }
 
 
+{-| TODO: don't expose this module
+-}
 namedBoolAttr : String -> Bool -> Selector
 namedBoolAttr name value =
     BoolAttribute

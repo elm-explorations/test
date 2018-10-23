@@ -190,7 +190,7 @@ See [Selecting elements by `Html.Attribute msg` in the README](http://package.el
 attribute : Attribute Never -> Selector
 attribute attr =
     case Html.Inert.parseAttribute attr of
-        ElmHtml.InternalTypes.Attribute { key, value } ->
+        Ok (ElmHtml.InternalTypes.Attribute { key, value }) ->
             if String.toLower key == "class" then
                 value
                     |> String.split " "
@@ -199,7 +199,7 @@ attribute attr =
             else
                 namedAttr key value
 
-        ElmHtml.InternalTypes.Property { key, value } ->
+        Ok (ElmHtml.InternalTypes.Property { key, value }) ->
             if key == "className" then
                 value
                     |> Json.Decode.decodeValue Json.Decode.string
@@ -219,7 +219,7 @@ attribute attr =
                         )
                     |> Result.withDefault Invalid
 
-        ElmHtml.InternalTypes.Styles styles ->
+        Ok (ElmHtml.InternalTypes.Styles styles) ->
             Style styles
 
         _ ->
@@ -243,8 +243,8 @@ attribute attr =
 
 -}
 style : List ( String, String ) -> Selector
-style style =
-    Style style
+style styles =
+    Style styles
 
 
 {-| Matches elements that have a

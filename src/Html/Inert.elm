@@ -1,6 +1,9 @@
 module Html.Inert exposing (Node, fromElmHtml, fromHtml, parseAttribute, toElmHtml)
 
 {-| Inert Html - that is, can't do anything with events.
+
+@docs Node, fromElmHtml, fromHtml, parseAttribute, toElmHtml
+
 -}
 
 import Elm.Kernel.HtmlAsJson
@@ -9,10 +12,14 @@ import Html exposing (Html)
 import Json.Decode
 
 
+{-| TODO: don't expose this module
+-}
 type Node msg
     = Node (ElmHtml msg)
 
 
+{-| TODO: don't expose this module
+-}
 fromHtml : Html msg -> Node msg
 fromHtml html =
     case Json.Decode.decodeValue (decodeElmHtml taggedEventDecoder) (toJson html) of
@@ -31,6 +38,8 @@ fromHtml html =
                 )
 
 
+{-| TODO: don't expose this module
+-}
 fromElmHtml : ElmHtml msg -> Node msg
 fromElmHtml =
     Node
@@ -43,6 +52,8 @@ toJson node =
     Elm.Kernel.HtmlAsJson.toJson node
 
 
+{-| TODO: don't expose this module
+-}
 toElmHtml : Node msg -> ElmHtml msg
 toElmHtml (Node elmHtml) =
     elmHtml
@@ -58,6 +69,8 @@ attributeToJson attribute =
     Elm.Kernel.HtmlAsJson.attributeToJson attribute
 
 
+{-| TODO: don't expose this module
+-}
 parseAttribute : Html.Attribute a -> Result String ElmHtml.InternalTypes.Attribute
 parseAttribute attr =
     case Json.Decode.decodeValue decodeAttribute (attributeToJson attr) of

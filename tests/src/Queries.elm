@@ -357,8 +357,13 @@ testContaining output =
 
 sampleHtml : Html msg
 sampleHtml =
-    section [ Attr.class "root", Attr.style [ ( "color", "red" ), ( "background", "purple" ), ( "font-weight", "bold" ) ] ]
-        [ div [ Attr.class "container", Attr.style [ ( "color", "blue" ) ] ]
+    section
+        [ Attr.class "root"
+        , Attr.style "color" "red"
+        , Attr.style "background" "purple"
+        , Attr.style "font-weight" "bold"
+        ]
+        [ div [ Attr.class "container", Attr.style "color" "blue" ]
             [ header [ Attr.class "funky themed", Attr.id "heading" ]
                 [ a [ href "http://elm-lang.org" ] [ Html.text "home" ]
                 , a [ href "http://elm-lang.org/examples" ] [ Html.text "examples" ]
@@ -390,8 +395,13 @@ sampleHtml =
 
 sampleLazyHtml : Html msg
 sampleLazyHtml =
-    section [ Attr.class "root", Attr.style [ ( "color", "red" ), ( "background", "purple" ), ( "font-weight", "bold" ) ] ]
-        [ div [ Attr.class "container", Attr.style [ ( "color", "blue" ) ] ]
+    section
+        [ Attr.class "root"
+        , Attr.style "color" "red"
+        , Attr.style "background" "purple"
+        , Attr.style "font-weight" "bold"
+        ]
+        [ div [ Attr.class "container", Attr.style "color" "blue" ]
             [ header [ Attr.class "funky themed", Attr.id "heading" ]
                 [ Lazy.lazy (\str -> a [ href "http://elm-lang.org" ] [ Html.text str ]) "home"
                 , Lazy.lazy (\str -> a [ href "http://elm-lang.org/examples" ] [ Html.text str ]) "examples"

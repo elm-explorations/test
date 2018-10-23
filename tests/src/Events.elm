@@ -164,7 +164,7 @@ deepMappedHtml =
 
 testEvent : (Msg -> Html.Attribute Msg) -> ( String, Value ) -> Test
 testEvent testOn (( eventName, eventValue ) as event) =
-    test ("returns msg for " ++ eventName ++ "(" ++ toString eventValue ++ ") event") <|
+    test ("returns msg for " ++ eventName ++ "(" ++ Encode.encode 0 eventValue ++ ") event") <|
         \() ->
             input [ testOn SampleMsg ] []
                 |> Query.fromHtml
