@@ -111,9 +111,7 @@ this new value that still fails the test:
 
     Leaf -1
 
-It will take less time for the developer inspecting the failing input to
-understand what went wrong. Next, they should probably check whether a negative
-number in a leaf is what causes the test to fail.
+Nice, looks like a negative number in a `Leaf` could be the issue.
 
 
 ### How does shrinking work?
