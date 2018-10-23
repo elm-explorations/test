@@ -4,23 +4,162 @@ module Shrink exposing
     , convert, keepIf, dropIf, merge, map, andMap
     )
 
-{-| Library containing a collection of basic shrinking strategies and
-helper functions to help you construct shrinking strategies.
+{-| Library containing a collection of basic shrinkers and helper functions to
+make your own.
+
+Shrinking is part of fuzzing, and the provided fuzzers have shrinkers already
+built into them. You really only have to write your own shrinkers if you use
+`Fuzz.custom`.
 
 
-# Shrinking Basics
+## Quick Reference
+
+  - [Shrinking Basics](#shrinking-basics)
+  - [Readymade Shrinkers](#readymade-shrinkers)
+  - [Functions on Shrinkers](#functions-on-shrinkers)
+  - [What are Shrinkers and why do we need them?](#what-are-shrinkers-and-why-do-we-need-them)
+
+
+## Shrinking Basics
 
 @docs Shrinker, shrink
 
 
-# Shrinkers
+## Readymade Shrinkers
 
 @docs noShrink, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
 
 
-# Functions on Shrinkers
+## Functions on Shrinkers
 
 @docs convert, keepIf, dropIf, merge, map, andMap
+
+
+## What are Shrinkers and why do we need them?
+
+Fuzzers consist of two parts; a Generator and a Shrinker.
+
+The Generator takes a random Seed as input and returns a random value of
+the desired type, based on the Seed. When a test fails on one of those random
+values, the shrinker takes the failing value and makes it smaller/simpler for
+you so you can guess more easily what property of that value caused the test
+to fail.
+
+Shrinking is a way to try and find the "smallest", "simplest" example that
+fails, in order to give the tester better feedback on what went wrong.
+
+Shrinkers are functions that, given a failing value, offer "smaller", "simpler"
+values to test against.
+
+
+### What is "small" (or "simple")?
+
+That's kind of arbitrary, and depends on what kind of values you're fuzzing.
+When you write your own Shrinker, you decide what is small for the kind of data
+you're testing with.
+
+Let's say I'm writing a Fuzzer for binary trees:
+
+    -- randomly-generated binary trees might soon become unreadable
+    type Tree a
+        = Node (Tree a) (Tree a)
+        | Leaf a
+
+Now let's say its random Generator produced the following tree that makes the
+test fail:
+
+    Node
+        (Node
+            (Node
+                (Node
+                    (Leaf 888)
+                    (Leaf 9090)
+                )
+                (Node
+                    (Leaf -1)
+                    (Node
+                        (Leaf 731)
+                        (Node
+                            (Leaf 9621)
+                            (Leaf -12)
+                        )
+                    )
+                )
+            )
+            (Node
+                (Leaf -350)
+                (Leaf 124)
+            )
+        )
+        (Node
+            (Leaf 45)
+            (Node
+                (Leaf 123)
+                (Node
+                    (Leaf 999111)
+                    (Leaf -148148)
+                )
+            )
+        )
+
+This is a pretty big tree, there are many nodes and leaves, and it's difficult
+to tell which is responsible for the failing. If we don't attempt to shrink it,
+the developper will have a hard time pointing out why it fails.
+
+Now let's pass it through a shrinker, and test the resulting value until we find
+this new value that still fails the test:
+
+    Leaf -1
+
+Nice, looks like a negative number in a `Leaf` could be the issue.
+
+
+### How does shrinking work?
+
+A shrinker takes a value and returns a short list of smaller values.
+
+Once elm-test finds a failing fuzz test, it tries to shrink the input using
+the shrinker. We'll then try the smaller values as inputs to that test. If one
+of the smaller values also fail, we continue shrinking from there instead.
+Once the shrinker says that there are no smaller values, or no smaller values
+fail the fuzz test, we stop shrinking.
+
+It's helpful to think of Shrinkers as returning simpler values rather than
+smaller values. For example, 1 is smaller/simpler than 47142, and -1 is
+smaller/simpler than -47142.
+
+Whether or not the shrunken value is actually smaller isn't that important,
+as long as we aren't shrinking in a loop. The bool shrinker shrinks True to
+False, but not vice versa. If it did, and your test failed no matter if this
+variable was True or False, there would always be a smaller/simpler value, so
+we'd never stop shrinking! We would just re-test the same values over and over
+again, forever!
+
+
+### How do I make my own Shrinkers?
+
+Shrinkers are deterministic, since they do not have access to a random number
+generator. It's the generator part of the fuzzer that's meant to find the rare
+edge cases; it's the shrinkers job to make the failures as understandable as
+possible.
+
+Shrinkers have to return a LazyList, something that works a bit like a list.
+That LazyList may or may not have another element each time we ask for one,
+and doesn't necessarily have them all committed to memory. That allows it to
+take less space (interesting since there may be quite a lot of elements).
+
+That LazyList should also provide a finite number of shrunk values (if it
+provided an infinite number of them, tests using it might continue indefinitely
+at the shrinking phase).
+
+Shrinkers must never shrink values in a circle, like:
+
+    loopinBooleanShrinker True == [ False ]
+
+    loopinBooleanShrinker False == [ True ]
+
+Doing so will also result in tests looping indefinitely, testing and re-testing
+the same values in a circle.
 
 -}
 
@@ -33,18 +172,21 @@ import String
 
 
 {-| The shrinker type.
-A shrinker is a function that takes a value and returns a list of values that
-are in some sense "smaller" than the given value. If there are no such values
-conceptually, then the shrinker should just return the empty list.
+A shrinker is a function that takes a value and returns a lazy list of values
+that are in some sense "smaller" than the given value. If no such values exist,
+then the shrinker should just return the empty list.
 -}
 type alias Shrinker a =
     a -> LazyList a
 
 
 {-| Perform shrinking. Takes a predicate that returns `True` if you want
-shrinking to continue (e.g. the test failed). Also takes a shrinker and a value
-to shrink. It returns the shrunken value, or the input value if no shrunken
-values that satisfy the predicate are found.
+shrinking to continue (most likely the failing test for which we are attempting
+to shrink the value). Also takes the shrinker and the value to shrink.
+
+It returns the shrunken value, or the input value if no shrunken values that
+satisfy the predicate are found.
+
 -}
 shrink : (a -> Bool) -> Shrinker a -> a -> a
 shrink keepShrinking shrinker originalVal =
@@ -331,11 +473,13 @@ tuple3 ( shrinkA, shrinkB, shrinkC ) ( a, b, c ) =
 If you use this function as follows:
 
     shrinkerB =
-        f g shrinkerA
+        convert f g shrinkerA
 
-Make sure that
+Make sure that:
 
     `f(g(x)) == x` for all x
+    -- (putting something into g then feeding the output into f must give back
+    -- just that original something, whatever it is)
 
 Or else this process will generate garbage.
 
