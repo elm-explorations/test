@@ -129,8 +129,8 @@ smaller values. For example, 1 is smaller/simpler than 47142, and -1 is
 smaller/simpler than -47142.
 
 Whether or not the shrunken value is actually smaller isn't that important,
-as long as we aren't shrinking in a loop. The bool shrinker shrinks False to
-True, but not vice versa. If it did, and your test failed no matter if this
+as long as we aren't shrinking in a loop. The bool shrinker shrinks True to
+False, but not vice versa. If it did, and your test failed no matter if this
 variable was True or False, there would always be a smaller/simpler value, so
 we'd never stop shrinking! We would just re-test the same values over and over
 again, forever!
