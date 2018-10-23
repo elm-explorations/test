@@ -1,4 +1,5 @@
-- [ ] Get tests to compile
+- [x] Get tests to compile
+- [ ] Get tests to pass
 - [ ] Pull in tests from elm-html-in-elm
 - [ ] make sure things we do want to publish are exposed in elm.json
 - [ ] one-by-one remove things we don't want to publish from elm.json, and fix up any broken tests
@@ -6,6 +7,8 @@
     - [ ] Test.Html.Descendant
     - [ ] Html.Inert
     - [ ] ElmHtml.InternalTypes
+- [ ] ElmHtml.InternalTypes.Styles should become "Style" and no longer take a List
 - [ ] figure out how Html.Inert.fromHtml can return a Result in the error case without making Query.fromHtml need to return a Result.
+- [ ] do the genreated values for the VirtualDom tags (e.g., `a__1_STYLE`) always end up as the same values?  Or can we refer to them in our own kernel code to get the correct values?  (And same question for the VirtualDom internal field names (e.g., `__key` which currently becomes `n`))
 - maybe...
     - [ ] reorganize and rename modules

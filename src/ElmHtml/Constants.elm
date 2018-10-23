@@ -1,17 +1,28 @@
-module ElmHtml.Constants exposing (styleKey, eventKey, attributeKey, attributeNamespaceKey, knownKeys)
+module ElmHtml.Constants exposing
+    ( propKey, styleKey, eventKey, attributeKey, attributeNamespaceKey
+    , knownKeys
+    )
 
 {-| Constants for representing internal keys for Elm's vdom implementation
 
-@docs styleKey, eventKey, attributeKey, attributeNamespaceKey, knownKeys
+@docs propKey, styleKey, eventKey, attributeKey, attributeNamespaceKey
+@docs knownKeys
 
 -}
+
+
+{-| Internal key for attribute properties
+-}
+propKey : String
+propKey =
+    "a2"
 
 
 {-| Internal key for style
 -}
 styleKey : String
 styleKey =
-    "STYLE"
+    "a1"
 
 
 {-| Internal key for style
@@ -25,14 +36,14 @@ eventKey =
 -}
 attributeKey : String
 attributeKey =
-    "ATTR"
+    "a3"
 
 
 {-| Internal key for style
 -}
 attributeNamespaceKey : String
 attributeNamespaceKey =
-    "ATTR_NS"
+    "a4"
 
 
 {-| Keys that we are aware of and should pay attention to

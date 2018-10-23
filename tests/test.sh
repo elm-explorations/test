@@ -23,6 +23,6 @@ cp ./versions.dat elm_home/0.19.0/package/versions.dat
 
 export ELM_HOME="$(pwd)"/elm_home
 
-elm make src/Main.elm --output elm.js
+elm make --debug src/Main.elm --output elm.js
 
 node elm.js

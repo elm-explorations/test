@@ -18,7 +18,7 @@ module ElmHtml.InternalTypes exposing
 -}
 
 import Dict exposing (Dict)
-import ElmHtml.Constants exposing (..)
+import ElmHtml.Constants as Constants exposing (..)
 import ElmHtml.Helpers exposing (..)
 import ElmHtml.Markdown exposing (..)
 import Html.Events
@@ -145,7 +145,7 @@ type Attribute
     = Attribute AttributeRecord
     | NamespacedAttribute NamespacedAttributeRecord
     | Property PropertyRecord
-    | Styles (List ( String, String ))
+    | Styles (List ( String, String )) -- TODO: this shouldn't be a List anymore
     | Event EventRecord
 
 
@@ -440,40 +440,40 @@ like elm-html-test does to extract the function inside those.
 -}
 decodeAttribute : Json.Decode.Decoder Attribute
 decodeAttribute =
-    Json.Decode.field "key" Json.Decode.string
+    Json.Decode.field "$" Json.Decode.string
         |> Json.Decode.andThen
-            (\key ->
-                if key == attributeKey then
-                    Json.Decode.map2 AttributeRecord
-                        (Json.Decode.field "realKey" Json.Decode.string)
-                        (Json.Decode.field "value" Json.Decode.string)
-                        |> Json.Decode.map Attribute
+            (\tag ->
+                if tag == Constants.attributeKey then
+                    Json.Decode.map2 (\key val -> Attribute (AttributeRecord key val))
+                        (Json.Decode.field "n" Json.Decode.string)
+                        (Json.Decode.field "o" Json.Decode.string)
 
-                else if key == attributeNamespaceKey then
+                else if tag == Constants.attributeNamespaceKey then
                     Json.Decode.map3 NamespacedAttributeRecord
-                        (Json.Decode.field "realKey" Json.Decode.string)
-                        (Json.Decode.at [ "value", "value" ] Json.Decode.string)
-                        (Json.Decode.at [ "value", "namespace" ] Json.Decode.string)
+                        (Json.Decode.field "n" Json.Decode.string)
+                        (Json.Decode.at [ "o", "o" ] Json.Decode.string)
+                        (Json.Decode.at [ "o", "f" ] Json.Decode.string)
                         |> Json.Decode.map NamespacedAttribute
 
-                else if key == styleKey then
-                    Json.Decode.map2 (\a b -> ( a, b ))
-                        (Json.Decode.field "_0" Json.Decode.string)
-                        (Json.Decode.field "_1" Json.Decode.string)
-                        |> elmListDecoder
-                        |> Json.Decode.field "value"
-                        |> Json.Decode.map Styles
+                else if tag == Constants.styleKey then
+                    Json.Decode.map2 (\key val -> Styles [ ( key, val ) ])
+                        (Json.Decode.field "n" Json.Decode.string)
+                        (Json.Decode.field "o" Json.Decode.string)
+                    -- TODO: should be covered by tests/src/Events.elm
+                    -- else if key == eventKey then
+                    --     Json.Decode.map3 EventRecord
+                    --         (Json.Decode.field "realKey" Json.Decode.string)
+                    --         (Json.Decode.at [ "value", "decoder" ] Json.Decode.value)
+                    --         (Json.Decode.at [ "value", "options" ] decodeOptions)
+                    --         |> Json.Decode.map Event
 
-                else if key == eventKey then
-                    Json.Decode.map3 EventRecord
-                        (Json.Decode.field "realKey" Json.Decode.string)
-                        (Json.Decode.at [ "value", "decoder" ] Json.Decode.value)
-                        (Json.Decode.at [ "value", "options" ] decodeOptions)
-                        |> Json.Decode.map Event
+                else if tag == Constants.propKey then
+                    Json.Decode.map2 (\key val -> Property (PropertyRecord key val))
+                        (Json.Decode.field "n" Json.Decode.string)
+                        (Json.Decode.at [ "o", "a" ] Json.Decode.value)
 
                 else
-                    Json.Decode.field "value" Json.Decode.value
-                        |> Json.Decode.map (PropertyRecord key >> Property)
+                    Json.Decode.fail ("Unexpected Html.Attribute tag: " ++ tag)
             )
 
 

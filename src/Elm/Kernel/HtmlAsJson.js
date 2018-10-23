@@ -1,5 +1,7 @@
 /*
 
+import Elm.Kernel.Json exposing (wrap)
+
 */
 
 function forceThunks(vNode) {
@@ -35,5 +37,5 @@ function _HtmlAsJson_taggerFunction(tagger)
 
 function _HtmlAsJson_attributeToJson(attribute)
 {
-  return attribute;
+  return _Json_wrap(attribute);
 }
