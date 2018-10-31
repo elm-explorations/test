@@ -84,14 +84,18 @@ expectationTests =
                 \_ -> 141 |> Expect.equal 141
             ]
 
-       -- , describe "Expect.equal on unicode strings should show pretty output"
-       --     [ test "ascii" <|
-       --         \_ -> "😻🙀👻" |> Expect.equal "🙀👻😻🙈"
-       --     , test "ascii space vs nbsp" <|
-       --         \_ -> "asd qwe" |> Expect.equal "asd\u{00a0}qwe"
-       --     , test "ascii only" <|
-       --         \_ -> "asd qwe" |> Expect.equal "asd dwe"
-       --     ]
+        -- , describe "Expect.equal on unicode strings should show pretty output"
+        --     [ test "ascii" <|
+        --         \_ -> "😻🙀👻" |> Expect.equal "🙀👻😻🙈"
+        --     , test "ascii space vs nbsp" <|
+        --         \_ -> "asd qwe" |> Expect.equal "asd\u{00a0}qwe"
+        --     , test "ascii only" <|
+        --         \_ -> "asd qwe" |> Expect.equal "asd dwe"
+        --     , test "newline diff" <|
+        --         \_ -> "first\u{000a}second" |> Expect.equal "first\r\nsecond"
+        --     , test "long lines" <|
+        --         \_ -> "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque in scelerisque arcu. Curabitur cursus efficitur turpis sed porttitor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nunc eu cursus ex. Proin accumsan quam quis dui semper finibus. Nunc vel nibh at tellus finibus rhoncus eu eget dolor. Sed eget neque ut lorem imperdiet fermentum. 😻 Morbi iaculis ante euismod, vulputate velit ut, varius velit. Nulla tempus dapibus mattis. In tempus, nisi a porta lobortis, nulla lacus iaculis quam, vel euismod magna risus at tortor. Integer porta urna odio. Nulla pellentesque dictum maximus. Donec auctor urna nec tortor imperdiet varius." |> Expect.equal "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque in scelerisque arcu. Curabitur cursus efficitur turpis sed porttitor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nunc eu cursus ex. Proin accumsan quam quis dui semper finibus. Nunc vel nibh at tellus finibus rhoncus eu eget dolor. Sed eget neque ut lorem imperdiet fermentum. Morbi iaculis ante euismod, vulputate velit ut, varius velit. Nulla tempus dapibus mattis. In tempus, nisi a porta lobortis, nulla lacus iaculis quam, vel euismod magna risus at tortor. Integer porta urna odio. Nulla pellentesque dictum maximus. Donec auctor urna nec tortor imperdiet varius."
+        --     ]
         ]
 
 
