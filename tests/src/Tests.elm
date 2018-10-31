@@ -83,6 +83,13 @@ expectationTests =
             , test "succeeds when equating two ints" <|
                 \_ -> 141 |> Expect.equal 141
             ]
+
+        -- , describe "Expect.equal on unicode strings should show pretty output"
+        --     [ test "ascii" <|
+        --         \_ -> "😻🙀👻" |> Expect.equal "🙀👻😻🙈"
+        --     , test "ascii space vs nbsp" <|
+        --         \_ -> "asd qwe" |> Expect.equal "asd\u{00a0}qwe"
+        --     ]
         ]
 
 
