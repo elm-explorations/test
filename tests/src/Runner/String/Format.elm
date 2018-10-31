@@ -82,6 +82,13 @@ hexInt int =
 
     else
         let
+            zeroPad4 n =
+                if String.length n < 4 then
+                    zeroPad4 ("0" ++ n)
+
+                else
+                    n
+
             hexIntInternal i =
                 if i == 0 then
                     ""
@@ -111,7 +118,7 @@ hexInt int =
                                     String.fromInt (i |> remainderBy 16)
                            )
         in
-        hexIntInternal int
+        zeroPad4 (hexIntInternal int)
 
 
 escapeUnicodeChars s =
