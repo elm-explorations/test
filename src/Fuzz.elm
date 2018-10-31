@@ -66,10 +66,13 @@ type alias Fuzzer a =
     Internal.Fuzzer a
 
 
-{-| Build a custom `Fuzzer a` by providing a `Generator a` and a `Shrinker a`.
-Generators are defined in [`elm/random`](http://package.elm-lang.org/packages/elm/random/latest),
-which is not core's Random module but has a compatible interface. Shrinkers are
-defined in [`eeue56/elm-shrink`](http://package.elm-lang.org/packages/eeue56/elm-shrink/latest/).
+{-| Build a custom `Fuzzer a` by providing a `Generator a` and a `Shrinker a`. Generators are defined in
+[`elm/random`](http://package.elm-lang.org/packages/elm/random/latest). Shrinkers are defined in the [`Shrink`
+module](https://package.elm-lang.org/packages/elm-explorations/test/latest/Shrink). It is not possible to extract the
+generator and shrinker from an existing fuzzer.
+
+This function should be considered for advanced uses. It's often easier to use `map` and other functions in this
+module to create a fuzzer.
 
 Here is an example for a record:
 
@@ -113,8 +116,6 @@ Here is an example for a custom union type, assuming there is already a `genName
                         Shrink.int i |> Shrink.map Age
         in
         Fuzz.custom generator shrinker
-
-It is not possible to extract the generator and shrinker from an existing fuzzer.
 
 -}
 custom : Generator a -> Shrinker a -> Fuzzer a
