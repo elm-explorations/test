@@ -1,5 +1,7 @@
 module Descendant exposing (all)
 
+-- TODO: rename to Test.Html.DescendantTest
+
 import ElmHtml.InternalTypes exposing (ElmHtml(..))
 import Expect
 import Html exposing (..)
@@ -34,7 +36,7 @@ all =
                         div [] [ aSingleDescendant ]
                 in
                 wrapper html aSingleDescendant
-                    |> Expect.true ""
+                    |> Expect.equal True
         , test "returns true if it contains the expected html more than once" <|
             \() ->
                 let
@@ -48,7 +50,7 @@ all =
                             ]
                 in
                 wrapper html aMultiInstanceDescendant
-                    |> Expect.true ""
+                    |> Expect.equal True
         , test "return true if the node is a nested descendant" <|
             \() ->
                 let
@@ -63,7 +65,7 @@ all =
                             ]
                 in
                 wrapper html aNestedDescendant
-                    |> Expect.true ""
+                    |> Expect.equal True
         , test "returns false if it does not contain the node" <|
             \() ->
                 let
@@ -74,7 +76,7 @@ all =
                         div [] [ someTitle "foo" ]
                 in
                 wrapper html notInHtml
-                    |> Expect.false ""
+                    |> Expect.equal False
         ]
 
 

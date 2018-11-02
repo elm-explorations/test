@@ -203,32 +203,49 @@ decodeElmHtml eventDecoder =
     contextDecodeElmHtml (HtmlContext [] eventDecoder)
 
 
+virtualDomKernelConstants =
+    { nodeType = "$"
+    , nodeTypeText = 0
+    , nodeTypeKeyedNode = -1 -- TODO: this is not tested
+    , nodeTypeNode = 1
+    , nodeTypeCustom = -1 -- TODO: this is not tested
+    , nodeTypeTagger = -1 -- TODO: this is not tested
+    , nodeTypeThunk = 5
+    , tag = "c"
+    , kids = "e"
+    , facts = "d"
+    , descendantsCount = "b"
+    , text = "a"
+    , refs = "l"
+    , node = "k"
+    }
+
+
 contextDecodeElmHtml : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 contextDecodeElmHtml context =
-    field "type" Json.Decode.string
+    field virtualDomKernelConstants.nodeType Json.Decode.int
         |> Json.Decode.andThen
-            (\typeString ->
-                case typeString of
-                    "text" ->
-                        Json.Decode.map TextTag decodeTextTag
+            (\nodeType ->
+                if nodeType == virtualDomKernelConstants.nodeTypeText then
+                    Json.Decode.map TextTag decodeTextTag
 
-                    "keyed-node" ->
-                        Json.Decode.map NodeEntry (decodeKeyedNode context)
+                else if nodeType == virtualDomKernelConstants.nodeTypeKeyedNode then
+                    Json.Decode.map NodeEntry (decodeKeyedNode context)
 
-                    "node" ->
-                        Json.Decode.map NodeEntry (decodeNode context)
+                else if nodeType == virtualDomKernelConstants.nodeTypeNode then
+                    Json.Decode.map NodeEntry (decodeNode context)
 
-                    "custom" ->
-                        decodeCustomNode context
+                else if nodeType == virtualDomKernelConstants.nodeTypeCustom then
+                    decodeCustomNode context
 
-                    "tagger" ->
-                        decodeTagger context
+                else if nodeType == virtualDomKernelConstants.nodeTypeTagger then
+                    decodeTagger context
 
-                    "thunk" ->
-                        field "node" (contextDecodeElmHtml context)
+                else if nodeType == virtualDomKernelConstants.nodeTypeThunk then
+                    field virtualDomKernelConstants.node (contextDecodeElmHtml context)
 
-                    _ ->
-                        Json.Decode.fail ("No such type as " ++ typeString)
+                else
+                    Json.Decode.fail ("No such type as " ++ String.fromInt nodeType)
             )
 
 
@@ -236,13 +253,15 @@ contextDecodeElmHtml context =
 -}
 decodeTextTag : Json.Decode.Decoder TextTagRecord
 decodeTextTag =
-    field "text" (Json.Decode.andThen (\text -> Json.Decode.succeed { text = text }) Json.Decode.string)
+    field virtualDomKernelConstants.text
+        (Json.Decode.andThen (\text -> Json.Decode.succeed { text = text }) Json.Decode.string)
 
 
 {-| encode text tag
 -}
 encodeTextTag : TextTagRecord -> Json.Encode.Value
 encodeTextTag { text } =
+    -- TODO: this is not tested
     Json.Encode.object [ ( "text", Json.Encode.string text ) ]
 
 
@@ -250,6 +269,7 @@ encodeTextTag { text } =
 -}
 decodeTagger : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 decodeTagger (HtmlContext taggers eventDecoder) =
+    -- TODO: tested by Events?
     Json.Decode.field "tagger" Json.Decode.value
         |> Json.Decode.andThen
             (\tagger ->
@@ -267,6 +287,7 @@ decodeTagger (HtmlContext taggers eventDecoder) =
 
 decodeKeyedNode : HtmlContext msg -> Json.Decode.Decoder (NodeRecord msg)
 decodeKeyedNode context =
+    -- TODO: tested hopefully?
     let
         -- elm stores keyed nodes as tuples
         -- we only want to decode the html, in the second property
@@ -285,16 +306,17 @@ decodeKeyedNode context =
 decodeNode : HtmlContext msg -> Json.Decode.Decoder (NodeRecord msg)
 decodeNode context =
     Json.Decode.map4 NodeRecord
-        (field "tag" Json.Decode.string)
-        (field "children" (Json.Decode.list (contextDecodeElmHtml context)))
-        (field "facts" (decodeFacts context))
-        (field "descendantsCount" Json.Decode.int)
+        (field virtualDomKernelConstants.tag Json.Decode.string)
+        (field virtualDomKernelConstants.kids (Json.Decode.list (contextDecodeElmHtml context)))
+        (field virtualDomKernelConstants.facts (decodeFacts context))
+        (field virtualDomKernelConstants.descendantsCount Json.Decode.int)
 
 
 {-| encode a node record: currently does not support facts or children
 -}
 encodeNodeRecord : NodeRecord msg -> Json.Encode.Value
 encodeNodeRecord record =
+    -- TODO: not tested
     Json.Encode.object
         [ ( "tag", Json.Encode.string record.tag )
 
@@ -318,6 +340,7 @@ decodeCustomNode context =
 -}
 decodeCustomNodeRecord : HtmlContext msg -> Json.Decode.Decoder (CustomNodeRecord msg)
 decodeCustomNodeRecord context =
+    -- TODO: not tested
     Json.Decode.map2 CustomNodeRecord
         (field "facts" (decodeFacts context))
         (field "model" Json.Decode.value)
@@ -327,6 +350,7 @@ decodeCustomNodeRecord context =
 -}
 decodeMarkdownNodeRecord : HtmlContext msg -> Json.Decode.Decoder (MarkdownNodeRecord msg)
 decodeMarkdownNodeRecord context =
+    -- TODO: not tested
     Json.Decode.map2 MarkdownNodeRecord
         (field "facts" (decodeFacts context))
         (field "model" decodeMarkdownModel)
@@ -479,6 +503,7 @@ decodeAttribute =
 
 decodeOptions : Json.Decode.Decoder EventOptions
 decodeOptions =
+    -- TODO: tested by Events?
     Json.Decode.map2 EventOptions
         (Json.Decode.field "stopPropagation" Json.Decode.bool)
         (Json.Decode.field "preventDefault" Json.Decode.bool)
