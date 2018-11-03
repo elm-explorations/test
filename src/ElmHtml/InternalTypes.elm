@@ -207,10 +207,10 @@ decodeElmHtml eventDecoder =
 virtualDomKernelConstants =
     { nodeType = "$"
     , nodeTypeText = 0
-    , nodeTypeKeyedNode = -1 -- TODO: this is not tested
+    , nodeTypeKeyedNode = 2
     , nodeTypeNode = 1
     , nodeTypeCustom = -1 -- TODO: this is not tested
-    , nodeTypeTagger = -1 -- TODO: this is not tested
+    , nodeTypeTagger = 4
     , nodeTypeThunk = 5
     , tag = "c"
     , kids = "e"
@@ -219,6 +219,7 @@ virtualDomKernelConstants =
     , text = "a"
     , refs = "l"
     , node = "k"
+    , tagger = "j"
     }
 
 
@@ -270,36 +271,31 @@ encodeTextTag { text } =
 -}
 decodeTagger : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 decodeTagger (HtmlContext taggers eventDecoder) =
-    -- TODO: tested by Events?
-    Json.Decode.field "tagger" Json.Decode.value
+    Json.Decode.field virtualDomKernelConstants.tagger Json.Decode.value
         |> Json.Decode.andThen
             (\tagger ->
                 let
                     nodeDecoder =
                         contextDecodeElmHtml (HtmlContext (taggers ++ [ tagger ]) eventDecoder)
                 in
-                Json.Decode.oneOf
-                    [ Json.Decode.at [ "node" ] nodeDecoder
-                    , Json.Decode.at [ "text" ] nodeDecoder
-                    , Json.Decode.at [ "custom" ] nodeDecoder
-                    ]
+                Json.Decode.at [ virtualDomKernelConstants.node ] nodeDecoder
             )
 
 
 decodeKeyedNode : HtmlContext msg -> Json.Decode.Decoder (NodeRecord msg)
 decodeKeyedNode context =
-    -- TODO: tested hopefully?
+    -- TODO: should be tested in Queries.elm
     let
         -- elm stores keyed nodes as tuples
         -- we only want to decode the html, in the second property
         decodeSecondNode =
-            Json.Decode.field "_1" (contextDecodeElmHtml context)
+            Json.Decode.field "b" (contextDecodeElmHtml context)
     in
     Json.Decode.map4 NodeRecord
-        (Json.Decode.field "tag" Json.Decode.string)
-        (Json.Decode.field "children" (Json.Decode.list decodeSecondNode))
-        (Json.Decode.field "facts" (decodeFacts context))
-        (Json.Decode.field "descendantsCount" Json.Decode.int)
+        (Json.Decode.field virtualDomKernelConstants.tag Json.Decode.string)
+        (Json.Decode.field virtualDomKernelConstants.kids (Json.Decode.list decodeSecondNode))
+        (Json.Decode.field virtualDomKernelConstants.facts (decodeFacts context))
+        (Json.Decode.field virtualDomKernelConstants.descendantsCount Json.Decode.int)
 
 
 {-| decode a node record

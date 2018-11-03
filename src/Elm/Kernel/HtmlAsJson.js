@@ -8,6 +8,7 @@ import Elm.Kernel.Json exposing (wrap)
 // NOTE: this is duplicating constants currently defined in InternalTypes.elm
 var virtualDomKernelConstants =
   {
+    nodeTypeTagger: 4,
     nodeTypeThunk: 5,
     kids: "e",
     refs: "l",
@@ -25,10 +26,9 @@ function forceThunks(vNode) {
       var args = vNode[virtualDomKernelConstants.thunk];
       vNode[virtualDomKernelConstants.node] = vNode[virtualDomKernelConstants.thunk].apply(args);
   }
-  // TODO: hopefully tested by Events.elm
-  // if (typeof vNode !== 'undefined' && vNode.type === 'tagger') {
-  //     vNode.node = forceThunks(vNode.node);
-  // }
+  if (typeof vNode !== 'undefined' && vNode.$ === virtualDomKernelConstants.nodeTypeTagger) {
+      vNode[virtualDomKernelConstants.node] = forceThunks(vNode[virtualDomKernelConstants.node]);
+  }
   if (typeof vNode !== 'undefined' && typeof vNode[virtualDomKernelConstants.kids] !== 'undefined') {
       vNode[virtualDomKernelConstants.kids] = vNode[virtualDomKernelConstants.kids].map(forceThunks);
   }
@@ -47,7 +47,7 @@ function _HtmlAsJson_eventHandler(event)
 
 function _HtmlAsJson_taggerFunction(tagger)
 {
-  return tagger;
+  return tagger.a;
 }
 
 function _HtmlAsJson_attributeToJson(attribute)
