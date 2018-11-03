@@ -26,6 +26,7 @@ import Json.Encode as Encode exposing (Value)
 import Test.Html.Query as Query
 import Test.Html.Query.Internal as QueryInternal
 import Test.Internal as Internal
+import VirtualDom
 
 
 {-| A simulated event.
@@ -287,9 +288,27 @@ findEvent eventName element =
         elementOutput =
             QueryInternal.prettyPrint element
 
+        handlerToDecoder : VirtualDom.Handler msg -> Decoder msg
+        handlerToDecoder handler =
+            -- NOTE: this is were we are dropping the information about stopPropagation and preventDefault
+            -- In the future, we will want to expose this somehow (see https://github.com/eeue56/elm-html-test/issues/63)
+            case handler of
+                VirtualDom.Normal decoder ->
+                    decoder
+
+                VirtualDom.MayStopPropagation decoder ->
+                    decoder |> Decode.map Tuple.first
+
+                VirtualDom.MayPreventDefault decoder ->
+                    decoder |> Decode.map Tuple.first
+
+                VirtualDom.Custom decoder ->
+                    decoder |> Decode.map .message
+
         eventDecoder node =
             node.facts.events
                 |> Dict.get eventName
+                |> Maybe.map handlerToDecoder
                 |> Result.fromMaybe ("Event.expectEvent: The event " ++ eventName ++ " does not exist on the found node.\n\n" ++ elementOutput)
     in
     case element of

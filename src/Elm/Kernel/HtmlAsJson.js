@@ -12,7 +12,8 @@ var virtualDomKernelConstants =
     kids: "e",
     refs: "l",
     thunk: "m",
-    node: "k"
+    node: "k",
+    value: "a"
   }
 
 function forceThunks(vNode) {
@@ -39,9 +40,9 @@ function _HtmlAsJson_toJson(html)
   return _Json_wrap(forceThunks(html));
 }
 
-function _HtmlAsJson_eventDecoder(event)
+function _HtmlAsJson_eventHandler(event)
 {
-  return event.decoder;
+  return event[virtualDomKernelConstants.value];
 }
 
 function _HtmlAsJson_taggerFunction(tagger)

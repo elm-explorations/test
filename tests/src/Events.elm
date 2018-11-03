@@ -6,7 +6,7 @@ import Html.Attributes as Attr exposing (href)
 import Html.Events exposing (..)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
-import Json.Decode exposing (Value)
+import Json.Decode exposing (Value, succeed)
 import Json.Encode as Encode
 import Test exposing (..)
 import Test.Html.Event as Event exposing (Event)
@@ -20,6 +20,36 @@ all =
         [ test "returns msg for click on element" <|
             \() ->
                 Query.fromHtml sampleHtml
+                    |> Query.findAll [ tag "button" ]
+                    |> Query.first
+                    |> Event.simulate Event.click
+                    |> Event.expect SampleMsg
+        , test "return msg for stopPropagation event listener" <|
+            \() ->
+                div [ Attr.class "container" ]
+                    [ button [ stopPropagationOn "click" (succeed ( SampleMsg, True )) ] [ text "click me" ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.findAll [ tag "button" ]
+                    |> Query.first
+                    |> Event.simulate Event.click
+                    |> Event.expect SampleMsg
+        , test "return msg for preventDefault event listener" <|
+            \() ->
+                div [ Attr.class "container" ]
+                    [ button [ preventDefaultOn "click" (succeed ( SampleMsg, True )) ] [ text "click me" ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.findAll [ tag "button" ]
+                    |> Query.first
+                    |> Event.simulate Event.click
+                    |> Event.expect SampleMsg
+        , test "return msg for custom event listener" <|
+            \() ->
+                div [ Attr.class "container" ]
+                    [ button [ Html.Events.custom "click" (succeed { message = SampleMsg, stopPropagation = True, preventDefault = True }) ] [ text "click me" ]
+                    ]
+                    |> Query.fromHtml
                     |> Query.findAll [ tag "button" ]
                     |> Query.first
                     |> Event.simulate Event.click

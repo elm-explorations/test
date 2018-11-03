@@ -29,7 +29,7 @@ styleKey =
 -}
 eventKey : String
 eventKey =
-    "EVENT"
+    "a0"
 
 
 {-| Internal key for style

@@ -10,6 +10,7 @@ import Elm.Kernel.HtmlAsJson
 import ElmHtml.InternalTypes exposing (ElmHtml(..), EventHandler, Facts, Tagger, decodeAttribute, decodeElmHtml)
 import Html exposing (Html)
 import Json.Decode
+import VirtualDom
 
 
 {-| TODO: don't expose this module
@@ -93,21 +94,46 @@ taggerFunction tagger =
 
 {-| Gets the decoder out of an EventHandler
 -}
-eventDecoder : EventHandler -> Json.Decode.Decoder msg
+eventDecoder : EventHandler -> VirtualDom.Handler msg
 eventDecoder eventHandler =
-    Elm.Kernel.HtmlAsJson.eventDecoder eventHandler
+    Elm.Kernel.HtmlAsJson.eventHandler eventHandler
 
 
 {-| Applies the taggers over the event handlers to have the complete event decoder
 -}
-taggedEventDecoder : List Tagger -> EventHandler -> Json.Decode.Decoder msg
+taggedEventDecoder : List Tagger -> EventHandler -> VirtualDom.Handler msg
 taggedEventDecoder taggers eventHandler =
     case taggers of
         [] ->
             eventDecoder eventHandler
 
         [ tagger ] ->
-            Json.Decode.map (taggerFunction tagger) (eventDecoder eventHandler)
+            mapHandler (taggerFunction tagger) (eventDecoder eventHandler)
 
         tagger :: rest ->
-            Json.Decode.map (taggerFunction tagger) (taggedEventDecoder rest eventHandler)
+            mapHandler (taggerFunction tagger) (taggedEventDecoder rest eventHandler)
+
+
+mapHandler : (a -> b) -> VirtualDom.Handler a -> VirtualDom.Handler b
+mapHandler f handler =
+    case handler of
+        VirtualDom.Normal decoder ->
+            VirtualDom.Normal (Json.Decode.map f decoder)
+
+        VirtualDom.MayStopPropagation decoder ->
+            VirtualDom.MayStopPropagation (Json.Decode.map (Tuple.mapFirst f) decoder)
+
+        VirtualDom.MayPreventDefault decoder ->
+            VirtualDom.MayPreventDefault (Json.Decode.map (Tuple.mapFirst f) decoder)
+
+        VirtualDom.Custom decoder ->
+            VirtualDom.Custom
+                (Json.Decode.map
+                    (\value ->
+                        { message = f value.message
+                        , stopPropagation = value.stopPropagation
+                        , preventDefault = value.preventDefault
+                        }
+                    )
+                    decoder
+                )

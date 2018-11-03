@@ -39,10 +39,10 @@ elmHtmlTests : Test
 elmHtmlTests =
     describe "elm-html-test"
         [ Attributes.all
-        , Descendant.all
-        , Events.all
         , Queries.all
+        , Descendant.all
         , Selectors.all
+        , Events.all
         , TestExample.all
         ]
 

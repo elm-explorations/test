@@ -24,6 +24,7 @@ import ElmHtml.Markdown exposing (..)
 import Html.Events
 import Json.Decode exposing (field)
 import Json.Encode
+import VirtualDom
 
 
 {-| Type tree for representing Elm's Html
@@ -105,7 +106,7 @@ type alias EventHandler =
 -}
 type alias Facts msg =
     { styles : Dict String String
-    , events : Dict String (Json.Decode.Decoder msg)
+    , events : Dict String (VirtualDom.Handler msg)
     , attributeNamespace : Maybe Json.Decode.Value
     , stringAttributes : Dict String String
     , boolAttributes : Dict String Bool
@@ -125,7 +126,7 @@ type ElementKind
 
 
 type HtmlContext msg
-    = HtmlContext (List Tagger) (List Tagger -> EventHandler -> Json.Decode.Decoder msg)
+    = HtmlContext (List Tagger) (List Tagger -> EventHandler -> VirtualDom.Handler msg)
 
 
 {-| Type for representing Elm's Attributes
@@ -192,13 +193,13 @@ type alias EventOptions =
 {-| decode a json object into ElmHtml, you have to pass a function that decodes
 events from Html Nodes. If you don't want to decode event msgs, you can ignore it:
 
-    decodeElmHtml (\_ _ -> ()) jsonHtml
+    decodeElmHtml (\_ _ -> VirtualDom.Normal (Json.Decode.succeed ())) jsonHtml
 
 if you do want to decode them, you will probably need to write some native code
 like elm-html-test does to extract the function inside those.
 
 -}
-decodeElmHtml : (List Tagger -> EventHandler -> Json.Decode.Decoder msg) -> Json.Decode.Decoder (ElmHtml msg)
+decodeElmHtml : (List Tagger -> EventHandler -> VirtualDom.Handler msg) -> Json.Decode.Decoder (ElmHtml msg)
 decodeElmHtml eventDecoder =
     contextDecodeElmHtml (HtmlContext [] eventDecoder)
 
@@ -361,6 +362,7 @@ decodeMarkdownNodeRecord context =
 decodeStyles : Json.Decode.Decoder (Dict String String)
 decodeStyles =
     Json.Decode.oneOf
+        -- TODO: is this tested anywhere?
         [ field styleKey (Json.Decode.dict Json.Decode.string)
         , Json.Decode.succeed Dict.empty
         ]
@@ -415,12 +417,13 @@ decodeDictFilterMap decoder =
 decodeAttributes : Json.Decode.Decoder a -> Json.Decode.Decoder (Dict String a)
 decodeAttributes decoder =
     Json.Decode.oneOf
+        -- TODO: is this tested?
         [ Json.Decode.field attributeKey (decodeDictFilterMap decoder)
         , Json.Decode.succeed Dict.empty
         ]
 
 
-decodeEvents : (EventHandler -> Json.Decode.Decoder msg) -> Json.Decode.Decoder (Dict String (Json.Decode.Decoder msg))
+decodeEvents : (EventHandler -> VirtualDom.Handler msg) -> Json.Decode.Decoder (Dict String (VirtualDom.Handler msg))
 decodeEvents taggedEventDecoder =
     Json.Decode.oneOf
         [ Json.Decode.field eventKey (Json.Decode.dict (Json.Decode.map taggedEventDecoder Json.Decode.value))
