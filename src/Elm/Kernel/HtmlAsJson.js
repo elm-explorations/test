@@ -18,10 +18,9 @@ var virtualDomKernelConstants =
   }
 
 function forceThunks(vNode) {
-  // TODO: is there test coverage for this?
-  // if (typeof vNode !== "undefined" && vNode.ctor === "_Tuple2" && !vNode.node) {
-  //     vNode._1 = forceThunks(vNode._1);
-  // }
+  if (typeof vNode !== "undefined" && vNode.$ === "#2") {
+      vNode.b = forceThunks(vNode.b);
+  }
   if (typeof vNode !== 'undefined' && vNode.$ === virtualDomKernelConstants.nodeTypeThunk && !vNode[virtualDomKernelConstants.node]) {
       var args = vNode[virtualDomKernelConstants.thunk];
       vNode[virtualDomKernelConstants.node] = vNode[virtualDomKernelConstants.thunk].apply(args);

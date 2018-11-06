@@ -4,6 +4,7 @@ import Expect
 import Fuzz
 import Html exposing (Html, a, div, footer, header, li, section, span, ul)
 import Html.Attributes as Attr exposing (href)
+import Html.Keyed as Keyed
 import Html.Lazy as Lazy
 import Test exposing (..)
 import Test.Html.Query as Query exposing (Single)
@@ -15,6 +16,14 @@ all =
     describe "Queries"
         [ htmlTests
         , lazyTests
+        , test "lazy nodes inside of keyed nodes are instantiated" <|
+            \() ->
+                Keyed.node "div"
+                    []
+                    [ ( "first", Lazy.lazy (\() -> Html.text "first text") () )
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ text "first text" ]
         ]
 
 

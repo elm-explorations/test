@@ -1,5 +1,5 @@
 - [x] Get tests to compile
-- [ ] Get tests to pass
+- [x] Get tests to pass
 - [ ] Pull in tests from elm-html-in-elm
 - [ ] make sure things we do want to publish are exposed in elm.json
 - [ ] one-by-one remove things we don't want to publish from elm.json, and fix up any broken tests
