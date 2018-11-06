@@ -10,11 +10,11 @@ import Helpers exposing (..)
 import Queries
 import Random
 import RunnerTests
-import Selectors
 import Shrink
 import ShrinkTests
 import Test exposing (..)
 import Test.Html.EventTests
+import Test.Html.SelectorTests
 import Test.Runner
 import Test.Runner.Failure exposing (Reason(..))
 import TestExample
@@ -41,7 +41,7 @@ elmHtmlTests =
         [ Attributes.all
         , Queries.all
         , Descendant.all
-        , Selectors.all
+        , Test.Html.SelectorTests.all
         , Test.Html.EventTests.all
         , TestExample.all
         ]

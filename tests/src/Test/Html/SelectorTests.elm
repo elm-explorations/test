@@ -1,4 +1,4 @@
-module Selectors exposing (all)
+module Test.Html.SelectorTests exposing (all)
 
 {-| Tests for selectors
 -}
@@ -13,7 +13,7 @@ import Test.Html.Selector exposing (..)
 
 all : Test
 all =
-    describe "Selectors"
+    describe "Test.Html.Selector"
         [ bug13
         , textSelectors
         ]
