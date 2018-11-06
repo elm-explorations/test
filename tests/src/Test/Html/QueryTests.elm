@@ -1,4 +1,4 @@
-module Queries exposing (all)
+module Test.Html.QueryTests exposing (all)
 
 import Expect
 import Fuzz
@@ -13,7 +13,7 @@ import Test.Html.Selector exposing (..)
 
 all : Test
 all =
-    describe "Queries"
+    describe "Test.Html.Query"
         [ htmlTests
         , lazyTests
         , test "lazy nodes inside of keyed nodes are instantiated" <|

@@ -7,13 +7,13 @@ import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
-import Queries
 import Random
 import RunnerTests
 import Shrink
 import ShrinkTests
 import Test exposing (..)
 import Test.Html.EventTests
+import Test.Html.QueryTests
 import Test.Html.SelectorTests
 import Test.Runner
 import Test.Runner.Failure exposing (Reason(..))
@@ -39,7 +39,7 @@ elmHtmlTests : Test
 elmHtmlTests =
     describe "elm-html-test"
         [ Attributes.all
-        , Queries.all
+        , Test.Html.QueryTests.all
         , Descendant.all
         , Test.Html.SelectorTests.all
         , Test.Html.EventTests.all
