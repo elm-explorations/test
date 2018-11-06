@@ -3,9 +3,10 @@ module Test.Html.QueryTests exposing (all)
 import Expect
 import Fuzz
 import Html exposing (Html, a, div, footer, header, li, section, span, ul)
-import Html.Attributes as Attr exposing (colspan, href)
+import Html.Attributes as Attr exposing (href)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
+import Json.Encode as Encode
 import Test exposing (..)
 import Test.Html.Query as Query exposing (Single)
 import Test.Html.Selector exposing (..)
@@ -29,16 +30,76 @@ all =
                 divWithAttribute attr =
                     Html.div [ attr ] []
             in
-            [ test "parsing an attribute" <|
+            [ test "matching a string attribute" <|
                 \() ->
-                    divWithAttribute (colspan 1)
+                    divWithAttribute (Attr.title "test")
                         |> Query.fromHtml
-                        |> Query.has [ attribute (colspan 1) ]
-            , test "parsing a property" <|
+                        |> Query.has [ attribute (Attr.title "test") ]
+            , test "matching an int attribute" <|
+                \() ->
+                    divWithAttribute (Attr.colspan 1)
+                        |> Query.fromHtml
+                        |> Query.has [ attribute (Attr.colspan 1) ]
+            , test "matching an bool attribute" <|
+                \() ->
+                    divWithAttribute (Attr.checked True)
+                        |> Query.fromHtml
+                        |> Query.has [ attribute (Attr.checked True) ]
+            , test "matching a bool property" <|
                 \() ->
                     divWithAttribute (Attr.disabled True)
                         |> Query.fromHtml
                         |> Query.has [ attribute (Attr.disabled True) ]
+            , test "matching a string property" <|
+                \() ->
+                    divWithAttribute (Attr.value "test")
+                        |> Query.fromHtml
+                        |> Query.has [ attribute (Attr.value "test") ]
+            , test "matching a style attribute" <|
+                \() ->
+                    divWithAttribute (Attr.style "margin" "0")
+                        |> Query.fromHtml
+                        |> Query.has [ attribute (Attr.style "margin" "0") ]
+            , describe "matching class attributes"
+                [ test "matches a single class" <|
+                    \() ->
+                        divWithAttribute (Attr.class "hello")
+                            |> Query.fromHtml
+                            |> Query.has [ class "hello" ]
+                , test "matches a node with multiple classes" <|
+                    \() ->
+                        divWithAttribute (Attr.class "hello world")
+                            |> Query.fromHtml
+                            |> Expect.all
+                                [ Query.has [ class "hello" ]
+                                , Query.has [ class "world" ]
+                                , Query.has [ class "hello", class "world" ]
+                                , Query.has [ class "world", class "hello" ]
+                                ]
+                , test "matches a class using Selector.attribute" <|
+                    \() ->
+                        divWithAttribute (Attr.class "hello world")
+                            |> Query.fromHtml
+                            |> Query.has [ attribute (Attr.attribute "class" "hello world") ]
+                , test "matches a class using Selector.attribute with different case" <|
+                    \() ->
+                        divWithAttribute (Attr.class "hello world")
+                            |> Query.fromHtml
+                            |> Query.has [ attribute (Attr.attribute "CLASS" "hello world") ]
+                , test "matches a class using Selector.attribute with a property attribute" <|
+                    \() ->
+                        divWithAttribute (Attr.class "hello")
+                            |> Query.fromHtml
+                            |> Query.has [ attribute (Attr.property "className" (Encode.string "hello")) ]
+                , test "matches a class using Selector.attribute with a property attribute only by exact match" <|
+                    \() ->
+                        divWithAttribute (Attr.class "hello world")
+                            |> Query.fromHtml
+                            |> Expect.all
+                                [ Query.has [ attribute (Attr.property "className" (Encode.string "hello world")) ]
+                                , Query.has [ attribute (Attr.property "className" (Encode.string "world hello")) ]
+                                ]
+                ]
             ]
         ]
 

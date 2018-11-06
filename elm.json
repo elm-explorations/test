@@ -14,7 +14,6 @@
         "Test.Html.Event",
         "Test.Html.Query",
         "Test.Html.Selector",
-        "Test.Html.Selector.Internal",
         "Test.Html.Descendant",
         "Html.Inert",
         "ElmHtml.InternalTypes"

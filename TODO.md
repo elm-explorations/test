@@ -1,14 +1,14 @@
 - [x] Get tests to compile
 - [x] Get tests to pass
 - [x] Pull in tests from elm-html-in-elm
-- [ ] make sure things we do want to publish are exposed in elm.json
 - [ ] one-by-one remove things we don't want to publish from elm.json, and fix up any broken tests
-    - [ ] Test.Html.Selector.Internal
+    - [x] Test.Html.Selector.Internal
     - [ ] Test.Html.Descendant
     - [ ] Html.Inert
     - [ ] ElmHtml.InternalTypes
     - [x] ElmHtml.ToElmString
     - [x] ElmHtml.ToHtml
+- [ ] make sure things we do want to publish are exposed in elm.json
 - [ ] ElmHtml.InternalTypes.Styles should become "Style" and no longer take a List
 - [ ] Html.Test.Selector.style should take two Strings instead of (List (String, String))
 - [ ] figure out how Html.Inert.fromHtml can return a Result in the error case without making Query.fromHtml need to return a Result.

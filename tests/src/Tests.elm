@@ -1,6 +1,5 @@
 module Tests exposing (all)
 
-import Attributes
 import Descendant
 import Expect exposing (FloatingPointTolerance(..))
 import FloatWithinTests exposing (floatWithinTests)
@@ -38,8 +37,7 @@ all =
 elmHtmlTests : Test
 elmHtmlTests =
     describe "elm-html-test"
-        [ Attributes.all
-        , Test.Html.QueryTests.all
+        [ Test.Html.QueryTests.all
         , Descendant.all
         , Test.Html.SelectorTests.all
         , Test.Html.EventTests.all
