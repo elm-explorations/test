@@ -1,4 +1,4 @@
-module Events exposing (all)
+module Test.Html.EventTests exposing (all)
 
 import Expect
 import Html exposing (Html, button, div, input, text)

@@ -2,7 +2,6 @@ module Tests exposing (all)
 
 import Attributes
 import Descendant
-import Events
 import Expect exposing (FloatingPointTolerance(..))
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
@@ -15,6 +14,7 @@ import Selectors
 import Shrink
 import ShrinkTests
 import Test exposing (..)
+import Test.Html.EventTests
 import Test.Runner
 import Test.Runner.Failure exposing (Reason(..))
 import TestExample
@@ -42,7 +42,7 @@ elmHtmlTests =
         , Queries.all
         , Descendant.all
         , Selectors.all
-        , Events.all
+        , Test.Html.EventTests.all
         , TestExample.all
         ]
 
