@@ -3,7 +3,7 @@ module Test.Html.QueryTests exposing (all)
 import Expect
 import Fuzz
 import Html exposing (Html, a, div, footer, header, li, section, span, ul)
-import Html.Attributes as Attr exposing (href)
+import Html.Attributes as Attr exposing (colspan, href)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
 import Test exposing (..)
@@ -24,6 +24,22 @@ all =
                     ]
                     |> Query.fromHtml
                     |> Query.has [ text "first text" ]
+        , describe "parsing attributes" <|
+            let
+                divWithAttribute attr =
+                    Html.div [ attr ] []
+            in
+            [ test "parsing an attribute" <|
+                \() ->
+                    divWithAttribute (colspan 1)
+                        |> Query.fromHtml
+                        |> Query.has [ attribute (colspan 1) ]
+            , test "parsing a property" <|
+                \() ->
+                    divWithAttribute (Attr.disabled True)
+                        |> Query.fromHtml
+                        |> Query.has [ attribute (Attr.disabled True) ]
+            ]
         ]
 
 
