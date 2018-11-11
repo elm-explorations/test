@@ -3,7 +3,7 @@
 - [x] Pull in tests from elm-html-in-elm
 - [ ] one-by-one remove things we don't want to publish from elm.json, and fix up any broken tests
     - [x] Test.Html.Selector.Internal
-    - [ ] Test.Html.Descendant
+    - [x] Test.Html.Descendant
     - [ ] Html.Inert
     - [ ] ElmHtml.InternalTypes
     - [x] ElmHtml.ToElmString

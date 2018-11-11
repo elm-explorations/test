@@ -3,24 +3,20 @@ module Descendant exposing (all)
 -- TODO: rename to Test.Html.DescendantTest
 
 import ElmHtml.InternalTypes exposing (ElmHtml(..))
-import Expect
+import Expect exposing (Expectation)
 import Html exposing (..)
 import Html.Inert exposing (fromHtml, toElmHtml)
 import Test exposing (..)
-import Test.Html.Descendant exposing (isDescendant)
 import Test.Html.Query as Query exposing (Single)
+import Test.Runner
 
 
 wrapper : Html msg -> Html msg -> Bool
 wrapper html potentialDescendant =
-    let
-        elmHtml =
-            [ htmlToElm html ]
-
-        potentialDescendantElmHtml =
-            htmlToElm potentialDescendant
-    in
-    isDescendant elmHtml potentialDescendantElmHtml
+    html
+        |> Query.fromHtml
+        |> Query.contains [ potentialDescendant ]
+        |> expectationToIsPassing
 
 
 all : Test
@@ -85,6 +81,11 @@ someTitle str =
     h1 [] [ text str ]
 
 
-htmlToElm : Html msg -> ElmHtml msg
-htmlToElm =
-    toElmHtml << fromHtml
+expectationToIsPassing : Expectation -> Bool
+expectationToIsPassing expectation =
+    case Test.Runner.getFailureReason expectation of
+        Nothing ->
+            True
+
+        Just _ ->
+            False
