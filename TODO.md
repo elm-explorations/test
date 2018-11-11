@@ -4,7 +4,7 @@
 - [ ] one-by-one remove things we don't want to publish from elm.json, and fix up any broken tests
     - [x] Test.Html.Selector.Internal
     - [x] Test.Html.Descendant
-    - [ ] Html.Inert
+    - [x] Html.Inert
     - [ ] ElmHtml.InternalTypes
     - [x] ElmHtml.ToElmString
     - [x] ElmHtml.ToHtml

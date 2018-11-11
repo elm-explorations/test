@@ -13,14 +13,10 @@ import Json.Decode
 import VirtualDom
 
 
-{-| TODO: don't expose this module
--}
 type Node msg
     = Node (ElmHtml msg)
 
 
-{-| TODO: don't expose this module
--}
 fromHtml : Html msg -> Node msg
 fromHtml html =
     case Json.Decode.decodeValue (decodeElmHtml taggedEventDecoder) (toJson html) of
@@ -39,8 +35,6 @@ fromHtml html =
                 )
 
 
-{-| TODO: don't expose this module
--}
 fromElmHtml : ElmHtml msg -> Node msg
 fromElmHtml =
     Node
@@ -53,8 +47,6 @@ toJson node =
     Elm.Kernel.HtmlAsJson.toJson node
 
 
-{-| TODO: don't expose this module
--}
 toElmHtml : Node msg -> ElmHtml msg
 toElmHtml (Node elmHtml) =
     elmHtml
@@ -70,8 +62,6 @@ attributeToJson attribute =
     Elm.Kernel.HtmlAsJson.attributeToJson attribute
 
 
-{-| TODO: don't expose this module
--}
 parseAttribute : Html.Attribute a -> Result String ElmHtml.InternalTypes.Attribute
 parseAttribute attr =
     case Json.Decode.decodeValue decodeAttribute (attributeToJson attr) of

@@ -14,7 +14,6 @@
         "Test.Html.Event",
         "Test.Html.Query",
         "Test.Html.Selector",
-        "Html.Inert",
         "ElmHtml.InternalTypes"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
