@@ -146,7 +146,7 @@ type Attribute
     = Attribute AttributeRecord
     | NamespacedAttribute NamespacedAttributeRecord
     | Property PropertyRecord
-    | Styles (List ( String, String )) -- TODO: this shouldn't be a List anymore
+    | Style { key : String, value : String }
     | Event EventRecord
 
 
@@ -479,7 +479,7 @@ decodeAttribute =
                         |> Json.Decode.map NamespacedAttribute
 
                 else if tag == Constants.styleKey then
-                    Json.Decode.map2 (\key val -> Styles [ ( key, val ) ])
+                    Json.Decode.map2 (\key val -> Style { key = key, value = val })
                         (Json.Decode.field "n" Json.Decode.string)
                         (Json.Decode.field "o" Json.Decode.string)
                     -- TODO: should be covered by tests/src/Events.elm

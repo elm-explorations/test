@@ -9,8 +9,8 @@
     - [x] ElmHtml.ToElmString
     - [x] ElmHtml.ToHtml
 - [x] make sure things we do want to publish are exposed in elm.json
-- [ ] ElmHtml.InternalTypes.Styles should become "Style" and no longer take a List
-- [ ] Html.Test.Selector.style should take two Strings instead of (List (String, String))
+- [x] ElmHtml.InternalTypes.Styles should become "Style" and no longer take a List
+- [x] Html.Test.Selector.style should take two Strings instead of (List (String, String))
 - [ ] figure out how Html.Inert.fromHtml can return a Result in the error case without making Query.fromHtml need to return a Result.
 - [ ] do the genreated values for the VirtualDom tags (e.g., `a__1_STYLE`) always end up as the same values?  Or can we refer to them in our own kernel code to get the correct values?  (And same question for the VirtualDom internal field names (e.g., `__key` which currently becomes `n`))
 - [ ] check for other unfinished TODOs in the code

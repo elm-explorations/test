@@ -33,7 +33,7 @@ type Selector
     | Tag String
     | Attribute String String
     | BoolAttribute String Bool
-    | Style (List ( String, String ))
+    | Style { key : String, value : String }
     | ContainsText String
     | Multiple (List Selector)
 
@@ -68,7 +68,7 @@ queryByClassList classList =
 
 {-| Query for a node with the given style in a Html element
 -}
-queryByStyle : List ( String, String ) -> ElmHtml msg -> List (ElmHtml msg)
+queryByStyle : { key : String, value : String } -> ElmHtml msg -> List (ElmHtml msg)
 queryByStyle style =
     query (Style style)
 
@@ -247,9 +247,9 @@ hasClasses classList facts =
     containsAll classList (classnames facts)
 
 
-hasStyle : List ( String, String ) -> Facts msg -> Bool
+hasStyle : { key : String, value : String } -> Facts msg -> Bool
 hasStyle style facts =
-    containsAll style (Dict.toList facts.styles)
+    Dict.get style.key facts.styles == Just style.value
 
 
 classnames : Facts msg -> List String

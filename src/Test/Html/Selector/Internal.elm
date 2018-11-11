@@ -18,7 +18,7 @@ type Selector
     | Class String
     | Attribute { name : String, value : String }
     | BoolAttribute { name : String, value : Bool }
-    | Style (List ( String, String ))
+    | Style { key : String, value : String }
     | Tag String
     | Text String
     | Containing (List Selector)
@@ -89,11 +89,9 @@ selectorToString criteria =
 
 {-| TODO: don't expose this module
 -}
-styleToString : List ( String, String ) -> String
-styleToString style =
-    style
-        |> List.map (\( k, v ) -> k ++ ":" ++ v ++ ";")
-        |> String.join " "
+styleToString : { key : String, value : String } -> String
+styleToString { key, value } =
+    key ++ ":" ++ value
 
 
 {-| TODO: don't expose this module

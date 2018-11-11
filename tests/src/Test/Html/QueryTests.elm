@@ -189,15 +189,18 @@ testRoot output =
             , test "recognizes its style by a single css property" <|
                 \() ->
                     output
-                        |> Query.has [ style [ ( "color", "red" ) ] ]
+                        |> Query.has [ style "color" "red" ]
             , test "recognizes its style by multiple css properties" <|
                 \() ->
                     output
-                        |> Query.has [ style [ ( "color", "red" ), ( "background", "purple" ) ] ]
+                        |> Query.has
+                            [ style "color" "red"
+                            , style "background" "purple"
+                            ]
             , test "recognizes its style does not include a css property" <|
                 \() ->
                     output
-                        |> Query.hasNot [ style [ ( "color", "green" ) ] ]
+                        |> Query.hasNot [ style "color" "green" ]
             , test "recognizes if is has a specific descendant" <|
                 \() ->
                     output
@@ -231,7 +234,7 @@ testFind output =
             , test "recognizes its style by style list" <|
                 \() ->
                     output
-                        |> Query.has [ style [ ( "color", "blue" ) ] ]
+                        |> Query.has [ style "color" "blue" ]
             , test "recognizes if is has a specific descendant" <|
                 \() ->
                     output

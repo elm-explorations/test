@@ -219,14 +219,14 @@ attribute attr =
                         )
                     |> Result.withDefault Invalid
 
-        Ok (ElmHtml.InternalTypes.Styles styles) ->
-            Style styles
+        Ok (ElmHtml.InternalTypes.Style { key, value }) ->
+            Style { key = key, value = value }
 
         _ ->
             Invalid
 
 
-{-| Matches elements that have all the given style properties (and possibly others as well).
+{-| Matches elements that have the given style properties (and possibly others as well).
 
     import Html
     import Html.Attributes as Attr
@@ -238,13 +238,16 @@ attribute attr =
     test "the Reply button has red text" <|
         \() ->
             Html.div []
-                [ Html.button [ Attr.style [ ( "color", "red" ) ] ] [ Html.text "Reply" ] ]
-                |> Query.has [ style [ ( "color", "red" ) ] ]
+                [ Html.button
+                    [ Attr.style "color" "red" ]
+                    [ Html.text "Reply" ]
+                ]
+                |> Query.has [ style "color" "red" ]
 
 -}
-style : List ( String, String ) -> Selector
-style styles =
-    Style styles
+style : String -> String -> Selector
+style key value =
+    Style { key = key, value = value }
 
 
 {-| Matches elements that have a
