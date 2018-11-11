@@ -11,8 +11,8 @@ import Test.Html.Query as Query exposing (Single)
 import Test.Runner
 
 
-wrapper : Html msg -> Html msg -> Bool
-wrapper html potentialDescendant =
+doesContain : Html msg -> Html msg -> Bool
+doesContain potentialDescendant html =
     html
         |> Query.fromHtml
         |> Query.contains [ potentialDescendant ]
@@ -24,61 +24,32 @@ all =
     describe "Contains assertion"
         [ test "returns true if it contains the expected html once" <|
             \() ->
-                let
-                    aSingleDescendant =
-                        someTitle "foo"
-
-                    html =
-                        div [] [ aSingleDescendant ]
-                in
-                wrapper html aSingleDescendant
+                div [] [ h1 [] [ text "foo" ] ]
+                    |> doesContain (h1 [] [ text "foo" ])
                     |> Expect.equal True
         , test "returns true if it contains the expected html more than once" <|
             \() ->
-                let
-                    aMultiInstanceDescendant =
-                        someTitle "foo"
-
-                    html =
-                        div []
-                            [ aMultiInstanceDescendant
-                            , aMultiInstanceDescendant
-                            ]
-                in
-                wrapper html aMultiInstanceDescendant
+                div []
+                    [ h1 [] [ text "foo" ]
+                    , h1 [] [ text "foo" ]
+                    ]
+                    |> doesContain (h1 [] [ text "foo" ])
                     |> Expect.equal True
         , test "return true if the node is a nested descendant" <|
             \() ->
-                let
-                    aNestedDescendant =
-                        someTitle "foo"
-
-                    html =
-                        div []
-                            [ div []
-                                [ div [] [ aNestedDescendant ]
-                                ]
-                            ]
-                in
-                wrapper html aNestedDescendant
+                div []
+                    [ div []
+                        [ div [] [ h1 [] [ text "foo" ] ]
+                        ]
+                    ]
+                    |> doesContain (h1 [] [ text "foo" ])
                     |> Expect.equal True
         , test "returns false if it does not contain the node" <|
             \() ->
-                let
-                    notInHtml =
-                        img [] []
-
-                    html =
-                        div [] [ someTitle "foo" ]
-                in
-                wrapper html notInHtml
+                div [] [ h1 [] [ text "foo" ] ]
+                    |> doesContain (img [] [])
                     |> Expect.equal False
         ]
-
-
-someTitle : String -> Html msg
-someTitle str =
-    h1 [] [ text str ]
 
 
 expectationToIsPassing : Expectation -> Bool
