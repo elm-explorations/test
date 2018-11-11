@@ -1,8 +1,8 @@
 module Test.Html.QueryTests exposing (all)
 
-import Expect
+import Expect exposing (Expectation)
 import Fuzz
-import Html exposing (Html, a, div, footer, header, li, section, span, ul)
+import Html exposing (Html, a, div, footer, h1, header, img, li, section, span, ul)
 import Html.Attributes as Attr exposing (href)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
@@ -10,6 +10,7 @@ import Json.Encode as Encode
 import Test exposing (..)
 import Test.Html.Query as Query exposing (Single)
 import Test.Html.Selector exposing (..)
+import Test.Runner
 
 
 all : Test
@@ -100,6 +101,43 @@ all =
                                 , Query.has [ attribute (Attr.property "className" (Encode.string "world hello")) ]
                                 ]
                 ]
+            ]
+        , describe "Query.contains" <|
+            let
+                doesContain : Html msg -> Html msg -> Bool
+                doesContain potentialDescendant html =
+                    html
+                        |> Query.fromHtml
+                        |> Query.contains [ potentialDescendant ]
+                        |> expectationToIsPassing
+            in
+            [ test "returns true if it contains the expected html once" <|
+                \() ->
+                    div [] [ h1 [] [ Html.text "foo" ] ]
+                        |> doesContain (h1 [] [ Html.text "foo" ])
+                        |> Expect.equal True
+            , test "returns true if it contains the expected html more than once" <|
+                \() ->
+                    div []
+                        [ h1 [] [ Html.text "foo" ]
+                        , h1 [] [ Html.text "foo" ]
+                        ]
+                        |> doesContain (h1 [] [ Html.text "foo" ])
+                        |> Expect.equal True
+            , test "return true if the node is a nested descendant" <|
+                \() ->
+                    div []
+                        [ div []
+                            [ div [] [ h1 [] [ Html.text "foo" ] ]
+                            ]
+                        ]
+                        |> doesContain (h1 [] [ Html.text "foo" ])
+                        |> Expect.equal True
+            , test "returns false if it does not contain the node" <|
+                \() ->
+                    div [] [ h1 [] [ Html.text "foo" ] ]
+                        |> doesContain (img [] [])
+                        |> Expect.equal False
             ]
         ]
 
@@ -533,3 +571,13 @@ testHas =
                     |> Query.fromHtml
                     |> Query.has []
         ]
+
+
+expectationToIsPassing : Expectation -> Bool
+expectationToIsPassing expectation =
+    case Test.Runner.getFailureReason expectation of
+        Nothing ->
+            True
+
+        Just _ ->
+            False
