@@ -85,8 +85,13 @@ typically begin.
 -}
 fromHtml : Html msg -> Single msg
 fromHtml html =
-    Internal.Query (Inert.fromHtml html) []
-        |> Internal.Single True
+    Internal.Single True <|
+        case Inert.fromHtml html of
+            Ok node ->
+                Internal.Query node []
+
+            Err message ->
+                Internal.InternalError message
 
 
 
@@ -356,19 +361,50 @@ count expect ((Internal.Multiple showTrace query) as multiple) =
 -}
 contains : List (Html msg) -> Single msg -> Expectation
 contains expectedHtml (Internal.Single showTrace query) =
+    case
+        List.map Inert.fromHtml expectedHtml
+            |> collectResults
+    of
+        Ok expectedElmHtml ->
+            Internal.contains
+                (List.map Inert.toElmHtml expectedElmHtml)
+                query
+                |> failWithQuery showTrace "Query.contains" query
+
+        Err errors ->
+            Expect.fail <|
+                String.join "\n" <|
+                    List.concat
+                        [ [ "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>." ]
+                        , errors
+                        ]
+
+
+collectResults : List (Result x a) -> Result (List x) (List a)
+collectResults listOfResults =
     let
-        expectedElmHtml =
-            List.map htmlToElm expectedHtml
+        step : Result (List x) (List a) -> List (Result x a) -> Result (List x) (List a)
+        step acc list =
+            case ( acc, list ) of
+                ( Err errors, [] ) ->
+                    Err (List.reverse errors)
+
+                ( Ok values, [] ) ->
+                    Ok (List.reverse values)
+
+                ( Err errors, (Err x) :: rest ) ->
+                    step (Err (x :: errors)) rest
+
+                ( Ok _, (Err x) :: rest ) ->
+                    step (Err [ x ]) rest
+
+                ( Err errors, (Ok _) :: rest ) ->
+                    step (Err errors) rest
+
+                ( Ok values, (Ok a) :: rest ) ->
+                    step (Ok (a :: values)) rest
     in
-    Internal.contains
-        expectedElmHtml
-        query
-        |> failWithQuery showTrace "Query.contains" query
-
-
-htmlToElm : Html msg -> ElmHtml msg
-htmlToElm =
-    Inert.fromHtml >> Inert.toElmHtml
+    step (Ok []) listOfResults
 
 
 {-| Expect the element to match all of the given selectors.

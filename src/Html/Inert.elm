@@ -17,22 +17,14 @@ type Node msg
     = Node (ElmHtml msg)
 
 
-fromHtml : Html msg -> Node msg
+fromHtml : Html msg -> Result String (Node msg)
 fromHtml html =
     case Json.Decode.decodeValue (decodeElmHtml taggedEventDecoder) (toJson html) of
         Ok elmHtml ->
-            Node elmHtml
+            Ok (Node elmHtml)
 
         Err jsonError ->
-            -- TODO: should this return a result instead?
-            -- currently, the callers of this can't easily handle getting a (Result String Node) instead of just a Node
-            Node
-                (ElmHtml.InternalTypes.TextTag
-                    { text =
-                        "Error internally processing HTML for testing - please report this error message as a bug: "
-                            ++ Json.Decode.errorToString jsonError
-                    }
-                )
+            Err (Json.Decode.errorToString jsonError)
 
 
 fromElmHtml : ElmHtml msg -> Node msg
