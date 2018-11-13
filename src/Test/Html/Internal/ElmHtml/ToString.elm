@@ -1,4 +1,4 @@
-module ElmHtml.ToString exposing
+module Test.Html.Internal.ElmHtml.ToString exposing
     ( nodeRecordToString, nodeToString, nodeToStringWithOptions
     , FormatOptions, defaultFormatOptions
     )
@@ -12,8 +12,8 @@ module ElmHtml.ToString exposing
 -}
 
 import Dict exposing (Dict)
-import ElmHtml.InternalTypes exposing (..)
 import String
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
 
 {-| Formatting options to be used for converting to string

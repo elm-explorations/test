@@ -7,9 +7,9 @@ module Html.Inert exposing (Node, fromElmHtml, fromHtml, parseAttribute, toElmHt
 -}
 
 import Elm.Kernel.HtmlAsJson
-import ElmHtml.InternalTypes exposing (ElmHtml(..), EventHandler, Facts, Tagger, decodeAttribute, decodeElmHtml)
 import Html exposing (Html)
 import Json.Decode
+import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml(..), EventHandler, Facts, Tagger, decodeAttribute, decodeElmHtml)
 import VirtualDom
 
 
@@ -54,7 +54,7 @@ attributeToJson attribute =
     Elm.Kernel.HtmlAsJson.attributeToJson attribute
 
 
-parseAttribute : Html.Attribute a -> Result String ElmHtml.InternalTypes.Attribute
+parseAttribute : Html.Attribute a -> Result String InternalTypes.Attribute
 parseAttribute attr =
     case Json.Decode.decodeValue decodeAttribute (attributeToJson attr) of
         Ok parsedAttribute ->

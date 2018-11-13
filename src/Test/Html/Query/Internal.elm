@@ -1,10 +1,10 @@
 module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError(..), SelectorQuery(..), Single(..), addQueryFromHtmlLine, baseIndentation, contains, expectAll, expectAllHelp, failWithQuery, getChildren, getElementAt, getElementAtHelp, getHtmlContext, has, hasNot, isElement, joinAsList, missingDescendants, multipleToExpectation, prefixOutputLine, prependSelector, prettyPrint, printIndented, queryErrorToString, showSelectorOutcome, showSelectorOutcomeInverse, toLines, toLinesHelp, toOutputLine, traverse, traverseSelector, traverseSelectors, verifySingle, withHtmlContext)
 
-import ElmHtml.InternalTypes exposing (ElmHtml(..))
-import ElmHtml.ToString exposing (nodeToStringWithOptions)
 import Expect exposing (Expectation)
 import Html.Inert as Inert exposing (Node)
 import Test.Html.Descendant as Descendant
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..))
+import Test.Html.Internal.ElmHtml.ToString exposing (nodeToStringWithOptions)
 import Test.Html.Selector.Internal as InternalSelector exposing (Selector, selectorToString)
 import Test.Runner
 

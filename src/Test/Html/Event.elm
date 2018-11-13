@@ -19,10 +19,10 @@ they result in certain `Msg` values being sent to `update`.
 -}
 
 import Dict
-import ElmHtml.InternalTypes exposing (ElmHtml(..), Tagger)
 import Expect exposing (Expectation)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..), Tagger)
 import Test.Html.Query as Query
 import Test.Html.Query.Internal as QueryInternal
 import Test.Internal as Internal

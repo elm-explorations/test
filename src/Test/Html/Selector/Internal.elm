@@ -1,7 +1,7 @@
 module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString)
 
-import ElmHtml.InternalTypes exposing (ElmHtml)
-import ElmHtml.Query
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
+import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
 
 
 type Selector
@@ -103,7 +103,7 @@ queryAll selectors list =
             list
 
         selector :: rest ->
-            query ElmHtml.Query.query queryAll selector list
+            query ElmHtmlQuery.query queryAll selector list
                 |> queryAll rest
 
 
@@ -114,12 +114,12 @@ queryAllChildren selectors list =
             list
 
         selector :: rest ->
-            query ElmHtml.Query.queryChildren queryAllChildren selector list
+            query ElmHtmlQuery.queryChildren queryAllChildren selector list
                 |> queryAllChildren rest
 
 
 query :
-    (ElmHtml.Query.Selector -> ElmHtml msg -> List (ElmHtml msg))
+    (ElmHtmlQuery.Selector -> ElmHtml msg -> List (ElmHtml msg))
     -> (List Selector -> List (ElmHtml msg) -> List (ElmHtml msg))
     -> Selector
     -> List (ElmHtml msg)
@@ -135,30 +135,30 @@ query fn fnAll selector list =
                     fnAll selectors elems
 
                 Classes classes ->
-                    List.concatMap (fn (ElmHtml.Query.ClassList classes)) elems
+                    List.concatMap (fn (ElmHtmlQuery.ClassList classes)) elems
 
                 Class class ->
-                    List.concatMap (fn (ElmHtml.Query.ClassList [ class ])) elems
+                    List.concatMap (fn (ElmHtmlQuery.ClassList [ class ])) elems
 
                 Attribute { name, value } ->
-                    List.concatMap (fn (ElmHtml.Query.Attribute name value)) elems
+                    List.concatMap (fn (ElmHtmlQuery.Attribute name value)) elems
 
                 BoolAttribute { name, value } ->
-                    List.concatMap (fn (ElmHtml.Query.BoolAttribute name value)) elems
+                    List.concatMap (fn (ElmHtmlQuery.BoolAttribute name value)) elems
 
                 Style style ->
-                    List.concatMap (fn (ElmHtml.Query.Style style)) elems
+                    List.concatMap (fn (ElmHtmlQuery.Style style)) elems
 
                 Tag name ->
-                    List.concatMap (fn (ElmHtml.Query.Tag name)) elems
+                    List.concatMap (fn (ElmHtmlQuery.Tag name)) elems
 
                 Text text ->
-                    List.concatMap (fn (ElmHtml.Query.ContainsText text)) elems
+                    List.concatMap (fn (ElmHtmlQuery.ContainsText text)) elems
 
                 Containing selectors ->
                     let
                         anyDescendantsMatch elem =
-                            case ElmHtml.Query.getChildren elem of
+                            case ElmHtmlQuery.getChildren elem of
                                 [] ->
                                     -- We have no children;
                                     -- no descendants can possibly match.

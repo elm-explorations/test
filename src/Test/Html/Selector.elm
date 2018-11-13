@@ -20,10 +20,10 @@ module Test.Html.Selector exposing
 
 -}
 
-import ElmHtml.InternalTypes
 import Html exposing (Attribute)
 import Html.Inert
 import Json.Decode
+import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes
 import Test.Html.Selector.Internal as Internal exposing (..)
 
 
@@ -190,7 +190,7 @@ See [Selecting elements by `Html.Attribute msg` in the README](http://package.el
 attribute : Attribute Never -> Selector
 attribute attr =
     case Html.Inert.parseAttribute attr of
-        Ok (ElmHtml.InternalTypes.Attribute { key, value }) ->
+        Ok (InternalTypes.Attribute { key, value }) ->
             if String.toLower key == "class" then
                 value
                     |> String.split " "
@@ -199,7 +199,7 @@ attribute attr =
             else
                 namedAttr key value
 
-        Ok (ElmHtml.InternalTypes.Property { key, value }) ->
+        Ok (InternalTypes.Property { key, value }) ->
             if key == "className" then
                 value
                     |> Json.Decode.decodeValue Json.Decode.string
@@ -219,7 +219,7 @@ attribute attr =
                         )
                     |> Result.withDefault Invalid
 
-        Ok (ElmHtml.InternalTypes.Style { key, value }) ->
+        Ok (InternalTypes.Style { key, value }) ->
             Style { key = key, value = value }
 
         _ ->

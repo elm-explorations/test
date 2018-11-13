@@ -1,4 +1,4 @@
-module ElmHtml.Query exposing
+module Test.Html.Internal.ElmHtml.Query exposing
     ( Selector(..)
     , query, queryAll, queryChildren, queryChildrenAll, queryInNode
     , queryById, queryByClassName, queryByClassList, queryByStyle, queryByTagName, queryByAttribute, queryByBoolAttribute
@@ -15,8 +15,8 @@ module ElmHtml.Query exposing
 -}
 
 import Dict
-import ElmHtml.InternalTypes exposing (..)
 import String
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
 
 {-| Selectors to query a Html element

@@ -20,10 +20,10 @@ module Test.Html.Query exposing
 
 -}
 
-import ElmHtml.InternalTypes exposing (ElmHtml)
 import Expect exposing (Expectation)
 import Html exposing (Html)
 import Html.Inert as Inert
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
 import Test.Html.Query.Internal as Internal exposing (QueryError(..), failWithQuery)
 import Test.Html.Selector.Internal as Selector exposing (Selector, selectorToString)
 

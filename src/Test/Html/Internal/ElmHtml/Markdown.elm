@@ -1,4 +1,4 @@
-module ElmHtml.Markdown exposing
+module Test.Html.Internal.ElmHtml.Markdown exposing
     ( MarkdownOptions, MarkdownModel, baseMarkdownModel
     , decodeMarkdownModel
     )

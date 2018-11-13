@@ -1,4 +1,4 @@
-module ElmHtml.Constants exposing
+module Test.Html.Internal.ElmHtml.Constants exposing
     ( propKey, styleKey, eventKey, attributeKey, attributeNamespaceKey
     , knownKeys
     )

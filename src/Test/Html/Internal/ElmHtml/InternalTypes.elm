@@ -1,4 +1,4 @@
-module ElmHtml.InternalTypes exposing
+module Test.Html.Internal.ElmHtml.InternalTypes exposing
     ( ElmHtml(..), TextTagRecord, NodeRecord, CustomNodeRecord, MarkdownNodeRecord
     , Facts, Tagger, EventHandler, ElementKind(..)
     , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
@@ -18,12 +18,12 @@ module ElmHtml.InternalTypes exposing
 -}
 
 import Dict exposing (Dict)
-import ElmHtml.Constants as Constants exposing (..)
-import ElmHtml.Helpers exposing (..)
-import ElmHtml.Markdown exposing (..)
 import Html.Events
 import Json.Decode exposing (field)
 import Json.Encode
+import Test.Html.Internal.ElmHtml.Constants as Constants exposing (..)
+import Test.Html.Internal.ElmHtml.Helpers exposing (..)
+import Test.Html.Internal.ElmHtml.Markdown exposing (..)
 import Test.Internal.KernelConstants exposing (kernelConstants)
 import VirtualDom
 
