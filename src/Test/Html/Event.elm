@@ -270,7 +270,7 @@ the browser would send to the event listener callback.
 -}
 custom : String -> Value -> ( String, Value )
 custom =
-    \a b -> ( a, b )
+    Tuple.pair
 
 
 
