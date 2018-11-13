@@ -24,6 +24,7 @@ import ElmHtml.Markdown exposing (..)
 import Html.Events
 import Json.Decode exposing (field)
 import Json.Encode
+import Test.Internal.KernelConstants exposing (kernelConstants)
 import VirtualDom
 
 
@@ -204,47 +205,28 @@ decodeElmHtml eventDecoder =
     contextDecodeElmHtml (HtmlContext [] eventDecoder)
 
 
-virtualDomKernelConstants =
-    { nodeType = "$"
-    , nodeTypeText = 0
-    , nodeTypeKeyedNode = 2
-    , nodeTypeNode = 1
-    , nodeTypeCustom = -1 -- TODO: this is not tested
-    , nodeTypeTagger = 4
-    , nodeTypeThunk = 5
-    , tag = "c"
-    , kids = "e"
-    , facts = "d"
-    , descendantsCount = "b"
-    , text = "a"
-    , refs = "l"
-    , node = "k"
-    , tagger = "j"
-    }
-
-
 contextDecodeElmHtml : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 contextDecodeElmHtml context =
-    field virtualDomKernelConstants.nodeType Json.Decode.int
+    field kernelConstants.virtualDom.nodeType Json.Decode.int
         |> Json.Decode.andThen
             (\nodeType ->
-                if nodeType == virtualDomKernelConstants.nodeTypeText then
+                if nodeType == kernelConstants.virtualDom.nodeTypeText then
                     Json.Decode.map TextTag decodeTextTag
 
-                else if nodeType == virtualDomKernelConstants.nodeTypeKeyedNode then
+                else if nodeType == kernelConstants.virtualDom.nodeTypeKeyedNode then
                     Json.Decode.map NodeEntry (decodeKeyedNode context)
 
-                else if nodeType == virtualDomKernelConstants.nodeTypeNode then
+                else if nodeType == kernelConstants.virtualDom.nodeTypeNode then
                     Json.Decode.map NodeEntry (decodeNode context)
 
-                else if nodeType == virtualDomKernelConstants.nodeTypeCustom then
+                else if nodeType == kernelConstants.virtualDom.nodeTypeCustom then
                     decodeCustomNode context
 
-                else if nodeType == virtualDomKernelConstants.nodeTypeTagger then
+                else if nodeType == kernelConstants.virtualDom.nodeTypeTagger then
                     decodeTagger context
 
-                else if nodeType == virtualDomKernelConstants.nodeTypeThunk then
-                    field virtualDomKernelConstants.node (contextDecodeElmHtml context)
+                else if nodeType == kernelConstants.virtualDom.nodeTypeThunk then
+                    field kernelConstants.virtualDom.node (contextDecodeElmHtml context)
 
                 else
                     Json.Decode.fail ("No such type as " ++ String.fromInt nodeType)
@@ -255,7 +237,7 @@ contextDecodeElmHtml context =
 -}
 decodeTextTag : Json.Decode.Decoder TextTagRecord
 decodeTextTag =
-    field virtualDomKernelConstants.text
+    field kernelConstants.virtualDom.text
         (Json.Decode.andThen (\text -> Json.Decode.succeed { text = text }) Json.Decode.string)
 
 
@@ -271,14 +253,14 @@ encodeTextTag { text } =
 -}
 decodeTagger : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 decodeTagger (HtmlContext taggers eventDecoder) =
-    Json.Decode.field virtualDomKernelConstants.tagger Json.Decode.value
+    Json.Decode.field kernelConstants.virtualDom.tagger Json.Decode.value
         |> Json.Decode.andThen
             (\tagger ->
                 let
                     nodeDecoder =
                         contextDecodeElmHtml (HtmlContext (taggers ++ [ tagger ]) eventDecoder)
                 in
-                Json.Decode.at [ virtualDomKernelConstants.node ] nodeDecoder
+                Json.Decode.at [ kernelConstants.virtualDom.node ] nodeDecoder
             )
 
 
@@ -292,10 +274,10 @@ decodeKeyedNode context =
             Json.Decode.field "b" (contextDecodeElmHtml context)
     in
     Json.Decode.map4 NodeRecord
-        (Json.Decode.field virtualDomKernelConstants.tag Json.Decode.string)
-        (Json.Decode.field virtualDomKernelConstants.kids (Json.Decode.list decodeSecondNode))
-        (Json.Decode.field virtualDomKernelConstants.facts (decodeFacts context))
-        (Json.Decode.field virtualDomKernelConstants.descendantsCount Json.Decode.int)
+        (Json.Decode.field kernelConstants.virtualDom.tag Json.Decode.string)
+        (Json.Decode.field kernelConstants.virtualDom.kids (Json.Decode.list decodeSecondNode))
+        (Json.Decode.field kernelConstants.virtualDom.facts (decodeFacts context))
+        (Json.Decode.field kernelConstants.virtualDom.descendantsCount Json.Decode.int)
 
 
 {-| decode a node record
@@ -303,10 +285,10 @@ decodeKeyedNode context =
 decodeNode : HtmlContext msg -> Json.Decode.Decoder (NodeRecord msg)
 decodeNode context =
     Json.Decode.map4 NodeRecord
-        (field virtualDomKernelConstants.tag Json.Decode.string)
-        (field virtualDomKernelConstants.kids (Json.Decode.list (contextDecodeElmHtml context)))
-        (field virtualDomKernelConstants.facts (decodeFacts context))
-        (field virtualDomKernelConstants.descendantsCount Json.Decode.int)
+        (field kernelConstants.virtualDom.tag Json.Decode.string)
+        (field kernelConstants.virtualDom.kids (Json.Decode.list (contextDecodeElmHtml context)))
+        (field kernelConstants.virtualDom.facts (decodeFacts context))
+        (field kernelConstants.virtualDom.descendantsCount Json.Decode.int)
 
 
 {-| encode a node record: currently does not support facts or children
@@ -329,7 +311,9 @@ decodeCustomNode : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 decodeCustomNode context =
     Json.Decode.oneOf
         [ Json.Decode.map MarkdownNode (decodeMarkdownNodeRecord context)
-        , Json.Decode.map CustomNode (decodeCustomNodeRecord context)
+
+        -- TODO: not tested yet
+        -- , Json.Decode.map CustomNode (decodeCustomNodeRecord context)
         ]
 
 
@@ -347,10 +331,9 @@ decodeCustomNodeRecord context =
 -}
 decodeMarkdownNodeRecord : HtmlContext msg -> Json.Decode.Decoder (MarkdownNodeRecord msg)
 decodeMarkdownNodeRecord context =
-    -- TODO: not tested
     Json.Decode.map2 MarkdownNodeRecord
-        (field "facts" (decodeFacts context))
-        (field "model" decodeMarkdownModel)
+        (field kernelConstants.virtualDom.facts (decodeFacts context))
+        (field kernelConstants.virtualDom.model decodeMarkdownModel)
 
 
 {-| decode the styles

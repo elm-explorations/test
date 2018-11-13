@@ -13,6 +13,7 @@ module ElmHtml.Markdown exposing
 
 import Json.Decode exposing (field)
 import Json.Encode
+import Test.Internal.KernelConstants exposing (kernelConstants)
 
 
 {-| Just a default markdown model
@@ -51,5 +52,5 @@ type alias MarkdownModel =
 -}
 decodeMarkdownModel : Json.Decode.Decoder MarkdownModel
 decodeMarkdownModel =
-    field "markdown" Json.Decode.string
+    field kernelConstants.markdown.markdown Json.Decode.string
         |> Json.Decode.map (MarkdownModel baseMarkdownModel.options)
