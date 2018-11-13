@@ -1,13 +1,13 @@
 module ElmHtml.Markdown exposing
     ( MarkdownOptions, MarkdownModel, baseMarkdownModel
-    , encodeOptions, encodeMarkdownModel, decodeMarkdownModel
+    , decodeMarkdownModel
     )
 
 {-| Markdown helpers
 
 @docs MarkdownOptions, MarkdownModel, baseMarkdownModel
 
-@docs encodeOptions, encodeMarkdownModel, decodeMarkdownModel
+@docs decodeMarkdownModel
 
 -}
 
@@ -45,24 +45,6 @@ type alias MarkdownModel =
     { options : MarkdownOptions
     , markdown : String
     }
-
-
-{-| We don't really care about encoding options right now
-TODO: we will if we want to represent things as we do for elm-html
--}
-encodeOptions : MarkdownOptions -> Json.Decode.Value
-encodeOptions options =
-    Json.Encode.null
-
-
-{-| encode markdown model
--}
-encodeMarkdownModel : MarkdownModel -> Json.Decode.Value
-encodeMarkdownModel model =
-    Json.Encode.object
-        [ ( "options", encodeOptions model.options )
-        , ( "markdown", Json.Encode.string model.markdown )
-        ]
 
 
 {-| decode a markdown model
