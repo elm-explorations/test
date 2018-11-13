@@ -21,9 +21,9 @@ module Test.Html.Selector exposing
 -}
 
 import Html exposing (Attribute)
-import Html.Inert
 import Json.Decode
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes
+import Test.Html.Internal.Inert as Inert
 import Test.Html.Selector.Internal as Internal exposing (..)
 
 
@@ -189,7 +189,7 @@ See [Selecting elements by `Html.Attribute msg` in the README](http://package.el
 -}
 attribute : Attribute Never -> Selector
 attribute attr =
-    case Html.Inert.parseAttribute attr of
+    case Inert.parseAttribute attr of
         Ok (InternalTypes.Attribute { key, value }) ->
             if String.toLower key == "class" then
                 value

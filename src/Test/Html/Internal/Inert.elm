@@ -1,4 +1,4 @@
-module Html.Inert exposing (Node, fromElmHtml, fromHtml, parseAttribute, toElmHtml)
+module Test.Html.Internal.Inert exposing (Node, fromElmHtml, fromHtml, parseAttribute, toElmHtml)
 
 {-| Inert Html - that is, can't do anything with events.
 
