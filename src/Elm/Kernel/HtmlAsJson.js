@@ -5,7 +5,7 @@ import Elm.Kernel.Json exposing (wrap)
 */
 
 
-// NOTE: this is duplicating constants currently defined in InternalTypes.elm
+// NOTE: this is duplicating constants currently defined in Test.Internal.KernelConstants
 var virtualDomKernelConstants =
   {
     nodeTypeTagger: 4,
