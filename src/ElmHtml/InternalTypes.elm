@@ -429,13 +429,6 @@ decodeAttribute =
                     Json.Decode.map2 (\key val -> Style { key = key, value = val })
                         (Json.Decode.field "n" Json.Decode.string)
                         (Json.Decode.field "o" Json.Decode.string)
-                    -- TODO: should be covered by tests/src/Events.elm
-                    -- else if key == eventKey then
-                    --     Json.Decode.map3 EventRecord
-                    --         (Json.Decode.field "realKey" Json.Decode.string)
-                    --         (Json.Decode.at [ "value", "decoder" ] Json.Decode.value)
-                    --         (Json.Decode.at [ "value", "options" ] decodeOptions)
-                    --         |> Json.Decode.map Event
 
                 else if tag == Constants.propKey then
                     Json.Decode.map2 (\key val -> Property (PropertyRecord key val))
@@ -445,14 +438,6 @@ decodeAttribute =
                 else
                     Json.Decode.fail ("Unexpected Html.Attribute tag: " ++ tag)
             )
-
-
-decodeOptions : Json.Decode.Decoder EventOptions
-decodeOptions =
-    -- TODO: tested by Events?
-    Json.Decode.map2 EventOptions
-        (Json.Decode.field "stopPropagation" Json.Decode.bool)
-        (Json.Decode.field "preventDefault" Json.Decode.bool)
 
 
 elmListDecoder : Json.Decode.Decoder a -> Json.Decode.Decoder (List a)
