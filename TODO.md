@@ -12,8 +12,8 @@
 - [x] ElmHtml.InternalTypes.Styles should become "Style" and no longer take a List
 - [x] Html.Test.Selector.style should take two Strings instead of (List (String, String))
 - [x] figure out how Html.Inert.fromHtml can return a Result in the error case without making Query.fromHtml need to return a Result.
-- [ ] do the genreated values for the VirtualDom tags (e.g., `a__1_STYLE`) always end up as the same values?  Or can we refer to them in our own kernel code to get the correct values?  (And same question for the VirtualDom internal field names (e.g., `__key` which currently becomes `n`))
-- [ ] check for other unfinished TODOs in the code
+- [x] do the genreated values for the VirtualDom tags (e.g., `a__1_STYLE`) always end up as the same values?  Or can we refer to them in our own code to get the correct values?  (And same question for the VirtualDom internal field names (e.g., `__key` which currently becomes `n`))
+- [x] check for other unfinished TODOs in the code
 - maybe...
     - [ ] reorganize and rename modules
     - [ ] add support (and tests) for namespaced attributes
