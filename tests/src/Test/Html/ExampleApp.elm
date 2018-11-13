@@ -1,4 +1,4 @@
-module ExampleApp exposing (exampleModel, view)
+module Test.Html.ExampleApp exposing (exampleModel, view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
