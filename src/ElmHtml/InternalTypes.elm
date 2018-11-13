@@ -356,7 +356,6 @@ decodeDictFilterMap decoder =
 decodeAttributes : Json.Decode.Decoder a -> Json.Decode.Decoder (Dict String a)
 decodeAttributes decoder =
     Json.Decode.oneOf
-        -- TODO: is this tested?
         [ Json.Decode.field attributeKey (decodeDictFilterMap decoder)
         , Json.Decode.succeed Dict.empty
         ]
