@@ -315,7 +315,6 @@ decodeMarkdownNodeRecord context =
 decodeStyles : Json.Decode.Decoder (Dict String String)
 decodeStyles =
     Json.Decode.oneOf
-        -- TODO: is this tested anywhere?
         [ field styleKey (Json.Decode.dict Json.Decode.string)
         , Json.Decode.succeed Dict.empty
         ]
