@@ -288,9 +288,7 @@ decodeCustomNode : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 decodeCustomNode context =
     Json.Decode.oneOf
         [ Json.Decode.map MarkdownNode (decodeMarkdownNodeRecord context)
-
-        -- TODO: not tested yet
-        -- , Json.Decode.map CustomNode (decodeCustomNodeRecord context)
+        , Json.Decode.map CustomNode (decodeCustomNodeRecord context)
         ]
 
 
@@ -298,10 +296,9 @@ decodeCustomNode context =
 -}
 decodeCustomNodeRecord : HtmlContext msg -> Json.Decode.Decoder (CustomNodeRecord msg)
 decodeCustomNodeRecord context =
-    -- TODO: not tested
     Json.Decode.map2 CustomNodeRecord
-        (field "facts" (decodeFacts context))
-        (field "model" Json.Decode.value)
+        (field kernelConstants.virtualDom.facts (decodeFacts context))
+        (field kernelConstants.virtualDom.model Json.Decode.value)
 
 
 {-| decode markdown node record

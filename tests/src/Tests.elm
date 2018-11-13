@@ -11,6 +11,7 @@ import Shrink
 import ShrinkTests
 import Test exposing (..)
 import Test.Html.EventTests
+import Test.Html.Query.CustomNodeTests
 import Test.Html.Query.MarkdownTests
 import Test.Html.QueryTests
 import Test.Html.SelectorTests
@@ -39,6 +40,7 @@ elmHtmlTests =
     describe "elm-html-test"
         [ Test.Html.QueryTests.all
         , Test.Html.Query.MarkdownTests.all
+        , Test.Html.Query.CustomNodeTests.all
         , Test.Html.SelectorTests.all
         , Test.Html.EventTests.all
         , TestExample.all
