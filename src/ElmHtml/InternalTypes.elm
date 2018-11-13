@@ -241,14 +241,6 @@ decodeTextTag =
         (Json.Decode.andThen (\text -> Json.Decode.succeed { text = text }) Json.Decode.string)
 
 
-{-| encode text tag
--}
-encodeTextTag : TextTagRecord -> Json.Encode.Value
-encodeTextTag { text } =
-    -- TODO: this is not tested
-    Json.Encode.object [ ( "text", Json.Encode.string text ) ]
-
-
 {-| decode a tagger
 -}
 decodeTagger : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
@@ -291,20 +283,6 @@ decodeNode context =
         (field kernelConstants.virtualDom.descendantsCount Json.Decode.int)
 
 
-{-| encode a node record: currently does not support facts or children
--}
-encodeNodeRecord : NodeRecord msg -> Json.Encode.Value
-encodeNodeRecord record =
-    -- TODO: not tested
-    Json.Encode.object
-        [ ( "tag", Json.Encode.string record.tag )
-
-        --, ( "children", Json.Encode.list encodeElmHtml)
-        --, ( "facts", encodeFacts)
-        , ( "descendantsCount", Json.Encode.int record.descendantsCount )
-        ]
-
-
 {-| decode custom node into either markdown or custom
 -}
 decodeCustomNode : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
@@ -345,19 +323,6 @@ decodeStyles =
         [ field styleKey (Json.Decode.dict Json.Decode.string)
         , Json.Decode.succeed Dict.empty
         ]
-
-
-{-| encode styles
--}
-encodeStyles : Dict String String -> Json.Encode.Value
-encodeStyles stylesDict =
-    let
-        encodedDict =
-            stylesDict
-                |> Dict.toList
-                |> List.map (\( k, v ) -> ( k, Json.Encode.string v ))
-    in
-    Json.Encode.object [ ( styleKey, Json.Encode.object encodedDict ) ]
 
 
 {-| grab things from attributes via a decoder, then anything that isn't filtered on
