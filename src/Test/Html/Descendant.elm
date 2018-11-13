@@ -1,18 +1,10 @@
 module Test.Html.Descendant exposing (isDescendant)
 
-{-| TODO: don't expose this module
-
-@docs isDescendant
-
--}
-
 import ElmHtml.InternalTypes exposing (ElmHtml(..))
 import Html exposing (Html)
 import Html.Inert exposing (fromHtml, toElmHtml)
 
 
-{-| TODO: don't expose this module
--}
 isDescendant : List (ElmHtml msg) -> ElmHtml msg -> Bool
 isDescendant html potentialDescendant =
     case html of
