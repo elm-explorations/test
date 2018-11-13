@@ -5,6 +5,9 @@ for kernel code in other packages the we depend on.
 -}
 
 
+{-| NOTE: this is duplicating constants also defined in src/Elm/Kernel/HtmlAsJson.js
+so if you make any changes here, be sure to synchronize them there!
+-}
 kernelConstants =
     { virtualDom =
         { nodeType = "$"
