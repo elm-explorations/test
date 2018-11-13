@@ -258,7 +258,6 @@ decodeTagger (HtmlContext taggers eventDecoder) =
 
 decodeKeyedNode : HtmlContext msg -> Json.Decode.Decoder (NodeRecord msg)
 decodeKeyedNode context =
-    -- TODO: should be tested in Queries.elm
     let
         -- elm stores keyed nodes as tuples
         -- we only want to decode the html, in the second property
