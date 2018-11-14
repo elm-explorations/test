@@ -10,6 +10,12 @@ import RunnerTests
 import Shrink
 import ShrinkTests
 import Test exposing (..)
+import Test.Html.EventTests
+import Test.Html.ExampleAppTests
+import Test.Html.Query.CustomNodeTests
+import Test.Html.Query.MarkdownTests
+import Test.Html.QueryTests
+import Test.Html.SelectorTests
 import Test.Runner
 import Test.Runner.Failure exposing (Reason(..))
 
@@ -25,6 +31,19 @@ all =
         , floatWithinTests
         , ShrinkTests.all
         , RunnerTests.all
+        , elmHtmlTests
+        ]
+
+
+elmHtmlTests : Test
+elmHtmlTests =
+    describe "elm-html-test"
+        [ Test.Html.QueryTests.all
+        , Test.Html.Query.MarkdownTests.all
+        , Test.Html.Query.CustomNodeTests.all
+        , Test.Html.SelectorTests.all
+        , Test.Html.EventTests.all
+        , Test.Html.ExampleAppTests.all
         ]
 
 
