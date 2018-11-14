@@ -74,26 +74,19 @@ fuzzerTests =
 
 shrinkingTests : Test
 shrinkingTests =
-    let
-        -- To test shrinking, we have to fail some tests so we can shrink their inputs.
-        -- The best place we found for storing the expected last state(s) of the shrinking procedure is the description field, which is why we have this function here.
-        -- Previously, we (ab)used Expect.true for this, but since that was removed, here we are.
-        expectTrueAndExpectShrinkResultToEqualString label a =
-            Expect.equal True a |> Expect.onFail label
-    in
     testShrinking <|
         describe "tests that fail intentionally to test shrinking"
             [ fuzz2 int int "Every pair of ints has a zero" <|
                 \i j ->
                     (i == 0)
                         || (j == 0)
-                        |> expectTrueAndExpectShrinkResultToEqualString "(1,1)"
+                        |> Expect.true "(1,1)"
             , fuzz3 int int int "Every triple of ints has a zero" <|
                 \i j k ->
                     (i == 0)
                         || (j == 0)
                         || (k == 0)
-                        |> expectTrueAndExpectShrinkResultToEqualString "(1,1,1)"
+                        |> Expect.true "(1,1,1)"
             , fuzz (list int) "All lists are sorted" <|
                 \aList ->
                     let
@@ -109,7 +102,7 @@ shrinkingTests =
                                 _ ->
                                     True
                     in
-                    checkPair aList |> expectTrueAndExpectShrinkResultToEqualString "[1,0]|[0,-1]"
+                    checkPair aList |> Expect.true "[1,0]|[0,-1]"
             ]
 
 
@@ -167,7 +160,7 @@ manualFuzzerTests =
                 in
                 unfold [] pair
                     |> Expect.all
-                        [ List.all failsTest >> Expect.equal True >> Expect.onFail "Not all elements were even"
+                        [ List.all failsTest >> Expect.true "Not all elements were even"
                         , List.head
                             >> Maybe.map (Expect.all [ Expect.lessThan 5, Expect.atLeast 0 ])
                             >> Maybe.withDefault (Expect.fail "Did not cause failure")
@@ -200,7 +193,7 @@ manualFuzzerTests =
                 in
                 unfold [] pair
                     |> Expect.all
-                        [ List.all failsTest >> Expect.equal True >> Expect.onFail "Not all contained the letter e"
+                        [ List.all failsTest >> Expect.true "Not all contained the letter e"
                         , List.head >> Expect.equal (Just "e")
                         , List.reverse >> List.head >> Expect.equal (Maybe.map Tuple.first pair)
                         ]
@@ -251,14 +244,12 @@ whitespaceTest =
             \str ->
                 str
                     |> Validate.isBlank
-                    |> Expect.equal True
-                    >> Expect.onFail "Validate.isBlank should consider whitespace blank"
+                    |> Expect.true "Validate.isBlank should consider whitespace blank"
         , fuzz2 whitespace whitespace "non-whitespace characters mean it's not blank" <|
             \prefix suffix ->
                 (prefix ++ "_" ++ suffix)
                     |> Validate.isBlank
-                    |> Expect.equal False
-                    >> Expect.onFail "Validate.isBlank shouldn't consider strings containing non-whitespace characters blank"
+                    |> Expect.false "Validate.isBlank shouldn't consider strings containing non-whitespace characters blank"
         ]
 
 
@@ -269,14 +260,12 @@ email =
             \() ->
                 ""
                     |> Validate.isValidEmail
-                    |> Expect.equal False
-                    >> Expect.onFail "Validate.isValidEmail should have considered empty string blank"
+                    |> Expect.false "Validate.isValidEmail should have considered empty string blank"
         , test "valid email is valid" <|
             \() ->
                 "foo@bar.com"
                     |> Validate.isValidEmail
-                    |> Expect.equal True
-                    >> Expect.onFail "Validate.isValidEmail should have considered foo@bar.com a valid email address"
+                    |> Expect.true "Validate.isValidEmail should have considered foo@bar.com a valid email address"
         ]
 
 

@@ -168,10 +168,10 @@ testTests =
                     todo "a TODO test fails"
                         |> expectTestToFail
             , test "Passes are not TODO"
-                (\_ -> Expect.pass |> Test.Runner.isTodo |> Expect.equal False)
+                (\_ -> Expect.pass |> Test.Runner.isTodo |> Expect.false "was true")
             , test "Simple failures are not TODO" <|
                 \_ ->
-                    Expect.fail "reason" |> Test.Runner.isTodo |> Expect.equal False
+                    Expect.fail "reason" |> Test.Runner.isTodo |> Expect.false "was true"
             ]
         , identicalNamesAreRejectedTests
         ]
