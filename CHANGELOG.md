@@ -2,6 +2,7 @@
 
 | Version                                                                              | Notes                                                                                                                                                     |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [**1.2.0**](https://github.com/elm-explorations/test/tree/1.2.0)                     | Add HTML tests. [#41](https://github.com/elm-explorations/test/pull/41)
 | [**1.0.0**](https://github.com/elm-explorations/test/tree/1.0.0)                     | Update for Elm 0.19. Remove `Fuzz.andThen`, `Fuzz.conditional`, and `Test.Runner.getFailure`. Fail on equating floats to encourage checks with tolerance. `Test.Runner.fuzz` now returns a `Result`. |
 | renamed from **elm-community/elm-test** (below) to **elm-explorations/test** (above) |                                                                                                                                                           |
 | [**4.0.0**](https://github.com/elm-community/elm-test/tree/4.0.0)                    | Add `only`, `skip`, `todo`; change `Fuzz.frequency` to fail rather than crash on bad input, disallow tests with blank or duplicate descriptions.          |
