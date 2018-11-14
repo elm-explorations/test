@@ -18,6 +18,10 @@ if which runhaskell; then
     # is checked in, so it's fine to skip regenerating if
     # haskell is not available (such as on CI)
     runhaskell MakeTestRegistry.hs
+elif which stack; then
+    stack runhaskell MakeTestRegistry.hs
+else
+    echo "$0: WARNING: Neither runhaskell or stack are available on your PATH, so I can't regenerate versions.dat"
 fi
 cp ./versions.dat elm_home/0.19.0/package/versions.dat
 
