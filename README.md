@@ -110,7 +110,7 @@ If you run this example, or any suite that uses one of these three functions, it
 There are a few extra ideas that apply to testing webapps and reusable view packages:
 
 1. Avoid importing your `Main` module. Most of your code belongs in other modules, so import those instead.
-1. Test your views using [elm-html-test](https://package.elm-lang.org/packages/eeue56/elm-html-test/latest).
+1. Test your views using `Test.Html.Query`, `Test.Html.Selector`, and `Test.Html.Event`.
 1. There is currently no Elm solution for integration or end-to-end testing. Use tools from outside the Elm ecosystem such as [Capybara](https://www.rubydoc.info/github/teamcapybara/capybara) or [Cypress](https://www.cypress.io).
 
 ## Upgrading
