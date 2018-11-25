@@ -117,34 +117,34 @@ findNewFailure fuzzer getExpectation failures currentSeed value =
                     -- nextSeed is not used here because caller function has currentSeed
                     Random.step fuzzer currentSeed
             in
-            shrinkAndAdd rosetree getExpectation failedExpectation failures
+            simplifyAndAdd rosetree getExpectation failedExpectation failures
 
 
 {-| Knowing that the rosetree's root already failed, finds the shrunken failure.
 Returns the updated failures dictionary.
 -}
-shrinkAndAdd :
+simplifyAndAdd :
     RoseTree a
     -> (a -> Expectation)
     -> Expectation
     -> Failures
     -> Failures
-shrinkAndAdd rootTree getExpectation rootsExpectation failures =
+simplifyAndAdd rootTree getExpectation rootsExpectation failures =
     let
-        shrink : Expectation -> RoseTree a -> ( a, Expectation )
-        shrink oldExpectation (Rose failingValue branches) =
+        simplify : Expectation -> RoseTree a -> ( a, Expectation )
+        simplify oldExpectation (Rose failingValue branches) =
             case Lazy.List.headAndTail branches of
                 Just ( (Rose possiblyFailingValue _) as rosetree, moreLazyRoseTrees ) ->
                     -- either way, recurse with the most recent failing expectation, and failing input with its list of shrunken values
                     case getExpectation possiblyFailingValue of
                         Pass ->
-                            shrink oldExpectation
+                            simplify oldExpectation
                                 (Rose failingValue moreLazyRoseTrees)
 
                         newExpectation ->
                             let
                                 ( minimalValue, finalExpectation ) =
-                                    shrink newExpectation rosetree
+                                    simplify newExpectation rosetree
                             in
                             ( minimalValue
                             , finalExpectation
@@ -154,7 +154,7 @@ shrinkAndAdd rootTree getExpectation rootsExpectation failures =
                     ( failingValue, oldExpectation )
 
         ( rootMinimalValue, rootFinalExpectation ) =
-            shrink rootsExpectation rootTree
+            simplify rootsExpectation rootTree
     in
     Dict.insert (Internal.toString rootMinimalValue) rootFinalExpectation failures
 

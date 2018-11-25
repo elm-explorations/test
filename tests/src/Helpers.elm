@@ -1,9 +1,9 @@
-module Helpers exposing (different, expectPass, expectTestToFail, expectToFail, randomSeedFuzzer, same, succeeded, testShrinking, testStringLengthIsPreserved)
+module Helpers exposing (different, expectPass, expectTestToFail, expectToFail, randomSeedFuzzer, same, succeeded, testSimplifying, testStringLengthIsPreserved)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Random
-import Shrink
+import Simplify
 import Test exposing (Test)
 import Test.Runner exposing (Runner, SeededRunners)
 import Test.Runner.Failure exposing (Reason(..))
@@ -122,11 +122,11 @@ expectFailureHelper f test =
         |> List.map (passToFail f)
         |> List.map (\result -> \() -> result)
         |> List.indexedMap (\i t -> Test.test (String.fromInt i) t)
-        |> Test.describe "testShrinking"
+        |> Test.describe "testSimplifying"
 
 
-testShrinking : Test -> Test
-testShrinking =
+testSimplifying : Test -> Test
+testSimplifying =
     let
         handleFailure { given, description } =
             let
@@ -147,11 +147,11 @@ testShrinking =
     expectFailureHelper handleFailure
 
 
-{-| get a good distribution of random seeds, and don't shrink our seeds!
+{-| get a good distribution of random seeds, and don't simplify our seeds!
 -}
 randomSeedFuzzer : Fuzzer Random.Seed
 randomSeedFuzzer =
-    Fuzz.custom (Random.int 0 0xFFFFFFFF) Shrink.noShrink |> Fuzz.map Random.initialSeed
+    Fuzz.custom (Random.int 0 0xFFFFFFFF) Simplify.noSimplify |> Fuzz.map Random.initialSeed
 
 
 same : Expectation -> Expectation -> Expectation

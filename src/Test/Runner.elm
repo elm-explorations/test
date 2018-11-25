@@ -2,7 +2,7 @@ module Test.Runner exposing
     ( Runner, SeededRunners(..), fromTest
     , getFailureReason, isTodo
     , formatLabels
-    , Shrinkable, fuzz, shrink
+    , Simplifiable, fuzz, simplify
     )
 
 {-| This is an "experts only" module that exposes functions needed to run and
@@ -30,7 +30,7 @@ can be found in the `README`.
 
 These functions give you the ability to run fuzzers separate of running fuzz tests.
 
-@docs Shrinkable, fuzz, shrink
+@docs Simplifiable, fuzz, simplify
 
 -}
 
@@ -460,24 +460,24 @@ type alias Shrunken a =
     }
 
 
-{-| A `Shrinkable a` is an opaque type that allows you to obtain a value of type
+{-| A `Simplifiable a` is an opaque type that allows you to obtain a value of type
 `a` that is smaller than the one you've previously obtained.
 -}
-type Shrinkable a
-    = Shrinkable (Shrunken a)
+type Simplifiable a
+    = Simplifiable (Shrunken a)
 
 
 {-| Given a fuzzer, return a random generator to produce a value and a
-Shrinkable. The value is what a fuzz test would have received as input.
+Simplifiable. The value is what a fuzz test would have received as input.
 -}
-fuzz : Fuzzer a -> Result String (Random.Generator ( a, Shrinkable a ))
+fuzz : Fuzzer a -> Result String (Random.Generator ( a, Simplifiable a ))
 fuzz fuzzer =
     case fuzzer of
         Ok validFuzzer ->
             validFuzzer
                 |> Random.map
                     (\(Rose root children) ->
-                        ( root, Shrinkable { down = children, over = LazyList.empty } )
+                        ( root, Simplifiable { down = children, over = LazyList.empty } )
                     )
                 |> Ok
 
@@ -485,15 +485,15 @@ fuzz fuzzer =
             Err <| "Cannot call `fuzz` with an invalid fuzzer: " ++ reason
 
 
-{-| Given a Shrinkable, attempt to shrink the value further. Pass `False` to
+{-| Given a Simplifiable, attempt to simplify the value further. Pass `False` to
 indicate that the last value you've seen (from either `fuzz` or this function)
 caused the test to **fail**. This will attempt to find a smaller value. Pass
 `True` if the test passed. If you have already seen a failure, this will attempt
-to shrink that failure in another way. In both cases, it may be impossible to
-shrink the value, represented by `Nothing`.
+to simplify that failure in another way. In both cases, it may be impossible to
+simplify the value, represented by `Nothing`.
 -}
-shrink : Bool -> Shrinkable a -> Maybe ( a, Shrinkable a )
-shrink causedPass (Shrinkable { down, over }) =
+simplify : Bool -> Simplifiable a -> Maybe ( a, Simplifiable a )
+simplify causedPass (Simplifiable { down, over }) =
     let
         tryNext =
             if causedPass then
@@ -504,7 +504,7 @@ shrink causedPass (Shrinkable { down, over }) =
     in
     case LazyList.headAndTail tryNext of
         Just ( Rose root children, tl ) ->
-            Just ( root, Shrinkable { down = children, over = tl } )
+            Just ( root, Simplifiable { down = children, over = tl } )
 
         Nothing ->
             Nothing

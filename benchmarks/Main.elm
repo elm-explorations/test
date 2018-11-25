@@ -18,59 +18,59 @@ suite =
     describe "Fuzz"
         [ describe "int"
             [ benchmark "generating" (benchTest Snippets.intPass)
-            , benchmark "shrinking" (benchTest Snippets.intFail)
+            , benchmark "simplifying" (benchTest Snippets.intFail)
             ]
         , describe "intRange"
             [ benchmark "generating" (benchTest Snippets.intRangePass)
-            , benchmark "shrinking" (benchTest Snippets.intRangeFail)
+            , benchmark "simplifying" (benchTest Snippets.intRangeFail)
             ]
         , describe "string"
             [ benchmark "generating" (benchTest Snippets.stringPass)
-            , benchmark "shrinking" (benchTest Snippets.stringFail)
+            , benchmark "simplifying" (benchTest Snippets.stringFail)
             ]
         , describe "float"
             [ benchmark "generating" (benchTest Snippets.floatPass)
-            , benchmark "shrinking" (benchTest Snippets.floatFail)
+            , benchmark "simplifying" (benchTest Snippets.floatFail)
             ]
         , describe "bool"
             [ benchmark "generating" (benchTest Snippets.boolPass)
-            , benchmark "shrinking" (benchTest Snippets.boolFail)
+            , benchmark "simplifying" (benchTest Snippets.boolFail)
             ]
         , describe "char"
             [ benchmark "generating" (benchTest Snippets.charPass)
-            , benchmark "shrinking" (benchTest Snippets.charFail)
+            , benchmark "simplifying" (benchTest Snippets.charFail)
             ]
         , describe "list of int"
             [ benchmark "generating" (benchTest Snippets.listIntPass)
-            , benchmark "shrinking" (benchTest Snippets.listIntFail)
+            , benchmark "simplifying" (benchTest Snippets.listIntFail)
             ]
         , describe "maybe of int"
             [ benchmark "generating" (benchTest Snippets.maybeIntPass)
-            , benchmark "shrinking" (benchTest Snippets.maybeIntFail)
+            , benchmark "simplifying" (benchTest Snippets.maybeIntFail)
             ]
         , describe "result of string and int"
             [ benchmark "generating" (benchTest Snippets.resultPass)
-            , benchmark "shrinking" (benchTest Snippets.resultFail)
+            , benchmark "simplifying" (benchTest Snippets.resultFail)
             ]
         , describe "map"
             [ benchmark "generating" (benchTest Snippets.mapPass)
-            , benchmark "shrinking" (benchTest Snippets.mapFail)
+            , benchmark "simplifying" (benchTest Snippets.mapFail)
             ]
         , describe "andMap"
             [ benchmark "generating" (benchTest Snippets.andMapPass)
-            , benchmark "shrinking" (benchTest Snippets.andMapFail)
+            , benchmark "simplifying" (benchTest Snippets.andMapFail)
             ]
         , describe "map5"
             [ benchmark "generating" (benchTest Snippets.map5Pass)
-            , benchmark "shrinking" (benchTest Snippets.map5Fail)
+            , benchmark "simplifying" (benchTest Snippets.map5Fail)
             ]
         , describe "andThen"
             [ benchmark "generating" (benchTest Snippets.andThenPass)
-            , benchmark "shrinking" (benchTest Snippets.andThenFail)
+            , benchmark "simplifying" (benchTest Snippets.andThenFail)
             ]
         , describe "conditional"
             [ benchmark "generating" (benchTest Snippets.conditionalPass)
-            , benchmark "shrinking" (benchTest Snippets.conditionalFail)
+            , benchmark "simplifying" (benchTest Snippets.conditionalFail)
             ]
         ]
 
