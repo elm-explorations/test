@@ -13,7 +13,7 @@ can create them randomly, so that your test's expectations are run against many
 values. Fuzzers will often generate edge cases likely to find bugs. If the
 fuzzer can make your test fail, it also knows how to "simplify" that failing input
 into more minimal examples, some of which might also cause the tests to fail. In
-this way, fuzzers can usually find the smallest or simplest input that
+this way, fuzzers can usually find the simplest input that
 reproduces a bug.
 
 

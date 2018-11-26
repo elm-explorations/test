@@ -461,7 +461,7 @@ type alias Shrunken a =
 
 
 {-| A `Simplifiable a` is an opaque type that allows you to obtain a value of type
-`a` that is smaller than the one you've previously obtained.
+`a` that is simpler than the one you've previously obtained.
 -}
 type Simplifiable a
     = Simplifiable (Shrunken a)
@@ -487,7 +487,7 @@ fuzz fuzzer =
 
 {-| Given a Simplifiable, attempt to simplify the value further. Pass `False` to
 indicate that the last value you've seen (from either `fuzz` or this function)
-caused the test to **fail**. This will attempt to find a smaller value. Pass
+caused the test to **fail**. This will attempt to find a simpler value. Pass
 `True` if the test passed. If you have already seen a failure, this will attempt
 to simplify that failure in another way. In both cases, it may be impossible to
 simplify the value, represented by `Nothing`.
