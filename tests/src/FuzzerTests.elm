@@ -220,12 +220,12 @@ manualFuzzerTests =
                         initialSimplifyResult fuzzer seed
 
                     simplify : Maybe (List Int) -> SimplifyResult (List Int) -> Maybe (List Int)
-                    simplify shrunken lastSimplify =
+                    simplify simplified lastSimplify =
                         case lastSimplify of
                             Just ( valN, simplifyN ) ->
                                 simplify
                                     (if allEven valN then
-                                        shrunken
+                                        simplified
 
                                      else
                                         Just valN
@@ -233,11 +233,11 @@ manualFuzzerTests =
                                     (Test.Runner.simplify (allEven valN) simplifyN)
 
                             Nothing ->
-                                shrunken
+                                simplified
                 in
                 case simplify Nothing initialSimplify of
-                    Just shrunken ->
-                        Expect.equal [ 1 ] shrunken
+                    Just simplified ->
+                        Expect.equal [ 1 ] simplified
 
                     Nothing ->
                         Expect.pass

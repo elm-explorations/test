@@ -392,7 +392,7 @@ listSimplifyRecurse listOfTrees =
     {- Simplifying a list of RoseTrees
        We need to do two things. First, simplify individual values. Second, shorten the list.
        To simplify individual values, we create every list copy of the input list where any
-       one value is replaced by a shrunken form.
+       one value is replaced by a simplified form.
        To shorten the length of the list, remove elements at various positions in the list.
        In all cases, recurse! The goal is to make a little forward progress and then recurse.
     -}
@@ -431,10 +431,10 @@ listSimplifyRecurse listOfTrees =
                 [] ->
                     Lazy.List.empty
 
-                (Rose x shrunkenXs) :: more ->
-                    Lazy.List.map (\childTree -> prefix ++ (childTree :: more) |> listSimplifyRecurse) shrunkenXs
+                (Rose x simplifiedXs) :: more ->
+                    Lazy.List.map (\childTree -> prefix ++ (childTree :: more) |> listSimplifyRecurse) simplifiedXs
 
-        shrunkenVals =
+        simplifiedVals =
             Lazy.lazy <|
                 \_ ->
                     Lazy.List.numbers
@@ -458,7 +458,7 @@ listSimplifyRecurse listOfTrees =
                 (List.take index aList)
                 (List.drop (index + 1) aList)
     in
-    Rose root (append halved (append shortened shrunkenVals))
+    Rose root (append halved (append shortened simplifiedVals))
 
 
 {-| Given a fuzzer of a type, create a fuzzer of an array of that type.
@@ -491,7 +491,7 @@ constant x =
     Ok <| Random.constant (RoseTree.singleton x)
 
 
-{-| Map a function over a fuzzer. This applies to both the generated and the shrunken values.
+{-| Map a function over a fuzzer. This applies to both the generated and the simplified values.
 -}
 map : (a -> b) -> Fuzzer a -> Fuzzer b
 map =
@@ -643,10 +643,10 @@ invalid reason =
 map2RoseTree : (a -> b -> c) -> RoseTree a -> RoseTree b -> RoseTree c
 map2RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2) as rose2) =
     {- Simplifying a pair of RoseTrees
-       Recurse on all pairs created by substituting one element for any of its shrunken values.
-       A weakness of this algorithm is that it expects that values can be shrunken independently.
+       Recurse on all pairs created by substituting one element for any of its simplified values.
+       A weakness of this algorithm is that it expects that values can be simplified independently.
        That is, to simplify from (a,b) to (a',b'), we must go through (a',b) or (a,b').
-       "No pairs sum to zero" is a pathological predicate that cannot be shrunken this way.
+       "No pairs sum to zero" is a pathological predicate that cannot be simplified this way.
     -}
     let
         root =

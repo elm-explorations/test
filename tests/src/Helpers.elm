@@ -142,7 +142,7 @@ testSimplifying =
                         Ok ()
 
                     else
-                        Err <| "Got shrunken value " ++ g ++ " but expected " ++ String.join " or " acceptable
+                        Err <| "Got simplified value " ++ g ++ " but expected " ++ String.join " or " acceptable
     in
     expectFailureHelper handleFailure
 

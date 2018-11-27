@@ -68,9 +68,9 @@ getFailures fuzzer getExpectation initialSeed totalRuns =
        Determine if the value is memoized. If so, skip. Otherwise continue.
        Run the test on that value. If it fails:
            Generate the rosetree by passing the fuzzer False *and the same random seed*
-           Find the new failure by looking at the children for any shrunken values:
-               If a shrunken value causes a failure, recurse on its children
-               If no shrunken value replicates the failure, use the root
+           Find the new failure by looking at the children for any simplified values:
+               If a simplified value causes a failure, recurse on its children
+               If no simplified value replicates the failure, use the root
        Whether it passes or fails, do this n times
     -}
     let
@@ -120,7 +120,7 @@ findNewFailure fuzzer getExpectation failures currentSeed value =
             simplifyAndAdd rosetree getExpectation failedExpectation failures
 
 
-{-| Knowing that the rosetree's root already failed, finds the shrunken failure.
+{-| Knowing that the rosetree's root already failed, finds the simplified failure.
 Returns the updated failures dictionary.
 -}
 simplifyAndAdd :
@@ -135,7 +135,7 @@ simplifyAndAdd rootTree getExpectation rootsExpectation failures =
         simplify oldExpectation (Rose failingValue branches) =
             case Lazy.List.headAndTail branches of
                 Just ( (Rose possiblyFailingValue _) as rosetree, moreLazyRoseTrees ) ->
-                    -- either way, recurse with the most recent failing expectation, and failing input with its list of shrunken values
+                    -- either way, recurse with the most recent failing expectation, and failing input with its list of simplified values
                     case getExpectation possiblyFailingValue of
                         Pass ->
                             simplify oldExpectation

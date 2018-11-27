@@ -122,7 +122,7 @@ cause tests to fail, we continue simplifying from there instead.
 Once the simplifier cannot produce any simpler values, or none of the simpler values
 fail the fuzz test, we stop simplifying.
 
-Whether or not the shrunken value is actually simpler isn't that important,
+Whether or not the simplified value is actually simpler isn't that important,
 as long as we aren't simplifying in a loop. The bool simplifier simplifys True to
 False, but not vice versa. If it did, and your test failed no matter if this
 variable was True or False, there would always be a simpler value, so
@@ -142,7 +142,7 @@ That LazyList may or may not have another element each time we ask for one,
 and doesn't necessarily have them all committed to memory. That allows it to
 take less space (interesting since there may be quite a lot of elements).
 
-That LazyList should also provide a finite number of shrunk values (if it
+That LazyList should also provide a finite number of simplified values (if it
 provided an infinite number of them, tests using it might continue indefinitely
 at the simplifying phase).
 
@@ -178,7 +178,7 @@ type alias Simplifier a =
 simplifying to continue (most likely the failing test for which we are attempting
 to simplify the value). Also takes the simplifier and the value to simplify.
 
-It returns the shrunken value, or the input value if no shrunken values that
+It returns the simplified value, or the input value if no simplified values that
 satisfy the predicate are found.
 
 -}
@@ -355,8 +355,8 @@ result simplifyError simplifyValue r =
 
 
 {-| Lazy List simplifier constructor. Takes a simplifier of values and returns a
-simplifier of Lazy Lists. The lazy list being shrunk must be finite. (I mean
-really, how do you simplify infinity?)
+simplifier of Lazy Lists. The lazy list being simplified must be finite. (I mean
+really, how do you make an infinite list simpler?)
 -}
 lazylist : Simplifier a -> Simplifier (LazyList a)
 lazylist simplifier l =
