@@ -309,11 +309,11 @@ findEvent eventName element =
             node.facts.events
                 |> Dict.get eventName
                 |> Maybe.map handlerToDecoder
-                |> Result.fromMaybe ("Event.expectEvent: The event " ++ eventName ++ " does not exist on the found node.\n\n" ++ elementOutput)
+                |> Result.fromMaybe ("Event.expectEvent: I found a node, but it does not listen for \"" ++ eventName ++ "\" events like I expected it would.\n\n" ++ elementOutput)
     in
     case element of
         TextTag _ ->
-            Err ("Found element is a text, which does not produce events, therefore could not simulate " ++ eventName ++ " on it. Text found: " ++ elementOutput)
+            Err ("I found a text node instead of an element. Text nodes do not receive events, so it would be impossible to simulate \"" ++ eventName ++ "\" events on it. The text in the node was: \"" ++ elementOutput ++ "\"")
 
         NodeEntry node ->
             eventDecoder node
@@ -325,4 +325,4 @@ findEvent eventName element =
             eventDecoder node
 
         NoOp ->
-            Err ("Unknown element found. Could not simulate " ++ eventName ++ " on it.")
+            Err ("I found an element I did not know how to deal with, so simulating \"" ++ eventName ++ "\" events on it would be impossible. This is a problem with elm-test! Sorry about that. If you have time, could you report this issue on https://github.com/elm-explorations/test/issues with a http://sscce.org to reproduce this error message?")
