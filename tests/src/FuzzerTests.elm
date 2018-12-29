@@ -35,7 +35,7 @@ fuzzerTests =
             (Expect.greaterThan 0)
         , fuzz (result string int) "Fuzz.result" <| \r -> Expect.pass
         , describe "Whitebox testing using Fuzz.Internal"
-            [ fuzz randomSeedFuzzer "the same value is generated with and without shrinking" <|
+            [ fuzz randomSeedFuzzer "the same value is generated with and without simplifying" <|
                 \seed ->
                     let
                         step gen =
@@ -59,41 +59,41 @@ fuzzerTests =
                                 )
                                 |> Test.Runner.fuzz
 
-                        valNoShrink =
+                        valNoSimplify =
                             aFuzzer |> Result.map (Random.map Tuple.first >> step >> Tuple.first)
 
-                        valWithShrink =
+                        valWithSimplify =
                             aFuzzer |> Result.map (step >> Tuple.first >> Tuple.first)
                     in
-                    Expect.equal valNoShrink valWithShrink
-            , shrinkingTests
+                    Expect.equal valNoSimplify valWithSimplify
+            , simplifyingTests
             , manualFuzzerTests
             ]
         ]
 
 
-shrinkingTests : Test
-shrinkingTests =
+simplifyingTests : Test
+simplifyingTests =
     let
-        -- To test shrinking, we have to fail some tests so we can shrink their inputs.
-        -- The best place we found for storing the expected last state(s) of the shrinking procedure is the description field, which is why we have this function here.
+        -- To test simplifying, we have to fail some tests so we can simplify their inputs.
+        -- The best place we found for storing the expected last state(s) of the simplifying procedure is the description field, which is why we have this function here.
         -- Previously, we (ab)used Expect.true for this, but since that was removed, here we are.
-        expectTrueAndExpectShrinkResultToEqualString label a =
+        expectTrueAndExpectSimplifyResultToEqualString label a =
             Expect.equal True a |> Expect.onFail label
     in
-    testShrinking <|
-        describe "tests that fail intentionally to test shrinking"
+    testSimplifying <|
+        describe "tests that fail intentionally to test simplifying"
             [ fuzz2 int int "Every pair of ints has a zero" <|
                 \i j ->
                     (i == 0)
                         || (j == 0)
-                        |> expectTrueAndExpectShrinkResultToEqualString "(1,1)"
+                        |> expectTrueAndExpectSimplifyResultToEqualString "(1,1)"
             , fuzz3 int int int "Every triple of ints has a zero" <|
                 \i j k ->
                     (i == 0)
                         || (j == 0)
                         || (k == 0)
-                        |> expectTrueAndExpectShrinkResultToEqualString "(1,1,1)"
+                        |> expectTrueAndExpectSimplifyResultToEqualString "(1,1,1)"
             , fuzz (list int) "All lists are sorted" <|
                 \aList ->
                     let
@@ -109,16 +109,16 @@ shrinkingTests =
                                 _ ->
                                     True
                     in
-                    checkPair aList |> expectTrueAndExpectShrinkResultToEqualString "[1,0]|[0,-1]"
+                    checkPair aList |> expectTrueAndExpectSimplifyResultToEqualString "[1,0]|[0,-1]"
             ]
 
 
-type alias ShrinkResult a =
-    Maybe ( a, Test.Runner.Shrinkable a )
+type alias SimplifyResult a =
+    Maybe ( a, Test.Runner.Simplifiable a )
 
 
-initialShrinkResult : Fuzzer a -> Random.Seed -> ShrinkResult a
-initialShrinkResult fuzzer seed =
+initialSimplifyResult : Fuzzer a -> Random.Seed -> SimplifyResult a
+initialSimplifyResult fuzzer seed =
     case Test.Runner.fuzz fuzzer of
         Ok generator ->
             Random.step generator seed
@@ -131,7 +131,7 @@ initialShrinkResult fuzzer seed =
 
 manualFuzzerTests : Test
 manualFuzzerTests =
-    describe "Test.Runner.{fuzz, shrink}"
+    describe "Test.Runner.{fuzz, simplify}"
         [ fuzz randomSeedFuzzer "Claim there are no even numbers" <|
             \seed ->
                 let
@@ -151,16 +151,16 @@ manualFuzzerTests =
                         (n |> modBy 2) == 0
 
                     pair =
-                        initialShrinkResult fuzzer seed
+                        initialSimplifyResult fuzzer seed
 
                     unfold acc maybePair =
                         case maybePair of
-                            Just ( valN, shrinkN ) ->
+                            Just ( valN, simplifyN ) ->
                                 if failsTest valN then
-                                    unfold (valN :: acc) (Test.Runner.shrink False shrinkN)
+                                    unfold (valN :: acc) (Test.Runner.simplify False simplifyN)
 
                                 else
-                                    unfold acc (Test.Runner.shrink True shrinkN)
+                                    unfold acc (Test.Runner.simplify True simplifyN)
 
                             Nothing ->
                                 acc
@@ -184,16 +184,16 @@ manualFuzzerTests =
                         String.contains "e"
 
                     pair =
-                        initialShrinkResult fuzzer seed
+                        initialSimplifyResult fuzzer seed
 
                     unfold acc maybePair =
                         case maybePair of
-                            Just ( valN, shrinkN ) ->
+                            Just ( valN, simplifyN ) ->
                                 if failsTest valN then
-                                    unfold (valN :: acc) (Test.Runner.shrink False shrinkN)
+                                    unfold (valN :: acc) (Test.Runner.simplify False simplifyN)
 
                                 else
-                                    unfold acc (Test.Runner.shrink True shrinkN)
+                                    unfold acc (Test.Runner.simplify True simplifyN)
 
                             Nothing ->
                                 acc
@@ -204,7 +204,7 @@ manualFuzzerTests =
                         , List.head >> Expect.equal (Just "e")
                         , List.reverse >> List.head >> Expect.equal (Maybe.map Tuple.first pair)
                         ]
-        , fuzz randomSeedFuzzer "List shrinker finds the smallest counter example" <|
+        , fuzz randomSeedFuzzer "List simplifier finds the smallest counter example" <|
             \seed ->
                 let
                     fuzzer : Fuzzer (List Int)
@@ -215,29 +215,29 @@ manualFuzzerTests =
                     allEven xs =
                         List.all (\x -> (x |> modBy 2) == 0) xs
 
-                    initialShrink : ShrinkResult (List Int)
-                    initialShrink =
-                        initialShrinkResult fuzzer seed
+                    initialSimplify : SimplifyResult (List Int)
+                    initialSimplify =
+                        initialSimplifyResult fuzzer seed
 
-                    shrink : Maybe (List Int) -> ShrinkResult (List Int) -> Maybe (List Int)
-                    shrink shrunken lastShrink =
-                        case lastShrink of
-                            Just ( valN, shrinkN ) ->
-                                shrink
+                    simplify : Maybe (List Int) -> SimplifyResult (List Int) -> Maybe (List Int)
+                    simplify simplified lastSimplify =
+                        case lastSimplify of
+                            Just ( valN, simplifyN ) ->
+                                simplify
                                     (if allEven valN then
-                                        shrunken
+                                        simplified
 
                                      else
                                         Just valN
                                     )
-                                    (Test.Runner.shrink (allEven valN) shrinkN)
+                                    (Test.Runner.simplify (allEven valN) simplifyN)
 
                             Nothing ->
-                                shrunken
+                                simplified
                 in
-                case shrink Nothing initialShrink of
-                    Just shrunken ->
-                        Expect.equal [ 1 ] shrunken
+                case simplify Nothing initialSimplify of
+                    Just simplified ->
+                        Expect.equal [ 1 ] simplified
 
                     Nothing ->
                         Expect.pass
