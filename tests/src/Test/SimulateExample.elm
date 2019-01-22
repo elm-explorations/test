@@ -120,15 +120,59 @@ example3 =
 
 
 example4 =
-    test "a request with multipart file body was made with particular file contents" <|
+    test "subscribes to download progress for the made request" <|
+        \key ->
+            let
+                ( model, cmd ) =
+                    update SubmittedForm initialModel
+
+                cmdTracker =
+                    case fromCmd cmd of
+                        HttpRequest req _ ->
+                            req.tracker
+
+                        _ ->
+                            -- TODO: this would be better to return Result String instead of Maybe
+                            Nothing
+
+                subTracker =
+                    case fromSub key (subscriptions model) of
+                        HttpTrack info ->
+                            Just info.tracker
+
+                        _ ->
+                            -- TODO: this would be better to return Result String instead of Maybe
+                            Nothing
+            in
+            Maybe.map2 Expect.equal cmdTracker subTracker
+                |> Maybe.withDefault (Expect.fail "TODO: better message")
+
+
+example5 =
+    test "tracking download progress" <|
         \key ->
             case
-                update SubmittedForm initialModel
-                    |> Tuple.second
-                    |> fromCmd key
+                subscriptions initialModel
+                    |> fromSub key
             of
-                HttpRequest req _ ->
-                    Expect.equal req.body [ ( "X-CSRF-Token", initialModel.token ) ]
+                HttpTrack info ->
+                    info.tracker
+                        |> Expect.equal "trackingKey1"
 
-                _ ->
-                    Expect.fail "Form did not send a HTTP request as expected."
+                sub ->
+                    Expect.fail ("Expected subscription to Http.track, but it was a different subscription: " ++ Debug.toString sub)
+
+
+
+-- example5 =
+--     test "a request with multipart file body was made with particular file contents" <|
+--         \key ->
+--             case
+--                 update SubmittedForm initialModel
+--                     |> Tuple.second
+--                     |> fromCmd key
+--             of
+--                 HttpRequest req _ ->
+--                     Expect.equal req.body [ ( "X-CSRF-Token", initialModel.token ) ]
+--                 _ ->
+--                     Expect.fail "Form did not send a HTTP request as expected."

@@ -4,6 +4,7 @@ module Test.Simulate exposing
     , HttpExpect(..)
     , HttpPart
     , fromCmd
+    , fromSub
     , fuzz
     , fuzz2
     , test
@@ -60,6 +61,19 @@ type alias HttpPart =
 
 fromCmd : Key -> Cmd msg -> ExpectCmd msg
 fromCmd key cmd =
+    Debug.todo "implement"
+
+
+type ExpectSub msg
+    = HttpTrack
+        { tracker : String
+        , simulateProgress : Http.Progress -> msg
+        }
+    | Batch (List (ExpectSub msg))
+
+
+fromSub : Key -> Sub msg -> ExpectSub msg
+fromSub key sub =
     Debug.todo "implement"
 
 
