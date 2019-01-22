@@ -45,6 +45,32 @@ example =
                     Expect.fail "Form did not send a HTTP request as expected."
 
 
+examplePostBody =
+    test "submitting a POST request with a particular JSON body" <|
+        \key ->
+            let
+                expectedJson =
+                    Json.Encode.object
+                        [ ( "magicNumber", Json.Encode.int 72383 ) ]
+            in
+            case
+                update SubmittedForm initialModel
+                    |> Tuple.second
+                    |> fromCmd key
+            of
+                HttpRequest req _ ->
+                    case req.body of
+                        StringBody json ->
+                            json
+                                |> Expect.equal (Json.Encode.encode 0 expectedJson)
+
+                        _ ->
+                            Expect.fail "Form did not send a String body in the HTTP request"
+
+                _ ->
+                    Expect.fail "Form did not send a HTTP request as expected."
+
+
 example2 =
     test "if it times out, render an appropriate error" <|
         \key ->
@@ -87,7 +113,22 @@ example3 =
                     update (simulateResponse fakeResponse) initialModel
                         |> Tuple.first
                         |> view
-                        |> Debug.todo "check that we rendered a timeout error"
+                        |> Debug.todo "check that we rendered the username"
+
+                _ ->
+                    Expect.fail "Form did not send a HTTP request as expected."
+
+
+example4 =
+    test "a request with multipart file body was made with particular file contents" <|
+        \key ->
+            case
+                update SubmittedForm initialModel
+                    |> Tuple.second
+                    |> fromCmd key
+            of
+                HttpRequest req _ ->
+                    Expect.equal req.body [ ( "X-CSRF-Token", initialModel.token ) ]
 
                 _ ->
                     Expect.fail "Form did not send a HTTP request as expected."

@@ -1,6 +1,8 @@
 module Test.Simulate exposing
     ( ExpectCmd(..)
+    , HttpBody(..)
     , HttpExpect(..)
+    , HttpPart
     , fromCmd
     , fuzz
     , fuzz2
@@ -33,12 +35,27 @@ type ExpectCmd msg
         { method : String
         , headers : List ( String, String )
         , url : String
-        , body : Http.Body
+        , body : HttpBody
         , timeout : Maybe Float
         , tracker : Maybe String
         }
         (HttpExpect msg)
     | Batch (List (ExpectCmd msg))
+
+
+type HttpBody
+    = BytesBody Bytes
+    | StringBody String
+    | EmptyBody
+    | Multipart (List HttpPart)
+
+
+type alias HttpPart =
+    { name : String
+    , mimeType : Maybe String
+    , filename : Maybe String
+    , content : Bytes
+    }
 
 
 fromCmd : Key -> Cmd msg -> ExpectCmd msg
