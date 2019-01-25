@@ -527,9 +527,9 @@ conjunction with `andMap`. For example:
     vector : Shrinker Vector
     vector { x, y, z } =
         Vector
-            `map` float x
-            `andMap` float y
-            `andMap` float z
+            |> map (float x)
+            |> andMap (float y)
+            |> andMap (float z)
 
 -}
 map : (a -> b) -> LazyList a -> LazyList b
