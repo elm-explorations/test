@@ -183,9 +183,6 @@ tag name =
 
 {-| Matches elements that have the given attribute in a way that makes sense
 given their semantics in `Html`.
-
-See [Selecting elements by `Html.Attribute msg` in the README](http://package.elm-lang.org/packages/eeue56/elm-html-test/latest#selecting-elements-by-html-attribute-msg-)
-
 -}
 attribute : Attribute Never -> Selector
 attribute attr =
