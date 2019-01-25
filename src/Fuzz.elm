@@ -170,7 +170,7 @@ order =
 
 {-| A fuzzer for int values. It will never produce `NaN`, `Infinity`, or `-Infinity`.
 
-It's possible for this fuzzer to generate any 32-bit integer, but it favors
+It's possible for this fuzzer to generate any 32-bit integer, signed or unsigned, but it favors
 numbers between -50 and 50 and especially zero.
 
 -}
