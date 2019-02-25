@@ -32,131 +32,103 @@ fuzzTest fuzzer untrimmedDesc getExpectation =
 
             Ok validFuzzer ->
                 -- Preliminary checks passed; run the fuzz test
-                validatedFuzzTest validFuzzer desc getExpectation
+                Labeled desc <| validatedFuzzTest validFuzzer getExpectation
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : ValidFuzzer a -> String -> (a -> Expectation) -> Test
-validatedFuzzTest fuzzer desc getExpectation =
-    let
-        run seed runs =
-            let
-                failures =
-                    getFailures fuzzer getExpectation seed runs
-            in
-            -- Make sure if we passed, we don't do any more work.
-            if Dict.isEmpty failures then
-                [ Pass ]
+validatedFuzzTest : ValidFuzzer a -> (a -> Expectation) -> Test
+validatedFuzzTest fuzzer getExpectation =
+    FuzzTest
+        (\seed runs ->
+            case runAllFuzzIterations fuzzer getExpectation seed runs |> Dict.toList of
+                [] ->
+                    [ Pass ]
 
-            else
-                failures
-                    |> Dict.toList
-                    |> List.map formatExpectation
-    in
-    Labeled desc (FuzzTest run)
+                failures ->
+                    List.map formatExpectation failures
+        )
 
 
 type alias Failures =
     Dict String Expectation
 
 
-getFailures : ValidFuzzer a -> (a -> Expectation) -> Random.Seed -> Int -> Dict String Expectation
-getFailures fuzzer getExpectation initialSeed totalRuns =
-    {- Fuzz test algorithm with memoization and opt-in RoseTrees:
-       Generate a single value from the fuzzer's genVal random generator
-       Determine if the value is memoized. If so, skip. Otherwise continue.
-       Run the test on that value. If it fails:
-           Generate the rosetree by passing the fuzzer False *and the same random seed*
-           Find the new failure by looking at the children for any simplified values:
-               If a simplified value causes a failure, recurse on its children
-               If no simplified value replicates the failure, use the root
-       Whether it passes or fails, do this n times
-    -}
-    let
-        genVal =
-            Random.map RoseTree.root fuzzer
-
-        initialFailures =
-            Dict.empty
-
-        helper currentSeed remainingRuns failures =
-            let
-                ( value, nextSeed ) =
-                    Random.step genVal currentSeed
-
-                newFailures =
-                    findNewFailure fuzzer getExpectation failures currentSeed value
-            in
-            if remainingRuns <= 1 then
-                newFailures
-
-            else
-                helper nextSeed (remainingRuns - 1) newFailures
-    in
-    helper initialSeed totalRuns initialFailures
-
-
-{-| Knowing that a value in not in the cache, determine if it causes the test to pass or fail.
+{-| Runs the specified number of fuzz tests and returns a dictionary of simplified failures.
 -}
-findNewFailure :
-    ValidFuzzer a
-    -> (a -> Expectation)
-    -> Failures
-    -> Random.Seed
-    -> a
-    -> Failures
-findNewFailure fuzzer getExpectation failures currentSeed value =
-    case getExpectation value of
+runAllFuzzIterations : ValidFuzzer a -> (a -> Expectation) -> Random.Seed -> Int -> Failures
+runAllFuzzIterations fuzzer getExpectation initialSeed totalRuns =
+    runOneFuzzIteration fuzzer getExpectation
+        |> foldUntil totalRuns ( Dict.empty, initialSeed )
+        -- throw away the random seed
+        |> Tuple.first
+
+
+{-| Generate a fuzzed value, test it, and record the simplified test failure if any.
+-}
+runOneFuzzIteration : ValidFuzzer a -> (a -> Expectation) -> ( Failures, Random.Seed ) -> ( Failures, Random.Seed )
+runOneFuzzIteration fuzzer getExpectation ( failures, currentSeed ) =
+    let
+        ( rosetree, nextSeed ) =
+            Random.step fuzzer currentSeed
+
+        newFailures =
+            case testGeneratedValue rosetree getExpectation of
+                Nothing ->
+                    -- test passed, nothing to change
+                    failures
+
+                Just ( k, v ) ->
+                    -- record test failure
+                    Dict.insert k v failures
+    in
+    ( newFailures, nextSeed )
+
+
+{-| Run a function whose inputs are the same as its outputs a given number of times. Requires the inital state to pass
+in and returns the final state. This generic combinator extracts the "run n times" logic from our test running code.
+-}
+foldUntil : Int -> a -> (a -> a) -> a
+foldUntil remainingRuns initialState f =
+    if remainingRuns <= 1 then
+        initialState
+
+    else
+        foldUntil (remainingRuns - 1) (f initialState) f
+
+
+{-| Given a rosetree -- a root to test and branches of simplifications -- run the test and perform simplification if it fails.
+-}
+testGeneratedValue : RoseTree a -> (a -> Expectation) -> Maybe ( String, Expectation )
+testGeneratedValue rosetree getExpectation =
+    case getExpectation (RoseTree.root rosetree) of
         Pass ->
-            failures
+            Nothing
 
         failedExpectation ->
-            let
-                ( rosetree, nextSeed ) =
-                    -- nextSeed is not used here because caller function has currentSeed
-                    Random.step fuzzer currentSeed
-            in
-            simplifyAndAdd rosetree getExpectation failedExpectation failures
+            Just <| findSimplestFailure rosetree getExpectation failedExpectation
 
 
-{-| Knowing that the rosetree's root already failed, finds the simplified failure.
-Returns the updated failures dictionary.
+{-| Knowing that the rosetree's root already failed, finds the key and value of the simplifest failure.
 -}
-simplifyAndAdd :
-    RoseTree a
-    -> (a -> Expectation)
-    -> Expectation
-    -> Failures
-    -> Failures
-simplifyAndAdd rootTree getExpectation rootsExpectation failures =
-    let
-        simplify : Expectation -> RoseTree a -> ( a, Expectation )
-        simplify oldExpectation (Rose failingValue branches) =
-            case Lazy.List.headAndTail branches of
-                Just ( (Rose possiblyFailingValue _) as rosetree, moreLazyRoseTrees ) ->
-                    -- either way, recurse with the most recent failing expectation, and failing input with its list of simplified values
-                    case getExpectation possiblyFailingValue of
-                        Pass ->
-                            simplify oldExpectation
-                                (Rose failingValue moreLazyRoseTrees)
+findSimplestFailure : RoseTree a -> (a -> Expectation) -> Expectation -> ( String, Expectation )
+findSimplestFailure (Rose failingValue branches) getExpectation oldExpectation =
+    case Lazy.List.headAndTail branches of
+        Just ( (Rose possiblyFailingValue _) as firstChild, otherChildren ) ->
+            case getExpectation possiblyFailingValue of
+                -- recurse "horizontally" on other simplifications of the last known failing value
+                -- discard simplifications of the passing value (the _)
+                Pass ->
+                    findSimplestFailure (Rose failingValue otherChildren) getExpectation oldExpectation
 
-                        newExpectation ->
-                            let
-                                ( minimalValue, finalExpectation ) =
-                                    simplify newExpectation rosetree
-                            in
-                            ( minimalValue
-                            , finalExpectation
-                            )
+                -- recurse downward on simplifications of the newly-found failing value
+                -- discard simplifications of the previous failing value (otherChildren)
+                newExpectation ->
+                    findSimplestFailure firstChild getExpectation newExpectation
 
-                Nothing ->
-                    ( failingValue, oldExpectation )
-
-        ( rootMinimalValue, rootFinalExpectation ) =
-            simplify rootsExpectation rootTree
-    in
-    Dict.insert (Internal.toString rootMinimalValue) rootFinalExpectation failures
+        -- base case: we cannot simplify any more
+        Nothing ->
+            ( Internal.toString failingValue, oldExpectation )
 
 
 formatExpectation : ( String, Expectation ) -> Expectation
