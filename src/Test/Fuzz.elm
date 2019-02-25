@@ -85,7 +85,7 @@ runOneFuzzIteration fuzzer getExpectation ( failures, currentSeed ) =
     ( newFailures, nextSeed )
 
 
-{-| Run a function whose inputs are the same as its outputs a given number of times. Requires the inital state to pass
+{-| Run a function whose inputs are the same as its outputs a given number of times. Requires the initial state to pass
 in and returns the final state. This generic combinator extracts the "run n times" logic from our test running code.
 -}
 foldUntil : Int -> a -> (a -> a) -> a
@@ -109,7 +109,7 @@ testGeneratedValue rosetree getExpectation =
             Just <| findSimplestFailure rosetree getExpectation failedExpectation
 
 
-{-| Knowing that the rosetree's root already failed, finds the key and value of the simplifest failure.
+{-| Knowing that the rosetree's root already failed, finds the key and value of the simplest failure.
 -}
 findSimplestFailure : RoseTree a -> (a -> Expectation) -> Expectation -> ( String, Expectation )
 findSimplestFailure (Rose failingValue branches) getExpectation oldExpectation =
