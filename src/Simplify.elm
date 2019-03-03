@@ -162,6 +162,7 @@ import Char
 import Lazy exposing (Lazy, force, lazy)
 import Lazy.List exposing (LazyList, append, cons, empty)
 import List
+import Simplify.Internal exposing (Simplifier(..))
 import String
 
 
@@ -171,7 +172,7 @@ that are in some sense simpler than the given value. If no such values exist,
 then the simplifier should just return the empty list.
 -}
 type alias Simplifier a =
-    a -> LazyList a
+    Simplify.Internal.Simplifier a
 
 
 {-| Perform simplifying. Takes a predicate that returns `True` if you want
@@ -183,7 +184,7 @@ satisfy the predicate are found.
 
 -}
 simplify : (a -> Bool) -> Simplifier a -> a -> a
-simplify keepSimplifying simplifier originalVal =
+simplify keepSimplifying (Simp simplifier) originalVal =
     let
         helper lazyList val =
             case force lazyList of
@@ -203,8 +204,10 @@ simplify keepSimplifying simplifier originalVal =
 {-| Perform no simplifying. Equivalent to the empty lazy list.
 -}
 noSimplify : Simplifier a
-noSimplify _ =
-    empty
+noSimplify =
+    Simp <|
+        \_ ->
+            empty
 
 
 {-| Simplify the empty tuple. Equivalent to `noSimplify`.
@@ -217,74 +220,86 @@ unit =
 {-| Simplifier of bools.
 -}
 bool : Simplifier Bool
-bool b =
-    case b of
-        True ->
-            cons False empty
+bool =
+    Simp <|
+        \b ->
+            case b of
+                True ->
+                    cons False empty
 
-        False ->
-            empty
+                False ->
+                    empty
 
 
 {-| Simplifier of `Order` values.
 -}
 order : Simplifier Order
-order o =
-    case o of
-        GT ->
-            cons EQ (cons LT empty)
+order =
+    Simp <|
+        \o ->
+            case o of
+                GT ->
+                    cons EQ (cons LT empty)
 
-        LT ->
-            cons EQ empty
+                LT ->
+                    cons EQ empty
 
-        EQ ->
-            empty
+                EQ ->
+                    empty
 
 
 {-| Simplifier of integers.
 -}
 int : Simplifier Int
-int n =
-    if n < 0 then
-        cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
+int =
+    Simp <|
+        \n ->
+            if n < 0 then
+                cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
 
-    else
-        seriesInt 0 n
+            else
+                seriesInt 0 n
 
 
 {-| Construct a simplifier of ints which considers the given int to
 be most minimal.
 -}
 atLeastInt : Int -> Simplifier Int
-atLeastInt min n =
-    if n < 0 && n >= min then
-        cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
+atLeastInt min =
+    Simp <|
+        \n ->
+            if n < 0 && n >= min then
+                cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
 
-    else
-        seriesInt (max 0 min) n
+            else
+                seriesInt (max 0 min) n
 
 
 {-| Simplifier of floats.
 -}
 float : Simplifier Float
-float n =
-    if n < 0 then
-        cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
+float =
+    Simp <|
+        \n ->
+            if n < 0 then
+                cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
 
-    else
-        seriesFloat 0 n
+            else
+                seriesFloat 0 n
 
 
 {-| Construct a simplifier of floats which considers the given float to
 be most minimal.
 -}
 atLeastFloat : Float -> Simplifier Float
-atLeastFloat min n =
-    if n < 0 && n >= min then
-        cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
+atLeastFloat min =
+    Simp <|
+        \n ->
+            if n < 0 && n >= min then
+                cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
 
-    else
-        seriesFloat (max 0 min) n
+            else
+                seriesFloat (max 0 min) n
 
 
 {-| Simplifier of chars.
@@ -332,26 +347,30 @@ string =
 Takes a simplifier of values and returns a simplifier of Maybes.
 -}
 maybe : Simplifier a -> Simplifier (Maybe a)
-maybe simplifier m =
-    case m of
-        Just a ->
-            cons Nothing (Lazy.List.map Just (simplifier a))
+maybe (Simp simplifier) =
+    Simp <|
+        \m ->
+            case m of
+                Just a ->
+                    cons Nothing (Lazy.List.map Just (simplifier a))
 
-        Nothing ->
-            empty
+                Nothing ->
+                    empty
 
 
 {-| Result simplifier constructor. Takes a simplifier of errors and a simplifier of
 values and returns a simplifier of Results.
 -}
 result : Simplifier error -> Simplifier value -> Simplifier (Result error value)
-result simplifyError simplifyValue r =
-    case r of
-        Ok value ->
-            Lazy.List.map Ok (simplifyValue value)
+result (Simp simplifyError) (Simp simplifyValue) =
+    Simp <|
+        \r ->
+            case r of
+                Ok value ->
+                    Lazy.List.map Ok (simplifyValue value)
 
-        Err error ->
-            Lazy.List.map Err (simplifyError error)
+                Err error ->
+                    Lazy.List.map Err (simplifyError error)
 
 
 {-| Lazy List simplifier constructor. Takes a simplifier of values and returns a
@@ -359,55 +378,57 @@ simplifier of Lazy Lists. The lazy list being simplified must be finite. (I mean
 really, how do you make an infinite list simpler?)
 -}
 lazylist : Simplifier a -> Simplifier (LazyList a)
-lazylist simplifier l =
-    lazy <|
-        \() ->
-            let
-                n : Int
-                n =
-                    Lazy.List.length l
+lazylist (Simp simplifier) =
+    Simp <|
+        \l ->
+            lazy <|
+                \() ->
+                    let
+                        n : Int
+                        n =
+                            Lazy.List.length l
 
-                simplifyOneHelp : LazyList a -> LazyList (LazyList a)
-                simplifyOneHelp lst =
-                    lazy <|
-                        \() ->
-                            case force lst of
-                                Lazy.List.Nil ->
-                                    force empty
+                        simplifyOneHelp : LazyList a -> LazyList (LazyList a)
+                        simplifyOneHelp lst =
+                            lazy <|
+                                \() ->
+                                    case force lst of
+                                        Lazy.List.Nil ->
+                                            force empty
 
-                                Lazy.List.Cons x xs ->
-                                    force
-                                        (append (Lazy.List.map (\val -> cons val xs) (simplifier x))
-                                            (Lazy.List.map (cons x) (simplifyOneHelp xs))
-                                        )
+                                        Lazy.List.Cons x xs ->
+                                            force
+                                                (append (Lazy.List.map (\val -> cons val xs) (simplifier x))
+                                                    (Lazy.List.map (cons x) (simplifyOneHelp xs))
+                                                )
 
-                removes : Int -> Int -> Simplifier (LazyList a)
-                removes k_ n_ l_ =
-                    lazy <|
-                        \() ->
-                            if k_ > n_ then
-                                force empty
+                        removes : Int -> Int -> LazyList a -> LazyList (LazyList a)
+                        removes k_ n_ l_ =
+                            lazy <|
+                                \() ->
+                                    if k_ > n_ then
+                                        force empty
 
-                            else if Lazy.List.isEmpty l_ then
-                                force (cons empty empty)
+                                    else if Lazy.List.isEmpty l_ then
+                                        force (cons empty empty)
 
-                            else
-                                let
-                                    first =
-                                        Lazy.List.take k_ l_
+                                    else
+                                        let
+                                            first =
+                                                Lazy.List.take k_ l_
 
-                                    rest =
-                                        Lazy.List.drop k_ l_
-                                in
-                                force <|
-                                    cons rest (Lazy.List.map (append first) (removes k_ (n_ - k_) rest))
-            in
-            force <|
-                append
-                    (Lazy.List.andThen (\k -> removes k n l)
-                        (Lazy.List.takeWhile (\x -> x > 0) (Lazy.List.iterate (\num -> num // 2) n))
-                    )
-                    (simplifyOneHelp l)
+                                            rest =
+                                                Lazy.List.drop k_ l_
+                                        in
+                                        force <|
+                                            cons rest (Lazy.List.map (append first) (removes k_ (n_ - k_) rest))
+                    in
+                    force <|
+                        append
+                            (Lazy.List.andThen (\k -> removes k n l)
+                                (Lazy.List.takeWhile (\x -> x > 0) (Lazy.List.iterate (\num -> num // 2) n))
+                            )
+                            (simplifyOneHelp l)
 
 
 {-| List simplifier constructor.
@@ -430,30 +451,34 @@ array simplifier =
 Takes a tuple of simplifiers and returns a simplifier of tuples.
 -}
 tuple : ( Simplifier a, Simplifier b ) -> Simplifier ( a, b )
-tuple ( simplifyA, simplifyB ) ( a, b ) =
-    append (Lazy.List.map (Tuple.pair a) (simplifyB b))
-        (append (Lazy.List.map (\first -> ( first, b )) (simplifyA a))
-            (Lazy.List.map2 Tuple.pair (simplifyA a) (simplifyB b))
-        )
+tuple ( Simp simplifyA, Simp simplifyB ) =
+    Simp <|
+        \( a, b ) ->
+            append (Lazy.List.map (Tuple.pair a) (simplifyB b))
+                (append (Lazy.List.map (\first -> ( first, b )) (simplifyA a))
+                    (Lazy.List.map2 Tuple.pair (simplifyA a) (simplifyB b))
+                )
 
 
 {-| 3-Tuple simplifier constructor.
 Takes a tuple of simplifiers and returns a simplifier of tuples.
 -}
 tuple3 : ( Simplifier a, Simplifier b, Simplifier c ) -> Simplifier ( a, b, c )
-tuple3 ( simplifyA, simplifyB, simplifyC ) ( a, b, c ) =
-    append (Lazy.List.map (\c1 -> ( a, b, c1 )) (simplifyC c))
-        (append (Lazy.List.map (\b2 -> ( a, b2, c )) (simplifyB b))
-            (append (Lazy.List.map (\a2 -> ( a2, b, c )) (simplifyA a))
-                (append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (simplifyB b) (simplifyC c))
-                    (append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (simplifyA a) (simplifyC c))
-                        (append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (simplifyA a) (simplifyB b))
-                            (Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (simplifyA a) (simplifyB b) (simplifyC c))
+tuple3 ( Simp simplifyA, Simp simplifyB, Simp simplifyC ) =
+    Simp <|
+        \( a, b, c ) ->
+            append (Lazy.List.map (\c1 -> ( a, b, c1 )) (simplifyC c))
+                (append (Lazy.List.map (\b2 -> ( a, b2, c )) (simplifyB b))
+                    (append (Lazy.List.map (\a2 -> ( a2, b, c )) (simplifyA a))
+                        (append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (simplifyB b) (simplifyC c))
+                            (append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (simplifyA a) (simplifyC c))
+                                (append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (simplifyA a) (simplifyB b))
+                                    (Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (simplifyA a) (simplifyB b) (simplifyC c))
+                                )
+                            )
                         )
                     )
                 )
-            )
-        )
 
 
 
@@ -479,16 +504,20 @@ Or else this process will generate garbage.
 
 -}
 convert : (a -> b) -> (b -> a) -> Simplifier a -> Simplifier b
-convert f g simplifier b =
-    Lazy.List.map f (simplifier (g b))
+convert f g (Simp simplifier) =
+    Simp <|
+        \b ->
+            Lazy.List.map f (simplifier (g b))
 
 
 {-| Filter out the results of a simplifier. The resulting simplifier
 will only produce simplifiers which satisfy the given predicate.
 -}
 keepIf : (a -> Bool) -> Simplifier a -> Simplifier a
-keepIf predicate simplifier a =
-    Lazy.List.keepIf predicate (simplifier a)
+keepIf predicate (Simp simplifier) =
+    Simp <|
+        \a ->
+            Lazy.List.keepIf predicate (simplifier a)
 
 
 {-| Filter out the results of a simplifier. The resulting simplifier
@@ -504,8 +533,10 @@ simplifier, and then all the non-duplicated values in the second
 simplifier.
 -}
 merge : Simplifier a -> Simplifier a -> Simplifier a
-merge simplify1 simplify2 a =
-    Lazy.List.unique (append (simplify1 a) (simplify2 a))
+merge (Simp simplify1) (Simp simplify2) =
+    Simp <|
+        \a ->
+            Lazy.List.unique (append (simplify1 a) (simplify2 a))
 
 
 {-| Re-export of `Lazy.List.map`

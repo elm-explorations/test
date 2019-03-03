@@ -56,6 +56,7 @@ import MicroRandomExtra as Random
 import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
 import Simplify exposing (Simplifier)
+import Simplify.Internal
 
 
 {-| The representation of fuzzers is opaque. Conceptually, a `Fuzzer a`
@@ -120,12 +121,8 @@ Here is an example for a custom union type, assuming there is already a `genName
 -}
 custom : Generator a -> Simplifier a -> Fuzzer a
 custom generator simplifier =
-    let
-        simplifyTree a =
-            Rose a (Lazy.lazy <| \_ -> Lazy.force <| Lazy.List.map simplifyTree (simplifier a))
-    in
     Ok <|
-        Random.map simplifyTree generator
+        Random.map (Simplify.Internal.simplifyTree simplifier) generator
 
 
 {-| A fuzzer for the unit value. Unit is a type with only one value, commonly
