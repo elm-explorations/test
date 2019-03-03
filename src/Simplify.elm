@@ -1,8 +1,9 @@
 module Simplify exposing
     ( Simplifier, simplify
-    , noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string
+    , noSimplify, unit, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
     , maybe, result, lazylist, list, array, tuple, tuple3
-    , convert, keepIf, dropIf, merge, map, andMap
+    , keepIf, dropIf, merge, map, andMap
+    , fromFunction, convert
     )
 
 {-| This library contains a collection of basic simplifiers, and helper functions to
@@ -19,6 +20,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
   - [Simplifying Basics](#simplifying-basics)
   - [Readymade Simplifiers](#readymade-simplifiers)
+  - [Simplifiers of data structures](#simplifiers-of-data-structures)
   - [Functions on Simplifiers](#functions-on-simplifiers)
   - [What are Simplifiers and why do we need them?](#what-are-simplifiers-and-why-do-we-need-them)
 
@@ -30,7 +32,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
 ## Readymade Simplifiers
 
-@docs noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string
+@docs noSimplify, unit, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
 
 
 ## Simplifiers of data structures
@@ -40,7 +42,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
 ## Functions on Simplifiers
 
-@docs convert, keepIf, dropIf, merge, map, andMap
+@docs keepIf, dropIf, merge, map, andMap
 
 
 ## What are Simplifiers and why do we need them?
@@ -146,6 +148,10 @@ Simplifiers must never simplify values in a circle, like this:
 `False` is simpler that `True`, which is in turn simpler than `False`. Doing this
 will result in tests looping indefinitely, testing and re-testing the same values
 in a circle.
+
+With those caveats, here's how you actually do it:
+
+@docs fromFunction, convert
 
 -}
 
@@ -476,8 +482,20 @@ tuple3 ( Simp simplifyA, Simp simplifyB, Simp simplifyC ) =
 ----------------------
 
 
+{-| Create a simplifier by specifiying how to simplify any value.
+-}
+fromFunction : (a -> List a) -> Simplifier a
+fromFunction f =
+    Simp (f >> Lazy.List.fromList)
+
+
 {-| Convert a Simplifier of a's into a Simplifier of b's using two inverse functions.
-)
+This allows you to reuse the simplifcation logic of one type for another. This library
+uses it to simplify arrays by simplifying lists.
+
+This function works by converting the `b` to simplify into an `a`, getting simpler
+`a` values, and then turning them all into `b` values again.
+
 If you use this function as follows:
 
     simplifierB =
@@ -485,11 +503,10 @@ If you use this function as follows:
 
 Make sure that:
 
-    `f(g(x)) == x` for all x
-    -- (putting something into g then feeding the output into f must give back
-    -- just that original something, whatever it is)
+    f (g x) == x -- for all x
 
-Or else this process will generate garbage.
+Putting something into `g` then feeding the output into `f` must give back that
+original something. Otherwise this process will generate garbage.
 
 -}
 convert : (a -> b) -> (b -> a) -> Simplifier a -> Simplifier b
