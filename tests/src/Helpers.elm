@@ -151,7 +151,7 @@ testSimplifying =
 -}
 randomSeedFuzzer : Fuzzer Random.Seed
 randomSeedFuzzer =
-    Fuzz.custom (Random.int 0 0xFFFFFFFF) Simplify.noSimplify |> Fuzz.map Random.initialSeed
+    Fuzz.custom (Random.int 0 0xFFFFFFFF) Simplify.simplest |> Fuzz.map Random.initialSeed
 
 
 same : Expectation -> Expectation -> Expectation

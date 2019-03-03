@@ -1,6 +1,6 @@
 module Simplify exposing
     ( Simplifier, simplify
-    , noSimplify, unit, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
+    , simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
     , maybe, result, lazylist, list, array, tuple, tuple3
     , keepIf, dropIf, merge, map, andMap
     , fromFunction, convert
@@ -32,7 +32,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
 ## Readymade Simplifiers
 
-@docs noSimplify, unit, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
+@docs simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
 
 
 ## Simplifiers of data structures
@@ -196,20 +196,14 @@ simplify keepSimplifying (Simp simplifier) originalVal =
     helper (simplifier originalVal) originalVal
 
 
-{-| Perform no simplifying. Equivalent to the empty lazy list.
+{-| A simplifier that performs no simplifying. Whatever value it's given,
+it claims that it's the simplest. This allows you to opt-out of simplification.
 -}
-noSimplify : Simplifier a
-noSimplify =
+simplest : Simplifier a
+simplest =
     Simp <|
         \_ ->
             empty
-
-
-{-| Simplify the empty tuple. Equivalent to `noSimplify`.
--}
-unit : Simplifier ()
-unit =
-    noSimplify
 
 
 {-| Simplifier of bools.
