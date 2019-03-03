@@ -1,15 +1,18 @@
 module Simplify exposing
     ( Simplifier, simplify
-    , noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
+    , noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string
+    , maybe, result, lazylist, list, array, tuple, tuple3
     , convert, keepIf, dropIf, merge, map, andMap
     )
 
-{-| Library containing a collection of basic simplifiers and helper functions to
+{-| This library contains a collection of basic simplifiers, and helper functions to
 make your own.
 
 Simplifying is part of fuzzing, and the provided fuzzers have simplifiers already
-built into them. You really only have to write your own simplifiers if you use
-`Fuzz.custom`.
+built into them. You only have to write your own simplifiers if you use `Fuzz.custom`.
+
+The simplifier's job is to take a randomly-generated input that caused a fuzz test to
+fail and find a simpler input that also fails, to better illustrate the bug.
 
 
 ## Quick Reference
@@ -27,7 +30,12 @@ built into them. You really only have to write your own simplifiers if you use
 
 ## Readymade Simplifiers
 
-@docs noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
+@docs noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string
+
+
+## Simplifiers of data structures
+
+@docs maybe, result, lazylist, list, array, tuple, tuple3
 
 
 ## Functions on Simplifiers
@@ -37,28 +45,26 @@ built into them. You really only have to write your own simplifiers if you use
 
 ## What are Simplifiers and why do we need them?
 
-Fuzzers consist of two parts; a Generator and a Simplifier.
+Fuzzers consist of two parts: a Generator and a Simplifier.
 
 The Generator takes a random Seed as input and returns a random value of
 the desired type, based on the Seed. When a test fails on one of those random
 values, the simplifier takes the failing value and makes it simpler for
-you so you can guess more easily what property of that value caused the test
+you so you can more easily guess what property of that value caused the test
 to fail.
 
 Simplifying is a way to try and find the simplest example that
 fails, in order to give the tester better feedback on what went wrong.
 
 Simplifiers are functions that, given a failing value, offer simpler
-values to test against.
+values to test against. What qualifies as simple is kind of arbitrary,
+and depends on what type of values you're fuzzing.
 
 
-### What is simple?
-
-That is kind of arbitrary, and depends on what kind of values you're fuzzing.
+### Simplification in Action
 
 Let us say I'm writing a Fuzzer for binary trees:
 
-    -- randomly-generated binary trees might soon become unreadable
     type Tree a
         = Node (Tree a) (Tree a)
         | Leaf a
@@ -100,16 +106,16 @@ test fail:
             )
         )
 
-This is a pretty big tree, there are many nodes and leaves, and it is difficult
-to tell which part is responsible for the failing. If we don't attempt to simplify it,
-the developer will have a hard time pointing out why it fails.
+This is a pretty big tree, with many nodes and leaves, and it is difficult
+to tell which part is responsible for failing the test. If we don't attempt
+to simplify it, the developer will have a hard time fixing their code so the
+test can pass.
 
-Now let's pass it through a simplifier, and test the resulting value until we find
-this new value that still fails the test:
+A simplifier can convert that overgrown tree into a tiny sprout:
 
     Leaf -1
 
-Nice, looks like a negative number in a `Leaf` could be the issue.
+Nice, it looks like a negative number in a `Leaf` could be the issue.
 
 
 ### How does simplifying work?
@@ -122,38 +128,24 @@ cause tests to fail, we continue simplifying from there instead.
 Once the simplifier cannot produce any simpler values, or none of the simpler values
 fail the fuzz test, we stop simplifying.
 
-Whether or not the simplified value is actually simpler isn't that important,
-as long as we aren't simplifying in a loop. The bool simplifier simplifys True to
-False, but not vice versa. If it did, and your test failed no matter if this
-variable was True or False, there would always be a simpler value, so
-we'd never stop simplifying! We would just re-test the same values over and over
-again, forever!
-
 
 ### How do I make my own Simplifiers?
 
 Simplifiers are deterministic, since they do not have access to a random number
 generator. It's the generator part of the fuzzer that's meant to find the rare
-edge cases; it's the simplifiers job to make the failures as understandable as
+edge cases; it's the simplifier's job to make the failures as understandable as
 possible.
 
-Simplifiers have to return a LazyList, something that works a bit like a list.
-That LazyList may or may not have another element each time we ask for one,
-and doesn't necessarily have them all committed to memory. That allows it to
-take less space (interesting since there may be quite a lot of elements).
+Simplifiers must never simplify values in a circle, like this:
 
-That LazyList should also provide a finite number of simplified values (if it
-provided an infinite number of them, tests using it might continue indefinitely
-at the simplifying phase).
+    badBooleanSimplifier bool = [not bool]
 
-Simplifiers must never simplify values in a circle, like:
+    badBooleanSimplifier True --> [ False ]
+    badBooleanSimplifier False --> [ True ]
 
-    loopinBooleanSimplifier True == [ False ]
-
-    loopinBooleanSimplifier False == [ True ]
-
-Doing so will also result in tests looping indefinitely, testing and re-testing
-the same values in a circle.
+`False` is simpler that `True`, which is in turn simpler than `False`. Doing this
+will result in tests looping indefinitely, testing and re-testing the same values
+in a circle.
 
 -}
 
@@ -166,10 +158,7 @@ import Simplify.Internal exposing (Simplifier(..))
 import String
 
 
-{-| The simplifier type.
-A simplifier is a function that takes a value and returns a lazy list of values
-that are in some sense simpler than the given value. If no such values exist,
-then the simplifier should just return the empty list.
+{-| The simplifier type is opaque.
 -}
 type alias Simplifier a =
     Simplify.Internal.Simplifier a
