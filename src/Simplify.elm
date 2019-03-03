@@ -1,7 +1,7 @@
 module Simplify exposing
     ( Simplifier, simplify
     , simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
-    , maybe, result, lazylist, list, array, tuple, tuple3
+    , maybe, result, list, array, tuple, tuple3
     , keepIf, dropIf, merge, map, andMap
     , fromFunction, convert
     )
@@ -37,7 +37,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
 ## Simplifiers of data structures
 
-@docs maybe, result, lazylist, list, array, tuple, tuple3
+@docs maybe, result, list, array, tuple, tuple3
 
 
 ## Functions on Simplifiers
