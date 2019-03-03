@@ -1,83 +1,38 @@
 module Lazy.List exposing
-    ( LazyList, LazyListView(..)
-    , cons, empty, singleton
-    , isEmpty, head, tail, headAndTail, member, length
-    , toList, fromList, toArray, fromArray
-    , map, zip, reduce, flatten, append, foldl, foldr
-    , intersperse, interleave, reverse, cycle, iterate, repeat, take, takeWhile, drop, dropWhile
-    , keepIf, dropIf, filterMap, unique
-    , andMap, andThen
-    , numbers, sum, product
-    , map2, map3, map4, map5
-    , product2, product3
+    ( LazyList
+    , LazyListView(..)
+    , andMap
+    , andThen
+    , append
+    , cons
+    , drop
+    , empty
+    , fromArray
+    , fromList
+    , headAndTail
+    , isEmpty
+    , iterate
+    , keepIf
+    , length
+    , map
+    , map2
+    , map3
+    , numbers
+    , reduce
+    , singleton
+    , take
+    , takeWhile
+    , toArray
+    , toList
+    , unique
     )
 
 {-| Lazy list implementation in Elm.
-
-
-# Types
-
-@docs LazyList, LazyListView
-
-
-# Constructors
-
-@docs cons, empty, singleton
-
-
-# Query operations
-
-@docs isEmpty, head, tail, headAndTail, member, length
-
-
-# Conversions
-
-@docs toList, fromList, toArray, fromArray
-
-
-# Map-reduce et al.
-
-@docs map, zip, reduce, flatten, append, foldl, foldr
-
-
-# Common operations
-
-@docs intersperse, interleave, reverse, cycle, iterate, repeat, take, takeWhile, drop, dropWhile
-
-
-# Filtering operations
-
-@docs keepIf, dropIf, filterMap, unique
-
-
-# Chaining operations
-
-@docs andMap, andThen
-
-
-# Useful math stuff
-
-@docs numbers, sum, product
-
-
-# All the maps!
-
-@docs map2, map3, map4, map5
-
-
-# All the Cartesian products!
-
-**Warning:** Calling these functions on large lists and then calling `toList` can easily overflow the stack. Consider
-passing the results to `take aConstantNumber`.
-
-@docs product2, product3
-
 -}
 
 import Array exposing (Array)
 import Lazy exposing (Lazy, force, lazy)
 import List
-import Random exposing (Generator, Seed)
 
 
 {-| Analogous to `List` type. This is the actual implementation type for the
@@ -133,30 +88,6 @@ cons a list =
             Cons a list
 
 
-{-| Get the head of a list.
--}
-head : LazyList a -> Maybe a
-head list =
-    case force list of
-        Nil ->
-            Nothing
-
-        Cons first _ ->
-            Just first
-
-
-{-| Get the tail of a list.
--}
-tail : LazyList a -> Maybe (LazyList a)
-tail list =
-    case force list of
-        Nil ->
-            Nothing
-
-        Cons _ rest ->
-            Just rest
-
-
 {-| Get the head and tail of a list.
 -}
 headAndTail : LazyList a -> Maybe ( a, LazyList a )
@@ -167,19 +98,6 @@ headAndTail list =
 
         Cons first rest ->
             Just ( first, rest )
-
-
-{-| Repeat a value ad infinitum.
-Be careful when you use this. The result of this is a truly infinite list.
-Do not try calling `reduce` or `toList` on an infinite list as it'll never
-finish computing. Make sure you then filter it down to a finite list with `head`
-or `take` or something.
--}
-repeat : a -> LazyList a
-repeat a =
-    lazy <|
-        \() ->
-            Cons a (repeat a)
 
 
 {-| Append a list to another list.
@@ -194,63 +112,6 @@ append list1 list2 =
 
                 Cons first rest ->
                     Cons first (append rest list2)
-
-
-{-| Interleave the elements of a list in another list. The two lists get
-interleaved at the end.
--}
-interleave : LazyList a -> LazyList a -> LazyList a
-interleave list1 list2 =
-    lazy <|
-        \() ->
-            case force list1 of
-                Nil ->
-                    force list2
-
-                Cons first1 rest1 ->
-                    case force list2 of
-                        Nil ->
-                            force list1
-
-                        Cons first2 rest2 ->
-                            force (cons first1 (cons first2 (interleave rest1 rest2)))
-
-
-{-| Places the given value between all members of the given list.
--}
-intersperse : a -> LazyList a -> LazyList a
-intersperse a list =
-    lazy <|
-        \() ->
-            case force list of
-                Nil ->
-                    Nil
-
-                Cons first rest ->
-                    case force rest of
-                        Nil ->
-                            force (cons first empty)
-
-                        Cons second secondRest ->
-                            case force secondRest of
-                                Nil ->
-                                    force (cons first (cons a (cons second empty)))
-
-                                _ ->
-                                    force (cons first (cons a (cons second (cons a (intersperse a secondRest)))))
-
-
-{-| Take a list and repeat it ad infinitum. This cycles a finite list
-by putting the front after the end of the list. This results in a no-op in
-the case of an infinite list.
--}
-cycle : LazyList a -> LazyList a
-cycle list =
-    append list
-        (lazy <|
-            \() ->
-                force (cycle list)
-        )
 
 
 {-| Create an infinite list of applications of a function on some value.
@@ -333,24 +194,6 @@ drop n list =
                         force (drop (n - 1) rest)
 
 
-{-| Drop elements from a list as long as the predicate is satisfied.
--}
-dropWhile : (a -> Bool) -> LazyList a -> LazyList a
-dropWhile predicate list =
-    lazy <|
-        \() ->
-            case force list of
-                Nil ->
-                    Nil
-
-                Cons first rest ->
-                    if predicate first then
-                        force (dropWhile predicate rest)
-
-                    else
-                        force list
-
-
 {-| Test if a value is a member of a list.
 -}
 member : a -> LazyList a -> Bool
@@ -416,26 +259,6 @@ dropIf predicate =
     keepIf (\n -> not (predicate n))
 
 
-{-| Map a function that may fail over a lazy list, keeping only
-the values that were successfully transformed.
--}
-filterMap : (a -> Maybe b) -> LazyList a -> LazyList b
-filterMap transform list =
-    lazy <|
-        \() ->
-            case force list of
-                Nil ->
-                    Nil
-
-                Cons first rest ->
-                    case transform first of
-                        Just val ->
-                            Cons val (filterMap transform rest)
-
-                        Nothing ->
-                            force (filterMap transform rest)
-
-
 {-| Reduce a list with a given reducer and an initial value.
 
 Example :
@@ -450,34 +273,6 @@ reduce reducer b list =
 
         Cons first rest ->
             reduce reducer (reducer first b) rest
-
-
-{-| Analogous to `List.foldl`. Is an alias for `reduce`.
--}
-foldl : (a -> b -> b) -> b -> LazyList a -> b
-foldl =
-    reduce
-
-
-{-| Analogous to `List.foldr`.
--}
-foldr : (a -> b -> b) -> b -> LazyList a -> b
-foldr reducer b list =
-    Array.foldr reducer b (toArray list)
-
-
-{-| Get the sum of a list of numbers.
--}
-sum : LazyList number -> number
-sum =
-    reduce (+) 0
-
-
-{-| Get the product of a list of numbers.
--}
-product : LazyList number -> number
-product =
-    reduce (*) 1
 
 
 {-| Flatten a list of lists into a single list by appending all the inner
@@ -500,13 +295,6 @@ flatten list =
 andThen : (a -> LazyList b) -> LazyList a -> LazyList b
 andThen f list =
     map f list |> flatten
-
-
-{-| Reverse a list.
--}
-reverse : LazyList a -> LazyList a
-reverse =
-    reduce cons empty
 
 
 {-| Map a function to a list.
@@ -575,108 +363,6 @@ map3 f list1 list2 list3 =
                                     Cons (f first1 first2 first3) (map3 f rest1 rest2 rest3)
 
 
-{-| -}
-map4 : (a -> b -> c -> d -> e) -> LazyList a -> LazyList b -> LazyList c -> LazyList d -> LazyList e
-map4 f list1 list2 list3 list4 =
-    lazy <|
-        \() ->
-            case force list1 of
-                Nil ->
-                    Nil
-
-                Cons first1 rest1 ->
-                    case force list2 of
-                        Nil ->
-                            Nil
-
-                        Cons first2 rest2 ->
-                            case force list3 of
-                                Nil ->
-                                    Nil
-
-                                Cons first3 rest3 ->
-                                    case force list4 of
-                                        Nil ->
-                                            Nil
-
-                                        Cons first4 rest4 ->
-                                            Cons (f first1 first2 first3 first4) (map4 f rest1 rest2 rest3 rest4)
-
-
-{-| -}
-map5 : (a -> b -> c -> d -> e -> f) -> LazyList a -> LazyList b -> LazyList c -> LazyList d -> LazyList e -> LazyList f
-map5 f list1 list2 list3 list4 list5 =
-    lazy <|
-        \() ->
-            case force list1 of
-                Nil ->
-                    Nil
-
-                Cons first1 rest1 ->
-                    case force list2 of
-                        Nil ->
-                            Nil
-
-                        Cons first2 rest2 ->
-                            case force list3 of
-                                Nil ->
-                                    Nil
-
-                                Cons first3 rest3 ->
-                                    case force list4 of
-                                        Nil ->
-                                            Nil
-
-                                        Cons first4 rest4 ->
-                                            case force list5 of
-                                                Nil ->
-                                                    Nil
-
-                                                Cons first5 rest5 ->
-                                                    Cons
-                                                        (f first1 first2 first3 first4 first5)
-                                                        (map5 f rest1 rest2 rest3 rest4 rest5)
-
-
-{-| -}
-zip : LazyList a -> LazyList b -> LazyList ( a, b )
-zip =
-    map2 Tuple.pair
-
-
-{-| Create a lazy list containing all possible pairs in the given lazy lists.
--}
-product2 : LazyList a -> LazyList b -> LazyList ( a, b )
-product2 list1 list2 =
-    lazy <|
-        \() ->
-            case force list1 of
-                Nil ->
-                    Nil
-
-                Cons first1 rest1 ->
-                    case force list2 of
-                        Nil ->
-                            Nil
-
-                        Cons _ _ ->
-                            force <| append (map (Tuple.pair first1) list2) (product2 rest1 list2)
-
-
-{-| Create a lazy list containing all possible triples in the given lazy lists.
--}
-product3 : LazyList a -> LazyList b -> LazyList c -> LazyList ( a, b, c )
-product3 list1 list2 list3 =
-    lazy <|
-        \() ->
-            case force list1 of
-                Nil ->
-                    Nil
-
-                Cons first1 rest1 ->
-                    force <| append (map (\( b, c ) -> ( first1, b, c )) (product2 list2 list3)) (product3 rest1 list2 list3)
-
-
 {-| Convert a lazy list to a normal list.
 -}
 toList : LazyList a -> List a
@@ -713,9 +399,3 @@ toArray list =
 fromArray : Array a -> LazyList a
 fromArray =
     Array.foldr cons empty
-
-
-
----------------------
--- INFIX OPERATORS --
----------------------
