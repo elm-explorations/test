@@ -112,28 +112,15 @@ when testing that an event handler is _not_ present.
 
 -}
 toResult : Event msg -> Result String msg
-toResult (Event ( eventName, jsEvent ) (QueryInternal.Single showTrace query)) =
-    let
-        node =
-            QueryInternal.traverse query
-                |> Result.andThen (QueryInternal.verifySingle eventName)
-                |> Result.mapError (QueryInternal.queryErrorToString query)
-    in
-    case node of
-        Err msg ->
-            Err msg
+toResult event =
+    findHandler event
+        |> Result.map (Decode.map .message)
+        |> Result.andThen
+            (\handler ->
+                Decode.decodeValue handler (eventPayload event)
+                    |> Result.mapError Decode.errorToString
+            )
 
-        Ok single ->
-            findEvent eventName single
-                |> Result.andThen
-                    (\foundEvent ->
-                        Decode.decodeValue foundEvent jsEvent
-                            |> Result.mapError Decode.errorToString
-                    )
-
-
-
--- EVENTS --
 
 
 {-| A [`click`](https://developer.mozilla.org/en-US/docs/Web/Events/click) event.
@@ -282,28 +269,43 @@ emptyObject =
     Encode.object []
 
 
-findEvent : String -> ElmHtml msg -> Result String (Decoder msg)
+eventPayload : Event msg -> Value
+eventPayload (Event ( _, payload ) _) =
+    payload
+
+
+type alias Handling msg =
+    { message : msg, stopPropagation : Bool, preventDefault : Bool }
+
+
+findHandler : Event msg -> Result String (Decoder (Handling msg))
+findHandler (Event ( eventName, _ ) (QueryInternal.Single _ query)) =
+    QueryInternal.traverse query
+        |> Result.andThen (QueryInternal.verifySingle eventName)
+        |> Result.mapError (QueryInternal.queryErrorToString query)
+        |> Result.andThen (findEvent eventName)
+
+
+findEvent : String -> ElmHtml msg -> Result String (Decoder (Handling msg))
 findEvent eventName element =
     let
         elementOutput =
             QueryInternal.prettyPrint element
 
-        handlerToDecoder : VirtualDom.Handler msg -> Decoder msg
+        handlerToDecoder : VirtualDom.Handler msg -> Decoder (Handling msg)
         handlerToDecoder handler =
-            -- NOTE: this is were we are dropping the information about stopPropagation and preventDefault
-            -- In the future, we will want to expose this somehow (see https://github.com/eeue56/elm-html-test/issues/63)
             case handler of
                 VirtualDom.Normal decoder ->
-                    decoder
+                    decoder |> Decode.map (\msg -> Handling msg False False)
 
                 VirtualDom.MayStopPropagation decoder ->
-                    decoder |> Decode.map Tuple.first
+                    decoder |> Decode.map (\( msg, sp ) -> Handling msg sp False)
 
                 VirtualDom.MayPreventDefault decoder ->
-                    decoder |> Decode.map Tuple.first
+                    decoder |> Decode.map (\( msg, pd ) -> Handling msg False pd)
 
                 VirtualDom.Custom decoder ->
-                    decoder |> Decode.map .message
+                    decoder
 
         eventDecoder node =
             node.facts.events
