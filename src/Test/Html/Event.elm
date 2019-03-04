@@ -1,5 +1,6 @@
 module Test.Html.Event exposing
     ( Event, simulate, expect, toResult
+    , expectStopPropagation, expectNotStopPropagation, expectPreventDefault, expectNotPreventDefault
     , custom, click, doubleClick, mouseDown, mouseUp, mouseEnter, mouseLeave, mouseOver, mouseOut, input, check, submit, blur, focus
     )
 
@@ -10,6 +11,19 @@ they result in certain `Msg` values being sent to `update`.
 ## Simulating Events
 
 @docs Event, simulate, expect, toResult
+
+
+## Testing Event Effects
+
+These functions allow you to test that your event handlers are (or are not) calling
+[`stopPropagation()`](https://developer.mozilla.org/en-US/docs/Web/API/Event/stopPropagation)
+and
+[`preventDefault()`](https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault).
+In Elm, you do this by calling
+[special functions](https://package.elm-lang.org/packages/elm/html/latest/Html-Events#stopPropagationOn)
+in `Html.Events`.
+
+@docs expectStopPropagation, expectNotStopPropagation, expectPreventDefault, expectNotPreventDefault
 
 
 ## Event Builders
@@ -121,6 +135,67 @@ toResult event =
                     |> Result.mapError Decode.errorToString
             )
 
+
+
+-- EFFECTS --
+
+
+{-| -}
+expectStopPropagation : Event msg -> Expectation
+expectStopPropagation event =
+    case checkStopPropagation event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.fail "I found a handler that could have stopped propagation of the event, but it didn't."
+
+        Ok True ->
+            Expect.pass
+
+
+{-| -}
+expectNotStopPropagation : Event msg -> Expectation
+expectNotStopPropagation event =
+    case checkStopPropagation event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.pass
+
+        Ok True ->
+            Expect.fail
+                "I found a handler that should have not stopped propagation of the event, but it did."
+
+
+{-| -}
+expectPreventDefault : Event msg -> Expectation
+expectPreventDefault event =
+    case checkPreventDefault event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.fail "I found a handler that could have prevented default action of the event, but it didn't."
+
+        Ok True ->
+            Expect.pass
+
+
+{-| -}
+expectNotPreventDefault : Event msg -> Expectation
+expectNotPreventDefault event =
+    case checkPreventDefault event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.pass
+
+        Ok True ->
+            Expect.fail
+                "I found a handler that should have not prevented the default action of the event, but it did."
 
 
 {-| A [`click`](https://developer.mozilla.org/en-US/docs/Web/Events/click) event.
@@ -328,3 +403,24 @@ findEvent eventName element =
 
         NoOp ->
             Err ("I found an element I did not know how to deal with, so simulating \"" ++ eventName ++ "\" events on it would be impossible. This is a problem with elm-test! Sorry about that. If you have time, could you report this issue on https://github.com/elm-explorations/test/issues with a http://sscce.org to reproduce this error message?")
+
+
+checkStopPropagation : Event msg -> Result String Bool
+checkStopPropagation =
+    checkEffect .stopPropagation
+
+
+checkPreventDefault : Event msg -> Result String Bool
+checkPreventDefault =
+    checkEffect .preventDefault
+
+
+checkEffect : (Handling msg -> Bool) -> Event msg -> Result String Bool
+checkEffect extractor event =
+    findHandler event
+        |> Result.map (Decode.map extractor)
+        |> Result.andThen
+            (\handler ->
+                Decode.decodeValue handler (eventPayload event)
+                    |> Result.mapError Decode.errorToString
+            )

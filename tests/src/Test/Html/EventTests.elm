@@ -123,6 +123,61 @@ all =
                     |> Event.simulate Event.click
                     |> Event.toResult
                     |> Expect.equal (Ok SampleMsg)
+        , describe "stop propagation and prevent default"
+            [ test "Html.Events.on" <|
+                \() ->
+                    Html.Events.on "click" (succeed SampleMsg)
+                        |> effectHtml
+                        |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+            , describe "Html.Events.stopPropagationOn"
+                [ test "false case" <|
+                    \() ->
+                        Html.Events.stopPropagationOn "click" (succeed ( SampleMsg, False ))
+                            |> effectHtml
+                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+                , test "true case" <|
+                    \() ->
+                        Html.Events.stopPropagationOn "click" (succeed ( SampleMsg, True ))
+                            |> effectHtml
+                            |> Expect.all [ Event.expectStopPropagation, Event.expectNotPreventDefault ]
+                ]
+            , describe "Html.Events.preventDefaultOn"
+                [ test "false case" <|
+                    \() ->
+                        Html.Events.preventDefaultOn "click" (succeed ( SampleMsg, False ))
+                            |> effectHtml
+                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+                , test "true case" <|
+                    \() ->
+                        Html.Events.preventDefaultOn "click" (succeed ( SampleMsg, True ))
+                            |> effectHtml
+                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectPreventDefault ]
+                ]
+            , describe "Html.Events.custom"
+                [ test "false case" <|
+                    \() ->
+                        Html.Events.custom "click"
+                            (succeed
+                                { message = SampleMsg
+                                , stopPropagation = False
+                                , preventDefault = False
+                                }
+                            )
+                            |> effectHtml
+                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+                , test "true case" <|
+                    \() ->
+                        Html.Events.custom "click"
+                            (succeed
+                                { message = SampleMsg
+                                , stopPropagation = True
+                                , preventDefault = True
+                                }
+                            )
+                            |> effectHtml
+                            |> Expect.all [ Event.expectStopPropagation, Event.expectPreventDefault ]
+                ]
+            ]
         ]
 
 
@@ -190,6 +245,15 @@ deepMappedHtml =
                 ]
             )
         ]
+
+
+effectHtml : Html.Attribute Msg -> Event Msg
+effectHtml attr =
+    div [ Attr.class "container" ] [ button [ attr ] [ text "click me" ] ]
+        |> Query.fromHtml
+        |> Query.findAll [ tag "button" ]
+        |> Query.first
+        |> Event.simulate Event.click
 
 
 testEvent : (Msg -> Html.Attribute Msg) -> ( String, Value ) -> Test
