@@ -333,7 +333,7 @@ count expect ((Internal.Multiple showTrace query) as multiple) =
         |> Internal.multipleToExpectation multiple
 
 
-{-| Expect the element to have at least one descendant matching
+{-| Expect the element to have at least one descendant matching each node in the list.
 
     import Html exposing (div, ul, li)
     import Html.Attributes exposing (class)
