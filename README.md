@@ -48,11 +48,6 @@ Check out [a large real-world test suite](https://github.com/rtfeldman/elm-css/t
 
 ### Running tests locally
 
-There are several ways you can run tests locally:
-
-* [from your terminal](https://github.com/rtfeldman/node-test-runner) via `npm install -g elm-test`
-* [from your browser](https://github.com/elm-community/html-test-runner)
-
 Here's how to set up and run your tests using the CLI test runner:
 
 1. Run `npm install -g elm-test` if you haven't already.
@@ -63,6 +58,7 @@ Here's how to set up and run your tests using the CLI test runner:
 6. Edit `tests/Example.elm` to introduce new tests.
 
 Hint: If you have dependencies add them via `elm-test install authorName/dependencyName`.
+Bonus hint: Run `elm-test --watch` to rerun your tests whenever a file is saved.
 
 ### Running tests on CI
 
@@ -114,15 +110,3 @@ There are a few extra ideas that apply to testing webapps and reusable view pack
 1. Avoid importing your `Main` module. Most of your code belongs in other modules, so import those instead.
 1. Test your views using `Test.Html.Query`, `Test.Html.Selector`, and `Test.Html.Event`.
 1. There is currently no Elm solution for integration or end-to-end testing. Use tools from outside the Elm ecosystem such as [Capybara](https://www.rubydoc.info/github/teamcapybara/capybara) or [Cypress](https://www.cypress.io).
-
-## Upgrading
-### From 3.1.0
-Make sure you grab the latest versions of the test runner that you are using:
-* `npm update -g elm-test`
-* `elm install elm-community/html-test-runner`
-
-`Fuzz.frequency` now fails the test if the frequency is invalid, rather than return a `Result`. If you are using this function, you can remove your `Err` handling code. More likely you are using `Fuzz.frequencyOrCrash`, which you can replace with `Fuzz.frequency`.
-
-Instead of using `Test.filter` to avoid running tests, use `skip` and `only` (see above for documentation).
-
-We now forbid tests and suites to have descriptions that are blank, or that are identical across siblings or parents and children. If you get failures from this, rename your tests to be clearer about what they're testing.
