@@ -58,6 +58,7 @@ Here's how to set up and run your tests using the CLI test runner:
 6. Edit `tests/Example.elm` to introduce new tests.
 
 Hint: If you have dependencies add them via `elm-test install authorName/dependencyName`.
+
 Bonus hint: Run `elm-test --watch` to rerun your tests whenever a file is saved.
 
 ### Running tests on CI
