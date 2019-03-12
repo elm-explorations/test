@@ -11,7 +11,7 @@ all =
         [ describe "list" <|
             let
                 simplify =
-                    Simplify.simplify (always True) (Simplify.list Simplify.unit)
+                    Simplify.simplify (always True) (Simplify.list Simplify.simplest)
             in
             [ test "empty list does not simplify" <|
                 \() ->

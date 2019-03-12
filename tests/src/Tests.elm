@@ -108,19 +108,20 @@ expectationTests =
 regressions : Test
 regressions =
     describe "regression tests"
-        [ fuzz (intRange 1 32) "for #39" <|
+        [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
             \positiveInt ->
                 positiveInt
                     |> Expect.greaterThan 0
-        , test "for #127" <|
+        , test "for elm-community/elm-test #127" <|
             {- If fuzz tests actually run 100 times, then asserting that no number
                in 1..8 equals 5 fails with 0.999998 probability. If they only run
                once, or stop after a duplicate due to #127, then it's much more
                likely (but not guaranteed) that the 5 won't turn up. See #128.
+               (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
                 fuzz
-                    (custom (Random.int 1 8) Simplify.noSimplify)
+                    (custom (Random.int 1 8) Simplify.simplest)
                     "fuzz tests run 100 times"
                     (Expect.notEqual 5)
                     |> expectTestToFail

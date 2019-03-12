@@ -1,21 +1,26 @@
 module Simplify exposing
     ( Simplifier, simplify
-    , noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
-    , convert, keepIf, dropIf, merge, map, andMap
+    , simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
+    , maybe, result, list, array, tuple, tuple3
+    , keepIf, dropIf, merge, map, andMap
+    , fromFunction, convert
     )
 
-{-| Library containing a collection of basic simplifiers and helper functions to
+{-| This library contains a collection of basic simplifiers, and helper functions to
 make your own.
 
 Simplifying is part of fuzzing, and the provided fuzzers have simplifiers already
-built into them. You really only have to write your own simplifiers if you use
-`Fuzz.custom`.
+built into them. You only have to write your own simplifiers if you use `Fuzz.custom`.
+
+The simplifier's job is to take a randomly-generated input that caused a fuzz test to
+fail and find a simpler input that also fails, to better illustrate the bug.
 
 
 ## Quick Reference
 
   - [Simplifying Basics](#simplifying-basics)
   - [Readymade Simplifiers](#readymade-simplifiers)
+  - [Simplifiers of data structures](#simplifiers-of-data-structures)
   - [Functions on Simplifiers](#functions-on-simplifiers)
   - [What are Simplifiers and why do we need them?](#what-are-simplifiers-and-why-do-we-need-them)
 
@@ -27,38 +32,41 @@ built into them. You really only have to write your own simplifiers if you use
 
 ## Readymade Simplifiers
 
-@docs noSimplify, unit, bool, order, int, atLeastInt, float, atLeastFloat, char, atLeastChar, character, string, maybe, result, lazylist, list, array, tuple, tuple3
+@docs simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
+
+
+## Simplifiers of data structures
+
+@docs maybe, result, list, array, tuple, tuple3
 
 
 ## Functions on Simplifiers
 
-@docs convert, keepIf, dropIf, merge, map, andMap
+@docs keepIf, dropIf, merge, map, andMap
 
 
 ## What are Simplifiers and why do we need them?
 
-Fuzzers consist of two parts; a Generator and a Simplifier.
+Fuzzers consist of two parts: a Generator and a Simplifier.
 
 The Generator takes a random Seed as input and returns a random value of
 the desired type, based on the Seed. When a test fails on one of those random
 values, the simplifier takes the failing value and makes it simpler for
-you so you can guess more easily what property of that value caused the test
+you so you can more easily guess what property of that value caused the test
 to fail.
 
 Simplifying is a way to try and find the simplest example that
 fails, in order to give the tester better feedback on what went wrong.
 
 Simplifiers are functions that, given a failing value, offer simpler
-values to test against.
+values to test against. What qualifies as simple is kind of arbitrary,
+and depends on what type of values you're fuzzing.
 
 
-### What is simple?
-
-That is kind of arbitrary, and depends on what kind of values you're fuzzing.
+### Simplification in Action
 
 Let us say I'm writing a Fuzzer for binary trees:
 
-    -- randomly-generated binary trees might soon become unreadable
     type Tree a
         = Node (Tree a) (Tree a)
         | Leaf a
@@ -100,16 +108,16 @@ test fail:
             )
         )
 
-This is a pretty big tree, there are many nodes and leaves, and it is difficult
-to tell which part is responsible for the failing. If we don't attempt to simplify it,
-the developer will have a hard time pointing out why it fails.
+This is a pretty big tree, with many nodes and leaves, and it is difficult
+to tell which part is responsible for failing the test. If we don't attempt
+to simplify it, the developer will have a hard time fixing their code so the
+test can pass.
 
-Now let's pass it through a simplifier, and test the resulting value until we find
-this new value that still fails the test:
+A simplifier can convert that overgrown tree into a tiny sprout:
 
     Leaf -1
 
-Nice, looks like a negative number in a `Leaf` could be the issue.
+Nice, it looks like a negative number in a `Leaf` could be the issue.
 
 
 ### How does simplifying work?
@@ -122,38 +130,28 @@ cause tests to fail, we continue simplifying from there instead.
 Once the simplifier cannot produce any simpler values, or none of the simpler values
 fail the fuzz test, we stop simplifying.
 
-Whether or not the simplified value is actually simpler isn't that important,
-as long as we aren't simplifying in a loop. The bool simplifier simplifys True to
-False, but not vice versa. If it did, and your test failed no matter if this
-variable was True or False, there would always be a simpler value, so
-we'd never stop simplifying! We would just re-test the same values over and over
-again, forever!
-
 
 ### How do I make my own Simplifiers?
 
 Simplifiers are deterministic, since they do not have access to a random number
 generator. It's the generator part of the fuzzer that's meant to find the rare
-edge cases; it's the simplifiers job to make the failures as understandable as
+edge cases; it's the simplifier's job to make the failures as understandable as
 possible.
 
-Simplifiers have to return a LazyList, something that works a bit like a list.
-That LazyList may or may not have another element each time we ask for one,
-and doesn't necessarily have them all committed to memory. That allows it to
-take less space (interesting since there may be quite a lot of elements).
+Simplifiers must never simplify values in a circle, like this:
 
-That LazyList should also provide a finite number of simplified values (if it
-provided an infinite number of them, tests using it might continue indefinitely
-at the simplifying phase).
+    badBooleanSimplifier bool = [not bool]
 
-Simplifiers must never simplify values in a circle, like:
+    badBooleanSimplifier True --> [ False ]
+    badBooleanSimplifier False --> [ True ]
 
-    loopinBooleanSimplifier True == [ False ]
+`False` is simpler that `True`, which is in turn simpler than `False`. Doing this
+will result in tests looping indefinitely, testing and re-testing the same values
+in a circle.
 
-    loopinBooleanSimplifier False == [ True ]
+With those caveats, here's how you actually do it:
 
-Doing so will also result in tests looping indefinitely, testing and re-testing
-the same values in a circle.
+@docs fromFunction, convert
 
 -}
 
@@ -162,16 +160,14 @@ import Char
 import Lazy exposing (Lazy, force, lazy)
 import Lazy.List exposing (LazyList, append, cons, empty)
 import List
+import Simplify.Internal exposing (Simplifier(..))
 import String
 
 
-{-| The simplifier type.
-A simplifier is a function that takes a value and returns a lazy list of values
-that are in some sense simpler than the given value. If no such values exist,
-then the simplifier should just return the empty list.
+{-| The simplifier type is opaque.
 -}
 type alias Simplifier a =
-    a -> LazyList a
+    Simplify.Internal.Simplifier a
 
 
 {-| Perform simplifying. Takes a predicate that returns `True` if you want
@@ -183,7 +179,7 @@ satisfy the predicate are found.
 
 -}
 simplify : (a -> Bool) -> Simplifier a -> a -> a
-simplify keepSimplifying simplifier originalVal =
+simplify keepSimplifying (Simp simplifier) originalVal =
     let
         helper lazyList val =
             case force lazyList of
@@ -200,91 +196,99 @@ simplify keepSimplifying simplifier originalVal =
     helper (simplifier originalVal) originalVal
 
 
-{-| Perform no simplifying. Equivalent to the empty lazy list.
+{-| A simplifier that performs no simplifying. Whatever value it's given,
+it claims that it's the simplest. This allows you to opt-out of simplification.
 -}
-noSimplify : Simplifier a
-noSimplify _ =
-    empty
-
-
-{-| Simplify the empty tuple. Equivalent to `noSimplify`.
--}
-unit : Simplifier ()
-unit =
-    noSimplify
+simplest : Simplifier a
+simplest =
+    Simp <|
+        \_ ->
+            empty
 
 
 {-| Simplifier of bools.
 -}
 bool : Simplifier Bool
-bool b =
-    case b of
-        True ->
-            cons False empty
+bool =
+    Simp <|
+        \b ->
+            case b of
+                True ->
+                    cons False empty
 
-        False ->
-            empty
+                False ->
+                    empty
 
 
 {-| Simplifier of `Order` values.
 -}
 order : Simplifier Order
-order o =
-    case o of
-        GT ->
-            cons EQ (cons LT empty)
+order =
+    Simp <|
+        \o ->
+            case o of
+                GT ->
+                    cons EQ (cons LT empty)
 
-        LT ->
-            cons EQ empty
+                LT ->
+                    cons EQ empty
 
-        EQ ->
-            empty
+                EQ ->
+                    empty
 
 
 {-| Simplifier of integers.
 -}
 int : Simplifier Int
-int n =
-    if n < 0 then
-        cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
+int =
+    Simp <|
+        \n ->
+            if n < 0 then
+                cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
 
-    else
-        seriesInt 0 n
+            else
+                seriesInt 0 n
 
 
 {-| Construct a simplifier of ints which considers the given int to
 be most minimal.
 -}
 atLeastInt : Int -> Simplifier Int
-atLeastInt min n =
-    if n < 0 && n >= min then
-        cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
+atLeastInt min =
+    Simp <|
+        \n ->
+            if n < 0 && n >= min then
+                cons -n (Lazy.List.map ((*) -1) (seriesInt 0 -n))
 
-    else
-        seriesInt (max 0 min) n
+            else
+                seriesInt (max 0 min) n
 
 
 {-| Simplifier of floats.
 -}
 float : Simplifier Float
-float n =
-    if n < 0 then
-        cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
+float =
+    Simp <|
+        \n ->
+            if n < 0 then
+                cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
 
-    else
-        seriesFloat 0 n
+            else
+                seriesFloat 0 n
 
 
 {-| Construct a simplifier of floats which considers the given float to
 be most minimal.
 -}
 atLeastFloat : Float -> Simplifier Float
-atLeastFloat min n =
-    if n < 0 && n >= min then
-        cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
+atLeastFloat min =
+    Simp <|
+        \n ->
+            if n < 0 && n >= min then
+                cons -n (Lazy.List.map ((*) -1) (seriesFloat 0 -n))
 
-    else
-        seriesFloat (max 0 min) n
+            else
+                seriesFloat (max 0 min) n
 
 
 {-| Simplifier of chars.
@@ -332,26 +336,30 @@ string =
 Takes a simplifier of values and returns a simplifier of Maybes.
 -}
 maybe : Simplifier a -> Simplifier (Maybe a)
-maybe simplifier m =
-    case m of
-        Just a ->
-            cons Nothing (Lazy.List.map Just (simplifier a))
+maybe (Simp simplifier) =
+    Simp <|
+        \m ->
+            case m of
+                Just a ->
+                    cons Nothing (Lazy.List.map Just (simplifier a))
 
-        Nothing ->
-            empty
+                Nothing ->
+                    empty
 
 
 {-| Result simplifier constructor. Takes a simplifier of errors and a simplifier of
 values and returns a simplifier of Results.
 -}
 result : Simplifier error -> Simplifier value -> Simplifier (Result error value)
-result simplifyError simplifyValue r =
-    case r of
-        Ok value ->
-            Lazy.List.map Ok (simplifyValue value)
+result (Simp simplifyError) (Simp simplifyValue) =
+    Simp <|
+        \r ->
+            case r of
+                Ok value ->
+                    Lazy.List.map Ok (simplifyValue value)
 
-        Err error ->
-            Lazy.List.map Err (simplifyError error)
+                Err error ->
+                    Lazy.List.map Err (simplifyError error)
 
 
 {-| Lazy List simplifier constructor. Takes a simplifier of values and returns a
@@ -359,55 +367,57 @@ simplifier of Lazy Lists. The lazy list being simplified must be finite. (I mean
 really, how do you make an infinite list simpler?)
 -}
 lazylist : Simplifier a -> Simplifier (LazyList a)
-lazylist simplifier l =
-    lazy <|
-        \() ->
-            let
-                n : Int
-                n =
-                    Lazy.List.length l
+lazylist (Simp simplifier) =
+    Simp <|
+        \l ->
+            lazy <|
+                \() ->
+                    let
+                        n : Int
+                        n =
+                            Lazy.List.length l
 
-                simplifyOneHelp : LazyList a -> LazyList (LazyList a)
-                simplifyOneHelp lst =
-                    lazy <|
-                        \() ->
-                            case force lst of
-                                Lazy.List.Nil ->
-                                    force empty
+                        simplifyOneHelp : LazyList a -> LazyList (LazyList a)
+                        simplifyOneHelp lst =
+                            lazy <|
+                                \() ->
+                                    case force lst of
+                                        Lazy.List.Nil ->
+                                            force empty
 
-                                Lazy.List.Cons x xs ->
-                                    force
-                                        (append (Lazy.List.map (\val -> cons val xs) (simplifier x))
-                                            (Lazy.List.map (cons x) (simplifyOneHelp xs))
-                                        )
+                                        Lazy.List.Cons x xs ->
+                                            force
+                                                (append (Lazy.List.map (\val -> cons val xs) (simplifier x))
+                                                    (Lazy.List.map (cons x) (simplifyOneHelp xs))
+                                                )
 
-                removes : Int -> Int -> Simplifier (LazyList a)
-                removes k_ n_ l_ =
-                    lazy <|
-                        \() ->
-                            if k_ > n_ then
-                                force empty
+                        removes : Int -> Int -> LazyList a -> LazyList (LazyList a)
+                        removes k_ n_ l_ =
+                            lazy <|
+                                \() ->
+                                    if k_ > n_ then
+                                        force empty
 
-                            else if Lazy.List.isEmpty l_ then
-                                force (cons empty empty)
+                                    else if Lazy.List.isEmpty l_ then
+                                        force (cons empty empty)
 
-                            else
-                                let
-                                    first =
-                                        Lazy.List.take k_ l_
+                                    else
+                                        let
+                                            first =
+                                                Lazy.List.take k_ l_
 
-                                    rest =
-                                        Lazy.List.drop k_ l_
-                                in
-                                force <|
-                                    cons rest (Lazy.List.map (append first) (removes k_ (n_ - k_) rest))
-            in
-            force <|
-                append
-                    (Lazy.List.andThen (\k -> removes k n l)
-                        (Lazy.List.takeWhile (\x -> x > 0) (Lazy.List.iterate (\num -> num // 2) n))
-                    )
-                    (simplifyOneHelp l)
+                                            rest =
+                                                Lazy.List.drop k_ l_
+                                        in
+                                        force <|
+                                            cons rest (Lazy.List.map (append first) (removes k_ (n_ - k_) rest))
+                    in
+                    force <|
+                        append
+                            (Lazy.List.andThen (\k -> removes k n l)
+                                (Lazy.List.takeWhile (\x -> x > 0) (Lazy.List.iterate (\num -> num // 2) n))
+                            )
+                            (simplifyOneHelp l)
 
 
 {-| List simplifier constructor.
@@ -430,30 +440,34 @@ array simplifier =
 Takes a tuple of simplifiers and returns a simplifier of tuples.
 -}
 tuple : ( Simplifier a, Simplifier b ) -> Simplifier ( a, b )
-tuple ( simplifyA, simplifyB ) ( a, b ) =
-    append (Lazy.List.map (Tuple.pair a) (simplifyB b))
-        (append (Lazy.List.map (\first -> ( first, b )) (simplifyA a))
-            (Lazy.List.map2 Tuple.pair (simplifyA a) (simplifyB b))
-        )
+tuple ( Simp simplifyA, Simp simplifyB ) =
+    Simp <|
+        \( a, b ) ->
+            append (Lazy.List.map (Tuple.pair a) (simplifyB b))
+                (append (Lazy.List.map (\first -> ( first, b )) (simplifyA a))
+                    (Lazy.List.map2 Tuple.pair (simplifyA a) (simplifyB b))
+                )
 
 
 {-| 3-Tuple simplifier constructor.
 Takes a tuple of simplifiers and returns a simplifier of tuples.
 -}
 tuple3 : ( Simplifier a, Simplifier b, Simplifier c ) -> Simplifier ( a, b, c )
-tuple3 ( simplifyA, simplifyB, simplifyC ) ( a, b, c ) =
-    append (Lazy.List.map (\c1 -> ( a, b, c1 )) (simplifyC c))
-        (append (Lazy.List.map (\b2 -> ( a, b2, c )) (simplifyB b))
-            (append (Lazy.List.map (\a2 -> ( a2, b, c )) (simplifyA a))
-                (append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (simplifyB b) (simplifyC c))
-                    (append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (simplifyA a) (simplifyC c))
-                        (append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (simplifyA a) (simplifyB b))
-                            (Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (simplifyA a) (simplifyB b) (simplifyC c))
+tuple3 ( Simp simplifyA, Simp simplifyB, Simp simplifyC ) =
+    Simp <|
+        \( a, b, c ) ->
+            append (Lazy.List.map (\c1 -> ( a, b, c1 )) (simplifyC c))
+                (append (Lazy.List.map (\b2 -> ( a, b2, c )) (simplifyB b))
+                    (append (Lazy.List.map (\a2 -> ( a2, b, c )) (simplifyA a))
+                        (append (Lazy.List.map2 (\b2 c2 -> ( a, b2, c2 )) (simplifyB b) (simplifyC c))
+                            (append (Lazy.List.map2 (\a2 c2 -> ( a2, b, c2 )) (simplifyA a) (simplifyC c))
+                                (append (Lazy.List.map2 (\a2 b2 -> ( a2, b2, c )) (simplifyA a) (simplifyB b))
+                                    (Lazy.List.map3 (\a2 b2 c2 -> ( a2, b2, c2 )) (simplifyA a) (simplifyB b) (simplifyC c))
+                                )
+                            )
                         )
                     )
                 )
-            )
-        )
 
 
 
@@ -462,8 +476,20 @@ tuple3 ( simplifyA, simplifyB, simplifyC ) ( a, b, c ) =
 ----------------------
 
 
+{-| Create a simplifier by specifiying how to simplify any value.
+-}
+fromFunction : (a -> List a) -> Simplifier a
+fromFunction f =
+    Simp (f >> Lazy.List.fromList)
+
+
 {-| Convert a Simplifier of a's into a Simplifier of b's using two inverse functions.
-)
+This allows you to reuse the simplifcation logic of one type for another. This library
+uses it to simplify arrays by simplifying lists.
+
+This function works by converting the `b` to simplify into an `a`, getting simpler
+`a` values, and then turning them all into `b` values again.
+
 If you use this function as follows:
 
     simplifierB =
@@ -471,24 +497,27 @@ If you use this function as follows:
 
 Make sure that:
 
-    `f(g(x)) == x` for all x
-    -- (putting something into g then feeding the output into f must give back
-    -- just that original something, whatever it is)
+    f (g x) == x -- for all x
 
-Or else this process will generate garbage.
+Putting something into `g` then feeding the output into `f` must give back that
+original something. Otherwise this process will generate garbage.
 
 -}
 convert : (a -> b) -> (b -> a) -> Simplifier a -> Simplifier b
-convert f g simplifier b =
-    Lazy.List.map f (simplifier (g b))
+convert f g (Simp simplifier) =
+    Simp <|
+        \b ->
+            Lazy.List.map f (simplifier (g b))
 
 
 {-| Filter out the results of a simplifier. The resulting simplifier
 will only produce simplifiers which satisfy the given predicate.
 -}
 keepIf : (a -> Bool) -> Simplifier a -> Simplifier a
-keepIf predicate simplifier a =
-    Lazy.List.keepIf predicate (simplifier a)
+keepIf predicate (Simp simplifier) =
+    Simp <|
+        \a ->
+            Lazy.List.keepIf predicate (simplifier a)
 
 
 {-| Filter out the results of a simplifier. The resulting simplifier
@@ -504,8 +533,10 @@ simplifier, and then all the non-duplicated values in the second
 simplifier.
 -}
 merge : Simplifier a -> Simplifier a -> Simplifier a
-merge simplify1 simplify2 a =
-    Lazy.List.unique (append (simplify1 a) (simplify2 a))
+merge (Simp simplify1) (Simp simplify2) =
+    Simp <|
+        \a ->
+            Lazy.List.unique (append (simplify1 a) (simplify2 a))
 
 
 {-| Re-export of `Lazy.List.map`
