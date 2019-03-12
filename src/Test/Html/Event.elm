@@ -1,5 +1,6 @@
 module Test.Html.Event exposing
     ( Event, simulate, expect, toResult
+    , expectStopPropagation, expectNotStopPropagation, expectPreventDefault, expectNotPreventDefault
     , custom, click, doubleClick, mouseDown, mouseUp, mouseEnter, mouseLeave, mouseOver, mouseOut, input, check, submit, blur, focus
     )
 
@@ -10,6 +11,19 @@ they result in certain `Msg` values being sent to `update`.
 ## Simulating Events
 
 @docs Event, simulate, expect, toResult
+
+
+## Testing Event Effects
+
+These functions allow you to test that your event handlers are (or are not) calling
+[`stopPropagation()`](https://developer.mozilla.org/en-US/docs/Web/API/Event/stopPropagation)
+and
+[`preventDefault()`](https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault).
+In Elm, you do this by calling
+[special functions](https://package.elm-lang.org/packages/elm/html/latest/Html-Events#stopPropagationOn)
+in `Html.Events`.
+
+@docs expectStopPropagation, expectNotStopPropagation, expectPreventDefault, expectNotPreventDefault
 
 
 ## Event Builders
@@ -112,28 +126,76 @@ when testing that an event handler is _not_ present.
 
 -}
 toResult : Event msg -> Result String msg
-toResult (Event ( eventName, jsEvent ) (QueryInternal.Single showTrace query)) =
-    let
-        node =
-            QueryInternal.traverse query
-                |> Result.andThen (QueryInternal.verifySingle eventName)
-                |> Result.mapError (QueryInternal.queryErrorToString query)
-    in
-    case node of
-        Err msg ->
-            Err msg
-
-        Ok single ->
-            findEvent eventName single
-                |> Result.andThen
-                    (\foundEvent ->
-                        Decode.decodeValue foundEvent jsEvent
-                            |> Result.mapError Decode.errorToString
-                    )
+toResult event =
+    findHandler event
+        |> Result.map (Decode.map .message)
+        |> Result.andThen
+            (\handler ->
+                Decode.decodeValue handler (eventPayload event)
+                    |> Result.mapError Decode.errorToString
+            )
 
 
 
--- EVENTS --
+-- EFFECTS --
+
+
+{-| -}
+expectStopPropagation : Event msg -> Expectation
+expectStopPropagation event =
+    case checkStopPropagation event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.fail "I found a handler that could have stopped propagation of the event, but it didn't."
+
+        Ok True ->
+            Expect.pass
+
+
+{-| -}
+expectNotStopPropagation : Event msg -> Expectation
+expectNotStopPropagation event =
+    case checkStopPropagation event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.pass
+
+        Ok True ->
+            Expect.fail
+                "I found a handler that should have not stopped propagation of the event, but it did."
+
+
+{-| -}
+expectPreventDefault : Event msg -> Expectation
+expectPreventDefault event =
+    case checkPreventDefault event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.fail "I found a handler that could have prevented default action of the event, but it didn't."
+
+        Ok True ->
+            Expect.pass
+
+
+{-| -}
+expectNotPreventDefault : Event msg -> Expectation
+expectNotPreventDefault event =
+    case checkPreventDefault event of
+        Err reason ->
+            Expect.fail reason
+
+        Ok False ->
+            Expect.pass
+
+        Ok True ->
+            Expect.fail
+                "I found a handler that should have not prevented the default action of the event, but it did."
 
 
 {-| A [`click`](https://developer.mozilla.org/en-US/docs/Web/Events/click) event.
@@ -282,28 +344,43 @@ emptyObject =
     Encode.object []
 
 
-findEvent : String -> ElmHtml msg -> Result String (Decoder msg)
+eventPayload : Event msg -> Value
+eventPayload (Event ( _, payload ) _) =
+    payload
+
+
+type alias Handling msg =
+    { message : msg, stopPropagation : Bool, preventDefault : Bool }
+
+
+findHandler : Event msg -> Result String (Decoder (Handling msg))
+findHandler (Event ( eventName, _ ) (QueryInternal.Single _ query)) =
+    QueryInternal.traverse query
+        |> Result.andThen (QueryInternal.verifySingle eventName)
+        |> Result.mapError (QueryInternal.queryErrorToString query)
+        |> Result.andThen (findEvent eventName)
+
+
+findEvent : String -> ElmHtml msg -> Result String (Decoder (Handling msg))
 findEvent eventName element =
     let
         elementOutput =
             QueryInternal.prettyPrint element
 
-        handlerToDecoder : VirtualDom.Handler msg -> Decoder msg
+        handlerToDecoder : VirtualDom.Handler msg -> Decoder (Handling msg)
         handlerToDecoder handler =
-            -- NOTE: this is were we are dropping the information about stopPropagation and preventDefault
-            -- In the future, we will want to expose this somehow (see https://github.com/eeue56/elm-html-test/issues/63)
             case handler of
                 VirtualDom.Normal decoder ->
-                    decoder
+                    decoder |> Decode.map (\msg -> Handling msg False False)
 
                 VirtualDom.MayStopPropagation decoder ->
-                    decoder |> Decode.map Tuple.first
+                    decoder |> Decode.map (\( msg, sp ) -> Handling msg sp False)
 
                 VirtualDom.MayPreventDefault decoder ->
-                    decoder |> Decode.map Tuple.first
+                    decoder |> Decode.map (\( msg, pd ) -> Handling msg False pd)
 
                 VirtualDom.Custom decoder ->
-                    decoder |> Decode.map .message
+                    decoder
 
         eventDecoder node =
             node.facts.events
@@ -326,3 +403,24 @@ findEvent eventName element =
 
         NoOp ->
             Err ("I found an element I did not know how to deal with, so simulating \"" ++ eventName ++ "\" events on it would be impossible. This is a problem with elm-test! Sorry about that. If you have time, could you report this issue on https://github.com/elm-explorations/test/issues with a http://sscce.org to reproduce this error message?")
+
+
+checkStopPropagation : Event msg -> Result String Bool
+checkStopPropagation =
+    checkEffect .stopPropagation
+
+
+checkPreventDefault : Event msg -> Result String Bool
+checkPreventDefault =
+    checkEffect .preventDefault
+
+
+checkEffect : (Handling msg -> Bool) -> Event msg -> Result String Bool
+checkEffect extractor event =
+    findHandler event
+        |> Result.map (Decode.map extractor)
+        |> Result.andThen
+            (\handler ->
+                Decode.decodeValue handler (eventPayload event)
+                    |> Result.mapError Decode.errorToString
+            )
