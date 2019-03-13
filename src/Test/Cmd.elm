@@ -16,6 +16,8 @@ import Expect exposing (Expectation)
 import File exposing (File)
 import Fuzz exposing (Fuzzer)
 import Http
+import Json.Decode exposing (Value)
+import Random
 import Test exposing (Test)
 import Test.Internal as Internal
 
@@ -33,15 +35,38 @@ type HttpExpect msg
 
 type ExpectCmd msg
     = None
+    | Batch (List (ExpectCmd msg))
+    | SendToPort { portName : String, payload : Value }
+      -- elm/core
+    | ProcessSpawn (Random.Generator Platform.ProcessId)
+    | ProcessSleep Float
+    | ProcessKill Platform.ProcessId
+      -- elm/browser
     | DomFocus String
-      -- Bytes.getHostEndianness : Task x Bytes.Endianness
+    | DomBlur String
+    | DomGetViewport
+    | DomGetViewportOf String
+    | DomSetViewport Float Float
+    | DomSetViewportOf String Float Float
+    | DomGetElement String
+    | NavPushUrl String
+    | NavReplaceUrl String
+    | NavBack Int
+    | NavForward Int
+    | NavLoad String
+    | NavReload
+    | NavReloadAndSkipCache
+      -- elm/bytes
     | GetHostEndianness
+      -- elm/file
     | SelectFile { mimeTypes : List String, simulateLoaded : File -> msg }
     | SelectFiles { mimeTypes : List String, simulateLoaded : File -> List File -> msg }
     | DownloadString { filename : String, mimeType : String, content : String }
     | DownloadBytes { filename : String, mimeType : String, content : Bytes }
     | DownloadUrl String
+      -- elm/http
     | HttpRequest
+        -- TODO: can we distinguish between a Request and a RiskyRequest?
         { method : String
         , headers : List ( String, String )
         , url : String
@@ -50,7 +75,13 @@ type ExpectCmd msg
         , tracker : Maybe String
         }
         (HttpExpect msg)
-    | Batch (List (ExpectCmd msg))
+    | CancelHttpRequest String
+      -- elm/random
+    | RandomGenerate (Random.Generator msg)
+      -- elm/time
+    | TimeHere
+    | TimeNow
+    | GetTimeZoneName
 
 
 type HttpBody
