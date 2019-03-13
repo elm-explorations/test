@@ -1,10 +1,10 @@
-module Test.Simulate exposing
+module Test.Cmd exposing
     ( ExpectCmd(..)
     , HttpBody(..)
     , HttpExpect(..)
     , HttpPart
+    , Key
     , fromCmd
-    , fromSub
     , fuzz
     , fuzz2
     , test
@@ -13,9 +13,11 @@ module Test.Simulate exposing
 import Bytes exposing (Bytes)
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
+import File exposing (File)
 import Fuzz exposing (Fuzzer)
 import Http
 import Test exposing (Test)
+import Test.Internal as Internal
 
 
 type HttpExpect msg
@@ -32,6 +34,13 @@ type HttpExpect msg
 type ExpectCmd msg
     = None
     | DomFocus String
+      -- Bytes.getHostEndianness : Task x Bytes.Endianness
+    | GetHostEndianness
+    | SelectFile { mimeTypes : List String, simulateLoaded : File -> msg }
+    | SelectFiles { mimeTypes : List String, simulateLoaded : File -> List File -> msg }
+    | DownloadString { filename : String, mimeType : String, content : String }
+    | DownloadBytes { filename : String, mimeType : String, content : Bytes }
+    | DownloadUrl String
     | HttpRequest
         { method : String
         , headers : List ( String, String )
@@ -59,30 +68,19 @@ type alias HttpPart =
     }
 
 
+{-| Used in `fromCmd`. Obtain one by using `Test.Cmd.test`instead of `Test.test`, and same with the `fuzz` functions.
+-}
+type alias Key =
+    Internal.Key
+
+
 fromCmd : Key -> Cmd msg -> ExpectCmd msg
 fromCmd key cmd =
     Debug.todo "implement"
 
 
-type ExpectSub msg
-    = HttpTrack
-        { tracker : String
-        , simulateProgress : Http.Progress -> msg
-        }
-    | Batch (List (ExpectSub msg))
-
-
-fromSub : Key -> Sub msg -> ExpectSub msg
-fromSub key sub =
-    Debug.todo "implement"
-
-
 
 ------------------ EXAMPLE -----------------------
-
-
-type Key
-    = Key Key
 
 
 {-| Return a [`Test`](#Test) that evaluates a single
