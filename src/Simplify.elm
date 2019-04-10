@@ -2,7 +2,7 @@ module Simplify exposing
     ( Simplifier, simplify
     , simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
     , maybe, result, list, array, tuple, tuple3
-    , keepIf, dropIf, merge, map, andMap
+    , keepIf, dropIf, merge
     , fromFunction, convert
     )
 
@@ -42,7 +42,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
 ## Functions on Simplifiers
 
-@docs keepIf, dropIf, merge, map, andMap
+@docs keepIf, dropIf, merge
 
 
 ## What are Simplifiers and why do we need them?
@@ -362,10 +362,15 @@ result (Simp simplifyError) (Simp simplifyValue) =
                     Lazy.List.map Err (simplifyError error)
 
 
-{-| Lazy List simplifier constructor. Takes a simplifier of values and returns a
-simplifier of Lazy Lists. The lazy list being simplified must be finite. (I mean
-really, how do you make an infinite list simpler?)
+
+{- Lazy List simplifier constructor. Takes a simplifier of values and returns a
+   simplifier of Lazy Lists. The lazy list being simplified must be finite. (I mean
+   really, how do you make an infinite list simpler?)
+
+   This function is no longer exposed, but is used to implement the list and array simplifiers.
 -}
+
+
 lazylist : Simplifier a -> Simplifier (LazyList a)
 lazylist (Simp simplifier) =
     Simp <|
@@ -537,39 +542,6 @@ merge (Simp simplify1) (Simp simplify2) =
     Simp <|
         \a ->
             Lazy.List.unique (append (simplify1 a) (simplify2 a))
-
-
-{-| Re-export of `Lazy.List.map`
-This is useful in order to compose simplifiers, especially when used in
-conjunction with `andMap`. For example:
-
-    type alias Vector =
-        { x : Float
-        , y : Float
-        , z : Float
-        }
-
-    vector : Simplifier Vector
-    vector { x, y, z } =
-        Vector
-            `map` float x
-            `andMap` float y
-            `andMap` float z
-
--}
-map : (a -> b) -> LazyList a -> LazyList b
-map =
-    Lazy.List.map
-
-
-{-| Apply a lazy list of functions on a lazy list of values.
-
-The argument order is so that it is easy to use in `|>` chains.
-
--}
-andMap : LazyList a -> LazyList (a -> b) -> LazyList b
-andMap =
-    Lazy.List.andMap
 
 
 
