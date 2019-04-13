@@ -1,7 +1,7 @@
 module Fuzz exposing
     ( int, intRange, float, floatRange, percentage, string, bool, maybe, result, list, array
     , Fuzzer, oneOf, constant, map, map2, map3, map4, map5, andMap, frequency
-    , tuple, tuple3
+    , replacemeForPair, replacemeForTriplet
     , custom, char, unit, order, invalid
     )
 
@@ -31,7 +31,7 @@ reproduces a bug.
 
 Instead of using a tuple, consider using `fuzzN`.
 
-@docs tuple, tuple3
+@docs replacemeForPair, replacemeForTriplet
 
 
 ## Uncommon Fuzzers
@@ -466,17 +466,17 @@ array fuzzer =
     map Array.fromList (list fuzzer)
 
 
-{-| Turn a tuple of fuzzers into a fuzzer of tuples.
+{-| Turn a replacemeForPair of fuzzers into a fuzzer of replacemeForPairs.
 -}
-tuple : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
-tuple ( fuzzerA, fuzzerB ) =
+replacemeForPair : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
+replacemeForPair ( fuzzerA, fuzzerB ) =
     map2 (\a b -> ( a, b )) fuzzerA fuzzerB
 
 
-{-| Turn a 3-tuple of fuzzers into a fuzzer of 3-tuples.
+{-| Turn a replacemeForTriplet of fuzzers into a fuzzer of replacemeForTriplets.
 -}
-tuple3 : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
-tuple3 ( fuzzerA, fuzzerB, fuzzerC ) =
+replacemeForTriplet : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
+replacemeForTriplet ( fuzzerA, fuzzerB, fuzzerC ) =
     map3 (\a b c -> ( a, b, c )) fuzzerA fuzzerB fuzzerC
 
 

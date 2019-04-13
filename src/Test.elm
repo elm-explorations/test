@@ -285,16 +285,16 @@ type alias FuzzOptions =
 {-| Run a [`fuzz`](#fuzz) test with the given [`FuzzOptions`](#FuzzOptions).
 
 Note that there is no `fuzzWith2`, but you can always pass more fuzz values in
-using [`Fuzz.tuple`](Fuzz#tuple), [`Fuzz.tuple3`](Fuzz#tuple3),
+using [`Fuzz.replacemeForPair`](Fuzz#replacemeForPair), [`Fuzz.replacemeForTriplet`](Fuzz#replacemeForTriplet),
 for example like this:
 
     import Test exposing (fuzzWith)
-    import Fuzz exposing (tuple, list, int)
+    import Fuzz exposing (replacemeForPair, list, int)
     import Expect
 
 
     fuzzWith { runs = 4200 }
-        (tuple ( list int, int ))
+        (replacemeForPair ( list int, int ))
         "List.reverse never influences List.member" <|
             \(nums, target) ->
                 List.member target (List.reverse nums)
@@ -376,9 +376,9 @@ fuzz =
 
 {-| Run a [fuzz test](#fuzz) using two random inputs.
 
-This is a convenience function that lets you skip calling [`Fuzz.tuple`](Fuzz#tuple).
+This is a convenience function that lets you skip calling [`Fuzz.replacemeForPair`](Fuzz#replacemeForPair).
 
-See [`fuzzWith`](#fuzzWith) for an example of writing this in tuple style.
+See [`fuzzWith`](#fuzzWith) for an example of writing this using tuples.
 
     import Test exposing (fuzz2)
     import Fuzz exposing (list, int)
@@ -399,14 +399,14 @@ fuzz2 :
 fuzz2 fuzzA fuzzB desc =
     let
         fuzzer =
-            Fuzz.tuple ( fuzzA, fuzzB )
+            Fuzz.replacemeForPair ( fuzzA, fuzzB )
     in
     (\f ( a, b ) -> f a b) >> fuzz fuzzer desc
 
 
 {-| Run a [fuzz test](#fuzz) using three random inputs.
 
-This is a convenience function that lets you skip calling [`Fuzz.tuple3`](Fuzz#tuple3).
+This is a convenience function that lets you skip calling [`Fuzz.replacemeForTriplet`](Fuzz#replacemeForTriplet).
 
 -}
 fuzz3 :
@@ -419,7 +419,7 @@ fuzz3 :
 fuzz3 fuzzA fuzzB fuzzC desc =
     let
         fuzzer =
-            Fuzz.tuple3 ( fuzzA, fuzzB, fuzzC )
+            Fuzz.replacemeForTriplet ( fuzzA, fuzzB, fuzzC )
     in
     uncurry3 >> fuzz fuzzer desc
 

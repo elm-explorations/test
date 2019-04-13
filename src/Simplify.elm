@@ -1,7 +1,7 @@
 module Simplify exposing
     ( Simplifier, simplify
     , simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
-    , maybe, result, list, array, tuple, tuple3
+    , maybe, result, list, array, replacemeForPair, replacemeForTriplet
     , keepIf, dropIf, merge
     , fromFunction, convert
     )
@@ -37,7 +37,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
 ## Simplifiers of data structures
 
-@docs maybe, result, list, array, tuple, tuple3
+@docs maybe, result, list, array, replacemeForPair, replacemeForTriplet
 
 
 ## Functions on Simplifiers
@@ -441,11 +441,11 @@ array simplifier =
     convert Lazy.List.toArray Lazy.List.fromArray (lazylist simplifier)
 
 
-{-| 2-Tuple simplifier constructor.
-Takes a tuple of simplifiers and returns a simplifier of tuples.
+{-| ReplacemeForPair simplifier constructor.
+Takes a replacemeForPair of simplifiers and returns a simplifier of replacemeForPairs.
 -}
-tuple : ( Simplifier a, Simplifier b ) -> Simplifier ( a, b )
-tuple ( Simp simplifyA, Simp simplifyB ) =
+replacemeForPair : ( Simplifier a, Simplifier b ) -> Simplifier ( a, b )
+replacemeForPair ( Simp simplifyA, Simp simplifyB ) =
     Simp <|
         \( a, b ) ->
             append (Lazy.List.map (Tuple.pair a) (simplifyB b))
@@ -454,11 +454,11 @@ tuple ( Simp simplifyA, Simp simplifyB ) =
                 )
 
 
-{-| 3-Tuple simplifier constructor.
-Takes a tuple of simplifiers and returns a simplifier of tuples.
+{-| ReplacemeForTriplet simplifier constructor.
+Takes a replacemeForTriplet of simplifiers and returns a simplifier of replacemeForTriplets.
 -}
-tuple3 : ( Simplifier a, Simplifier b, Simplifier c ) -> Simplifier ( a, b, c )
-tuple3 ( Simp simplifyA, Simp simplifyB, Simp simplifyC ) =
+replacemeForTriplet : ( Simplifier a, Simplifier b, Simplifier c ) -> Simplifier ( a, b, c )
+replacemeForTriplet ( Simp simplifyA, Simp simplifyB, Simp simplifyC ) =
     Simp <|
         \( a, b, c ) ->
             append (Lazy.List.map (\c1 -> ( a, b, c1 )) (simplifyC c))
