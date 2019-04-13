@@ -285,16 +285,16 @@ type alias FuzzOptions =
 {-| Run a [`fuzz`](#fuzz) test with the given [`FuzzOptions`](#FuzzOptions).
 
 Note that there is no `fuzzWith2`, but you can always pass more fuzz values in
-using [`Fuzz.replacemeForPair`](Fuzz#replacemeForPair), [`Fuzz.replacemeForTriplet`](Fuzz#replacemeForTriplet),
+using [`Fuzz.pair`](Fuzz#pair), [`Fuzz.triple`](Fuzz#triple),
 for example like this:
 
     import Test exposing (fuzzWith)
-    import Fuzz exposing (replacemeForPair, list, int)
+    import Fuzz exposing (pair, list, int)
     import Expect
 
 
     fuzzWith { runs = 4200 }
-        (replacemeForPair ( list int, int ))
+        (pair ( list int, int ))
         "List.reverse never influences List.member" <|
             \(nums, target) ->
                 List.member target (List.reverse nums)
@@ -376,7 +376,7 @@ fuzz =
 
 {-| Run a [fuzz test](#fuzz) using two random inputs.
 
-This is a convenience function that lets you skip calling [`Fuzz.replacemeForPair`](Fuzz#replacemeForPair).
+This is a convenience function that lets you skip calling [`Fuzz.pair`](Fuzz#pair).
 
 See [`fuzzWith`](#fuzzWith) for an example of writing this using tuples.
 
@@ -399,14 +399,14 @@ fuzz2 :
 fuzz2 fuzzA fuzzB desc =
     let
         fuzzer =
-            Fuzz.replacemeForPair ( fuzzA, fuzzB )
+            Fuzz.pair ( fuzzA, fuzzB )
     in
     (\f ( a, b ) -> f a b) >> fuzz fuzzer desc
 
 
 {-| Run a [fuzz test](#fuzz) using three random inputs.
 
-This is a convenience function that lets you skip calling [`Fuzz.replacemeForTriplet`](Fuzz#replacemeForTriplet).
+This is a convenience function that lets you skip calling [`Fuzz.triple`](Fuzz#triple).
 
 -}
 fuzz3 :
@@ -419,7 +419,7 @@ fuzz3 :
 fuzz3 fuzzA fuzzB fuzzC desc =
     let
         fuzzer =
-            Fuzz.replacemeForTriplet ( fuzzA, fuzzB, fuzzC )
+            Fuzz.triple ( fuzzA, fuzzB, fuzzC )
     in
     uncurry3 >> fuzz fuzzer desc
 

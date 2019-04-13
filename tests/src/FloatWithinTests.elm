@@ -129,7 +129,7 @@ floatWithinTests =
                             a |> Expect.notWithin (Absolute (abs epsilon)) b
                     in
                     different withinTest notWithinTest
-            , fuzz2 (replacemeForPair ( float, float )) (replacemeForPair ( float, float )) "within and notWithin should never agree on absolute or relative tolerance" <|
+            , fuzz2 (pair ( float, float )) (pair ( float, float )) "within and notWithin should never agree on absolute or relative tolerance" <|
                 \( absoluteEpsilon, relativeEpsilon ) ( a, b ) ->
                     let
                         withinTest =

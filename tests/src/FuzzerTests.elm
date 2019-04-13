@@ -17,7 +17,7 @@ die =
 fuzzerTests : Test
 fuzzerTests =
     describe "Fuzzer methods that use Debug.crash don't call it"
-        [ describe "FuzzN (uses use replacemeForPair or replacmeForTriplet) testing string length properties"
+        [ describe "FuzzN (uses use pair or replacmeForTriplet) testing string length properties"
             [ fuzz2 string string "fuzz2" <|
                 \a b ->
                     testStringLengthIsPreserved [ a, b ]
@@ -42,19 +42,19 @@ fuzzerTests =
                             Random.step gen seed
 
                         aFuzzer =
-                            replacemeForTriplet
-                                ( replacemeForPair ( list int, array float )
-                                , replacemeForPair
+                            triple
+                                ( pair ( list int, array float )
+                                , pair
                                     ( maybe bool
                                     , result unit char
                                     )
-                                , replacemeForPair
-                                    ( replacemeForTriplet
+                                , pair
+                                    ( triple
                                         ( percentage
                                         , map2 (+) int int
                                         , frequency [ ( 1, constant True ), ( 3, constant False ) ]
                                         )
-                                    , replacemeForTriplet ( intRange 0 100, floatRange -51 pi, map abs int )
+                                    , triple ( intRange 0 100, floatRange -51 pi, map abs int )
                                     )
                                 )
                                 |> Test.Runner.fuzz
