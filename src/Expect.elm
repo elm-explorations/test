@@ -739,10 +739,10 @@ equateWith reason comparison b a =
 
         floatError =
             if String.contains reason "not" then
-                "Do not use Expect.notEqual with floats. Use Float.notWithin instead."
+                "Do not use Expect.notEqual with floats. Use Expect.notWithin instead."
 
             else
-                "Do not use Expect.equal with floats. Use Float.within instead."
+                "Do not use Expect.equal with floats. Use Expect.within instead."
     in
     if usesFloats then
         fail floatError
