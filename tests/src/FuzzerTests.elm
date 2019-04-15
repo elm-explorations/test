@@ -17,7 +17,7 @@ die =
 fuzzerTests : Test
 fuzzerTests =
     describe "Fuzzer methods that use Debug.crash don't call it"
-        [ describe "FuzzN (uses use pair or replacmeForTriplet) testing string length properties"
+        [ describe "FuzzN (uses use pair or triple) testing string length properties"
             [ fuzz2 string string "fuzz2" <|
                 \a b ->
                     testStringLengthIsPreserved [ a, b ]
