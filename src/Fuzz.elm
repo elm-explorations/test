@@ -1,7 +1,7 @@
 module Fuzz exposing
     ( int, intRange, float, floatRange, percentage, string, bool, maybe, result, list, array
     , Fuzzer, oneOf, constant, map, map2, map3, map4, map5, andMap, frequency
-    , tuple, tuple3
+    , pair, triple
     , custom, char, unit, order, invalid
     )
 
@@ -31,7 +31,7 @@ reproduces a bug.
 
 Instead of using a tuple, consider using `fuzzN`.
 
-@docs tuple, tuple3
+@docs pair, triple
 
 
 ## Uncommon Fuzzers
@@ -466,17 +466,17 @@ array fuzzer =
     map Array.fromList (list fuzzer)
 
 
-{-| Turn a tuple of fuzzers into a fuzzer of tuples.
+{-| Turn a pair of fuzzers into a fuzzer of pairs.
 -}
-tuple : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
-tuple ( fuzzerA, fuzzerB ) =
+pair : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
+pair ( fuzzerA, fuzzerB ) =
     map2 (\a b -> ( a, b )) fuzzerA fuzzerB
 
 
-{-| Turn a 3-tuple of fuzzers into a fuzzer of 3-tuples.
+{-| Turn a triple of fuzzers into a fuzzer of triples.
 -}
-tuple3 : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
-tuple3 ( fuzzerA, fuzzerB, fuzzerC ) =
+triple : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
+triple ( fuzzerA, fuzzerB, fuzzerC ) =
     map3 (\a b c -> ( a, b, c )) fuzzerA fuzzerB fuzzerC
 
 

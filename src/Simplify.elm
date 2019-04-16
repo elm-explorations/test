@@ -1,7 +1,7 @@
 module Simplify exposing
     ( Simplifier, simplify
     , simplest, bool, int, float, string, order, atLeastInt, atLeastFloat, char, atLeastChar, character
-    , maybe, result, list, array, tuple, tuple3
+    , maybe, result, list, array, pair, triple
     , keepIf, dropIf, merge
     , fromFunction, convert
     )
@@ -37,7 +37,7 @@ fail and find a simpler input that also fails, to better illustrate the bug.
 
 ## Simplifiers of data structures
 
-@docs maybe, result, list, array, tuple, tuple3
+@docs maybe, result, list, array, pair, triple
 
 
 ## Functions on Simplifiers
@@ -441,11 +441,11 @@ array simplifier =
     convert Lazy.List.toArray Lazy.List.fromArray (lazylist simplifier)
 
 
-{-| 2-Tuple simplifier constructor.
-Takes a tuple of simplifiers and returns a simplifier of tuples.
+{-| Pair simplifier constructor.
+Takes a pair of simplifiers and returns a simplifier of pairs.
 -}
-tuple : ( Simplifier a, Simplifier b ) -> Simplifier ( a, b )
-tuple ( Simp simplifyA, Simp simplifyB ) =
+pair : ( Simplifier a, Simplifier b ) -> Simplifier ( a, b )
+pair ( Simp simplifyA, Simp simplifyB ) =
     Simp <|
         \( a, b ) ->
             append (Lazy.List.map (Tuple.pair a) (simplifyB b))
@@ -454,11 +454,11 @@ tuple ( Simp simplifyA, Simp simplifyB ) =
                 )
 
 
-{-| 3-Tuple simplifier constructor.
-Takes a tuple of simplifiers and returns a simplifier of tuples.
+{-| Triple simplifier constructor.
+Takes a triple of simplifiers and returns a simplifier of triples.
 -}
-tuple3 : ( Simplifier a, Simplifier b, Simplifier c ) -> Simplifier ( a, b, c )
-tuple3 ( Simp simplifyA, Simp simplifyB, Simp simplifyC ) =
+triple : ( Simplifier a, Simplifier b, Simplifier c ) -> Simplifier ( a, b, c )
+triple ( Simp simplifyA, Simp simplifyB, Simp simplifyC ) =
     Simp <|
         \( a, b, c ) ->
             append (Lazy.List.map (\c1 -> ( a, b, c1 )) (simplifyC c))
