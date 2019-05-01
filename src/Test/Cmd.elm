@@ -18,6 +18,7 @@ import Fuzz exposing (Fuzzer)
 import Http
 import Json.Decode exposing (Value)
 import Random
+import Task exposing (Task)
 import Test exposing (Test)
 import Test.Internal as Internal
 
@@ -31,6 +32,139 @@ type HttpExpect msg
         { body : Bytes
         , simulateResponse : Http.Response Bytes -> msg
         }
+    | ProcessSleep Float
+
+
+expectSleep : a -> (Float -> a) -> ExpectCmd msg -> a
+expectSleep : (Float -> Expectation) -> ExpectCmd msg -> Expectation
+expectSleep : (Float -> Expectation) -> ExpectCmd msg -> Expectation
+expectSleep : Key -> (Float -> Expectation) -> Cmd msg -> Expectation
+
+
+expectHttpRequest :
+    ({ method : String
+     , headers : List ( String, String )
+     , url : String
+     , body : HttpBody
+     , timeout : Maybe Float
+     , tracker : Maybe String
+     }
+     -> Expectation
+    )
+    -> ExpectCmd msg
+    -> Expectation
+
+
+onHttpRequestString :
+    ({ method : String
+     , headers : List ( String, String )
+     , url : String
+     , body : HttpBody
+     , timeout : Maybe Float
+     , tracker : Maybe String
+     }
+     -> (Http.Response String -> msg)
+     -> Expectation
+    )
+    -> ExpectCmd msg
+    -> Expectation
+
+
+onHttpRequestBytes :
+    ({ method : String
+     , headers : List ( String, String )
+     , url : String
+     , body : HttpBody
+     , timeout : Maybe Float
+     , tracker : Maybe String
+     }
+     -> (Http.Response Bytes -> msg)
+     -> Expectation
+    )
+    -> ExpectCmd msg
+    -> Expectation
+
+-- |> Expect.Cmd.task key callback
+
+expectTask : Key -> (a -> ...) -> Cmd msg -> Expectation
+
+
+|> Expect.Task.fromCmd key
+|> Expect.Task.now
+    (\time maybeAndThenTask ->
+        case maybeAndThenTask of
+            Just nextTask ->
+                Expect.Task.http
+                    (\result maybeAndThenTask2 ->
+                        ...
+                    )
+                    nextTask
+
+            Nothing ->
+                Expect.fail "I thought there was more"
+    )
+
+-- Simulating "Time.now"
+|> Expect.Task.fromCmd key -- fromCmd : Key -> Cmd msg -> ExpectedTask msg
+|> Expect.Task.now 1234567 -- now : Time.Posix -> ExpectedTask msg
+|> Expect.Task.succeeds (GotTime 1234567) -- succeeds : msg -> ExpectedTask msg -> Expectation
+
+-- Simulating "Time.now |> Task.andThen doSomeHttpRequest"
+|> Expect.Task.fromCmd key
+|> Expect.Task.now 1234567
+|> Expect.Task.andThen
+    (\maybeAndThenTask ->
+        case maybeAndThenTask of
+            Ok nextTask -> -- nextTask : ExpectedTask msg
+                Expect.Task.httpRequest args
+                    |> Expect.Task.succeeds (GotResponse blah)
+
+            Err NotAndThen ->
+                Expect.fail "I thought there was gonna be an andThen"
+    )
+
+-- Simulating "Time.now |> Task.andThen doSomeHttpRequest |> Task.andThen anotherHttpReq"
+|> Expect.Task.fromCmd key
+|> Expect.Task.now 1234567
+|> Expect.Task.andThen
+    (\maybeAndThenTask ->
+        case maybeAndThenTask of
+            Ok nextTask -> -- nextTask : ExpectedTask msg
+                Expect.Task.httpRequest args
+                    |> Expect.Task.andThen
+                        (\maybeAndThenTask2 ->
+                            Ok finalTask -> -- finalTask : ExpectedTask msg
+                                finalTask
+                                    |> Expect.Task.succeeds (GotResponse blah)
+
+                            Err NotAndThen ->
+                                Expect.fail "I thought there was gonna be an andThen"
+                        )
+
+            Err NotAndThen ->
+                Expect.fail "I thought there was gonna be an andThen"
+    )
+
+
+Expect.Task.fromCmd : Key -> Cmd msg -> ExpectedTask msg
+
+Expect.Task.now
+    : Float 
+    -> (Maybe (ExpectedTask msg) -> Expectation)
+    -> ExpectedTask msg
+    -> Expectation
+
+-- Expect.Task.http
+--     : (Result Http.Error Http.Response -> ExpectedTask msg)
+--     -> ExpectedTask msg
+--     -> Expectation
+
+Expect.Task.succeed : ExpectedTask msg -> Maybe msg
+
+Expect.Task.fail : ExpectedTask msg -> Maybe msg
+
+Time.now
+    |> Task.andThen (Http.get "blah.com" |> Http.toTask foo)
 
 
 type ExpectCmd msg
@@ -41,6 +175,7 @@ type ExpectCmd msg
     | ProcessSpawn (Random.Generator Platform.ProcessId)
     | ProcessSleep Float
     | ProcessKill Platform.ProcessId
+    | Task (ExpectTask Never msg)
       -- elm/browser
     | DomFocus String
     | DomBlur String
@@ -84,6 +219,12 @@ type ExpectCmd msg
     | GetTimeZoneName
 
 
+type ExpectTask x a
+    = Success a
+    | Failure x
+    | AndThen a
+
+
 type HttpBody
     = BytesBody Bytes
     | StringBody String
@@ -107,6 +248,11 @@ type alias Key =
 
 fromCmd : Key -> Cmd msg -> ExpectCmd msg
 fromCmd key cmd =
+    Debug.todo "implement"
+
+
+fromTask : Key -> Task x a -> ExpectTask x a
+fromTask key task =
     Debug.todo "implement"
 
 
