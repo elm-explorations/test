@@ -332,4 +332,6 @@ unicodeStringFuzzerTests =
                                             0
                             in
                             str |> String.toList |> countSequentialUniquesAtStart |> (\x -> x < 7) |> Expect.equal True
+        , fuzz string "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
+            \s -> s |> String.reverse |> String.reverse |> Expect.equal s
         ]
