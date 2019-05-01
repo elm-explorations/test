@@ -23,6 +23,148 @@ import Test exposing (Test)
 import Test.Internal as Internal
 
 
+-- Secret Free Monad
+type Effect x a
+    = HttpRequestString {url : String, body : String} (Http.Response String -> Effect x a)
+    | HttpRequestBytes {url : String, body : Bytes} (Http.Response Bytes -> Effect x a)
+    | Now (Time.Posix -> Effect x a)
+    | Succeed a
+    | Fail x
+
+
+fromCmd : Key -> Cmd msg -> Effect x msg
+fromTask : Key -> Task x a -> Effect x a
+
+
+
+Expect.Effect.httpRequestString : ({url : String, body : String} -> (Http.Response String -> Effect x a) -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.httpRequestBytes : ({url : String, body : Bytes} (Http.Response Bytes -> Effect x a) -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.timeNow : ((Time.Posix -> Effect x a) -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.succeed : (a -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.fail : (x -> Expectation) -> Effect x a -> Expectation
+
+--- Writing our test
+
+-- Asserting a single Cmd (not batched I guess) which makes an HTTP request to /graphql
+-- Not asserting anything beyond that the Cmd was issued
+case
+    update msg model         -- (Model, Cmd Msg)
+    |> Tuple.second      -- Cmd Msg
+    |> fromCmd key       -- Effect never Msg
+of
+    HttpRequestString args _ ->
+        Expect.equal args.url "/graphql"
+
+    _ ->
+        Expect.fail "Unexpected stuff?"
+
+-- With unexposed variant
+update msg model         -- (Model, Cmd Msg)
+    |> Tuple.second      -- Cmd Msg
+    |> fromCmd key       -- Effect never Msg
+    |> Expect.Effect.httpRequestString (\args _ -> Expect.equal args.url "/graphql")
+
+
+-- Same as above, but for (Task.perform GotTime Time.now)
+case
+    update msg model         -- (Model, Cmd Msg)
+    |> Tuple.second      -- Cmd Msg
+    |> fromCmd key       -- Effect never Msg
+of
+    Now _ ->
+        Expect.pass
+
+    _ ->
+        Expect.fail "Unexpected stuff?"
+
+-- With unexposed variant
+update msg model         -- (Model, Cmd Msg)
+    |> Tuple.second      -- Cmd Msg
+    |> fromCmd key       -- Effect never Msg
+    |> Expect.Effect.timeNow (\_ -> Expect.pass)
+
+
+-- Getting time from Time.now and passing it to a callback that uses the
+-- current time as a query param in a call to Http.task. Asserting that
+-- the request URL includes the query param and then stopping
+case
+    update msg model
+        |> Tuple.second
+        |> fromCmd key
+of
+    Now callback ->
+        case callback (Time.millisToPosix 123456789) of
+            HttpRequestString args _ ->
+                Expect.equal args.url "/endpoint?time=123456789"
+
+            _ ->
+                Expect.fail "Unexpected effect"
+
+    _ ->
+        Expect.fail "Unexpected effect"
+
+-- With unexposed variant
+update msg model
+    |> Tuple.second
+    |> fromCmd key
+    |> Expect.Effect.timeNow
+       (\callback ->
+            Time.millisToPosix 123456789
+                |> callback
+                |> Expect.Effect.httpRequestString
+                   (\args _ -> Expect.equal "/endpoint?time=123456789")
+       )
+
+-- Getting time from Time.now and passing it to a callback that uses the
+-- current time as a query param in a call to Http.task. Asserting that
+-- the response is decoded to get the current time as echoed by the server.
+case
+    update msg model
+        |> Tuple.second
+        |> fromCmd key
+of
+    Now nowCallback ->
+        case nowCallback (Time.millisToPosix 123456789) of
+            HttpRequestString args httpCallback ->
+                let
+                    currentTime = extractFromUrl args.url
+                    response =
+                        { body = Encode.encode 0 (Encode.object [ ("time", Encode.int currentTime) ]), status = 200, ... }
+                in
+                Expect.equal
+                    (httpCallback response)
+                    (Succeed (GotEcho (Ok 123456789)))
+            _ ->
+                Expect.fail "Unexpected effect"
+
+    _ ->
+        Expect.fail "Unexpected effect"
+
+
+
+let
+    now = 12345789
+in
+update msg model
+    |> Tuple.second
+    |> fromCmd key
+    |> Expect.Effect.timeNow
+       (\nowCallback ->
+            Time.millisToPosix now
+                |> nowCallback
+                |> Expect.Effect.httpRequestString
+                   (\args httpCallback ->
+                      let
+                          currentTime = extractFromUrl args.url
+                          response =
+                              { body = Encode.encode 0 (Encode.object [ ("time", Encode.int currentTime) ]), status = 200, ... }
+                      in
+                      Expect.equal
+                          (httpCallback response)
+                          (Succeed (GotEcho (Ok now)))
+                   )
+       )
+
 type HttpExpect msg
     = ExpectString
         { body : String
