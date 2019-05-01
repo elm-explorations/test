@@ -319,11 +319,11 @@ unicodeStringFuzzerTests =
                     fuzz string "generates long strings with a single character" <|
                         \str ->
                             let
-                                countSequentialUniquesAtStart s =
+                                countSequentialEqualCharsAtStartOfString s =
                                     case s of
                                         a :: b :: cs ->
                                             if a == b then
-                                                1 + countSequentialUniquesAtStart (b :: cs)
+                                                1 + countSequentialEqualCharsAtStartOfString (b :: cs)
 
                                             else
                                                 0
@@ -331,7 +331,12 @@ unicodeStringFuzzerTests =
                                         _ ->
                                             0
                             in
-                            str |> String.toList |> countSequentialUniquesAtStart |> (\x -> x < 7) |> Expect.equal True
+                            str
+                                |> String.toList
+                                |> countSequentialEqualCharsAtStartOfString
+                                |> (\x -> x > 10)
+                                |> -- expecting this test to pass at least once, but we don't have an expectToPassAtLeastOnce function, so instead this inner expectation is reversed and we use expectToFail
+                                   Expect.equal False
         , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
             -- if characters that span more than one utf-16 character work, this version of the unicode string fuzzer is good to go
             \() -> "🔥" |> String.reverse |> Expect.equal "🔥"
