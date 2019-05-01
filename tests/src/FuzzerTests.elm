@@ -332,6 +332,12 @@ unicodeStringFuzzerTests =
                                             0
                             in
                             str |> String.toList |> countSequentialUniquesAtStart |> (\x -> x < 7) |> Expect.equal True
-        , fuzz string "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
-            \s -> s |> String.reverse |> String.reverse |> Expect.equal s
+        , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
+            -- if characters that span more than one utf-16 character work, this version of the unicode string fuzzer is good to go
+            \() -> "🔥" |> String.reverse |> Expect.equal "🔥"
+
+        --, test "String.reverse implements unicode string reversing correctly" <|
+        --    -- String.reverse still doesn't properly implement unicode string reversing, so combining emojis like skin tones or families break
+        --    -- Here's a test that should pass, since these emoji families are supposed to be counted as single elements when reversing the string. When I'm writing this, I instead get a per-character string reversal, which renders as four emojis after each other "👦👦👩👩" (plus a bunch of non-printable characters in-between).
+        --    \() -> "👩‍👩‍👦‍👦" |> String.reverse |> Expect.equal "👩‍👩‍👦‍👦"
         ]
