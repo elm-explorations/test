@@ -9,11 +9,6 @@ import Test.Runner
 import Validate
 
 
-die : Fuzzer Int
-die =
-    Fuzz.intRange 1 6
-
-
 fuzzerTests : Test
 fuzzerTests =
     describe "Fuzzer methods that use Debug.crash don't call it"

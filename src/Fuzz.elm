@@ -49,7 +49,6 @@ import Fuzz.Internal as Internal
         , ValidFuzzer
         , combineValid
         , frequencyList
-        , invalidReason
         )
 import Lazy
 import Lazy.List exposing (LazyList, append)

@@ -1,17 +1,9 @@
-module MicroRandomExtra exposing (bool, frequency, lengthString, oneIn, sample)
+module MicroRandomExtra exposing (bool, frequency, oneIn, sample)
 
 {-| Most of these are copied from elm-random-extra.
 -}
 
-import Array exposing (Array)
 import Random exposing (..)
-import String
-
-
-lengthString : Generator Char -> Int -> Generator String
-lengthString charGenerator stringLength =
-    list stringLength charGenerator
-        |> map String.fromList
 
 
 bool : Generator Bool
