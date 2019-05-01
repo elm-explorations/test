@@ -1,7 +1,8 @@
-module Fuzz.Internal exposing (Fuzzer, Valid, ValidFuzzer, combineValid, invalidReason, map)
+module Fuzz.Internal exposing (Fuzzer, Valid, ValidFuzzer, combineValid, frequencyList, invalidReason, map)
 
 import Lazy
 import Lazy.List exposing (LazyList)
+import MicroRandomExtra
 import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
 
@@ -84,3 +85,53 @@ invalidReason valid =
 
         Err reason ->
             Just reason
+
+
+{-| Creates a single generator from a list of generators by, once at the start, randomly choosing between:
+
+  - a single element from a single generator,
+  - a single one of the generators
+  - a pair of the generators, or
+  - all of the generators.
+
+It then runs Fuzz.frequency on that subset until we have the desired length list.
+
+-}
+frequencyList : Generator Int -> ( Float, Generator a ) -> List ( Float, Generator a ) -> Generator (List a)
+frequencyList lengthGenerator pair pairs =
+    let
+        rConst ( a, b ) =
+            ( a, Random.constant ( a, b ) )
+
+        randomGenerator : Generator ( Float, Generator a )
+        randomGenerator =
+            MicroRandomExtra.frequency (rConst pair) (List.map rConst pairs)
+
+        nonEmptySample a rest =
+            MicroRandomExtra.sample (a :: rest) |> Random.map (Maybe.withDefault a)
+
+        generator : Generator (Generator a)
+        generator =
+            nonEmptySample
+                -- single repeated element for a single generator
+                (MicroRandomExtra.frequency pair pairs
+                    |> Random.map Random.constant
+                )
+                [ -- single generator
+                  randomGenerator
+                    |> Random.map Tuple.second
+
+                -- pair of generators
+                , Random.map2
+                    (\firstGenerator secondGenerator -> MicroRandomExtra.frequency firstGenerator [ secondGenerator ])
+                    randomGenerator
+                    randomGenerator
+
+                -- all generators
+                , MicroRandomExtra.frequency pair pairs
+                    |> Random.constant
+                ]
+                |> Random.andThen identity
+    in
+    Random.map2 Tuple.pair lengthGenerator generator
+        |> Random.andThen (\( len, gen ) -> Random.list len gen)

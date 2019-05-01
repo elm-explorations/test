@@ -68,6 +68,7 @@ fuzzerTests =
                     Expect.equal valNoSimplify valWithSimplify
             , simplifyingTests
             , manualFuzzerTests
+            , unicodeStringFuzzerTests
             ]
         ]
 
@@ -287,3 +288,48 @@ whitespace =
         |> Fuzz.oneOf
         |> Fuzz.list
         |> Fuzz.map String.fromList
+
+
+unicodeStringFuzzerTests : Test
+unicodeStringFuzzerTests =
+    describe "unicode string fuzzer" <|
+        [ test "generates ascii" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates ascii" <|
+                        \str -> str |> String.contains "E" |> Expect.equal True
+        , test "generates whitespace" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates whitespace" <|
+                        \str -> str |> String.contains "\t" |> Expect.equal True
+        , test "generates combining diacritical marks" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates combining diacritical marks" <|
+                        \str -> str |> String.contains "̃" |> Expect.equal True
+        , test "generates emoji" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates emoji" <|
+                        \str -> str |> String.contains "🔥" |> Expect.equal True
+        , test "generates long strings with a single character" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates long strings with a single character" <|
+                        \str ->
+                            let
+                                countSequentialUniquesAtStart s =
+                                    case s of
+                                        a :: b :: cs ->
+                                            if a == b then
+                                                1 + countSequentialUniquesAtStart (b :: cs)
+
+                                            else
+                                                0
+
+                                        _ ->
+                                            0
+                            in
+                            str |> String.toList |> countSequentialUniquesAtStart |> (\x -> x < 7) |> Expect.equal True
+        ]
