@@ -114,8 +114,8 @@ hexInt int =
                                 15 ->
                                     "f"
 
-                                _ ->
-                                    String.fromInt (i |> remainderBy 16)
+                                decimalDigit ->
+                                    String.fromInt decimalDigit
                            )
         in
         zeroPad4 (hexIntInternal int)
@@ -135,11 +135,11 @@ escapeUnicodeChars s =
         |> List.map Char.toCode
         |> List.map
             (\c ->
-                if isAsciiChar c == False then
-                    "\\u{" ++ hexInt c ++ "}"
+                if isAsciiChar c then
+                    String.fromChar (Char.fromCode c)
 
                 else
-                    String.fromChar (Char.fromCode c)
+                    "\\u{" ++ hexInt c ++ "}"
             )
         |> String.join ""
 
