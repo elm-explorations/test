@@ -23,25 +23,157 @@ import Test exposing (Test)
 import Test.Internal as Internal
 
 
--- Secret Free Monad
 type Effect x a
-    = HttpRequestString {url : String, body : String} (Http.Response String -> Effect x a)
-    | HttpRequestBytes {url : String, body : Bytes} (Http.Response Bytes -> Effect x a)
-    | Now (Time.Posix -> Effect x a)
-    | Succeed a
-    | Fail x
+    -- = HttpRequestString {url : String, body : String} (Http.Response String -> Effect x a)
+    -- | HttpRequestBytes {url : String, body : Bytes} (Http.Response Bytes -> Effect x a)
+    -- | Now (Time.Posix -> Effect x a)
+    -- | Succeed a
+    -- | Fail x
+    = Effect MagicalKernelType
 
 
-fromCmd : Key -> Cmd msg -> Effect x msg
-fromTask : Key -> Task x a -> Effect x a
+fromCmd : Key -> Cmd msg -> Effect x msg c
+fromCmd key cmd =
+    Debug.todo "Turn a Cmd into an Effect using Kernel code"
 
+fromTask : Key -> Task x a -> Effect x a c
+fromTask key task =
+    Debug.todo "Turn a Cmd into an Effect using Kernel code"
 
 
 Expect.Effect.httpRequestString : ({url : String, body : String} -> (Http.Response String -> Effect x a) -> Expectation) -> Effect x a -> Expectation
 Expect.Effect.httpRequestBytes : ({url : String, body : Bytes} (Http.Response Bytes -> Effect x a) -> Expectation) -> Effect x a -> Expectation
 Expect.Effect.timeNow : ((Time.Posix -> Effect x a) -> Expectation) -> Effect x a -> Expectation
-Expect.Effect.succeed : (a -> Expectation) -> Effect x a -> Expectation
-Expect.Effect.fail : (x -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.completed : (a -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.failed : (x -> Expectation) -> Effect x a -> Expectation
+
+-- QUESTION: how does map2 work, given that order shouldn't matter?
+-- QUESTION: can I say "these things happen in some order, but I don't care what order"
+-- QUESTION: how can I say "I ran 2 HTTP requests, and the second one's url contains part of the response of the first one"
+-- QUESTION: how should Cmd.batch and Task.map2 be different (if at all?)
+
+let
+    now = 12345789
+in
+update msg model      -- ( Model, Cmd Msg )
+    |> Tuple.second   -- Cmd Msg
+    |> fromCmd key    -- Effect x Msg
+    |> Expect.Effect.timeNow
+       (\nowCallback ->                              -- nowCallback : (Time.Posix -> Effect x Msg)
+            Time.millisToPosix now
+                |> nowCallback                       -- Effect x Msg
+                |> Expect.Effect.httpRequestString
+                   (\args httpCallback ->            -- httpCallback : (Http.Response String -> Effect x Msg)
+                      let
+                          currentTime = extractFromUrl args.url
+                          response =
+                              { body = Encode.encode 0 (Encode.object [ ("time", Encode.int currentTime) ]), status = 200, ... }
+                      in
+                      httpCallback response -- Effect x Msg
+                          |> Expect.Effect.completed (Expect.equal (GotEcho (Ok now))))
+                   )
+       )
+
+
+-- SCENARIO: run 3 HTTP requests in parallel, verify that at least 1 goes to fruits.com, at least one goes to noredink.com, at least one goes to elm-lan.org
+
+-- Assertions:
+-- 1. exactly 3 HTTP requests ran
+-- 2. at least 1 went to fruits.com, it returned foo, and then it sent another HTTP request to plants.com with foo in the URL
+-- 3. at least 1 went to noredink.com
+-- 4. at least 1 went to elm-lang.org
+
+update msg model                -- (Model, Cmd Msg)
+    |> Tuple.second             -- Cmd Msg
+    |> fromCmd key              -- Effect x Msg
+    |> Expect.Effect.has3
+        (Expect.Effect.httpRequest -> Expectation) -- succeeded once
+        (Expect.Effect.httpRequest -> Expectation) -- succeeded once
+        (Expect.Effect.httpRequest -> Expectation) -- succeeded once
+
+
+
+-- SCENARIO: run 3 HTTP requests in parallel, verify that at least 1 goes to fruits.com, at least one goes to noredink.com, at least one goes to elm-lan.org
+
+-- Assertions:
+-- 1. exactly 3 HTTP requests ran
+-- 2. at least 1 went to fruits.com
+-- 3. at least 1 went to noredink.com
+-- 4. at least 1 went to elm-lang.org
+
+update msg model                -- (Model, Cmd Msg)
+    |> Tuple.second             -- Cmd Msg
+    |> fromCmd key              -- Effect x Msg
+    |> Expect.Effect.all 
+        [ Expect.Effect.httpRequestString (\{url} -> ( Expect.equal url "fruits.com", fruitsResp )) -- succeeded once
+        , Expect.Effect.httpRequestString (\{url} -> ( Expect.equal url "nri.com", nriResp )) -- succeeded once
+        , Expect.Effect.httpRequestString (\{url} -> ( Expect.equal url "elm-lang.org", elmResp )) -- succeeded once
+        ]
+    |> Expect.ok
+    -- Effect x Msg
+
+Task.map3
+    (\elm fruits nri -> msg)
+    elmlang
+    fruitscom
+    nri
+
+
+
+                                                   -- succeeded twice == failure <--- prevent false positives
+                                                   -- example: what if I give it (\_ -> Expect.pass) accidentally - might as well use has2 then
+
+-- Run each callback on each task (so, 3 * 3 = 9 function invocations total)
+-- Fail if any succeeds 0 times
+-- Fail if any succeeds 2+ times
+-- Fail if we get more total successes than the # of tasks that ran (so if you expect 4 tasks to run and it was a Task.map3, fail)
+
+fromTask : Key -> Task x a -> Effect x a
+fromTask key task =
+    Debug.todo "Turn a Cmd into an Effect using Kernel code"
+
+type ExpectedEffect
+
+Expect.Effect.httpRequestString : ({url : String, body : String} -> ( Expectation, Http.Response String )) -> ExpectedEffect
+
+Expect.Effect.httpRequestString : ({url : String, body : String} -> (Http.Response String -> Effect x a) -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.httpRequestBytes : ({url : String, body : Bytes} (Http.Response Bytes -> Effect x a) -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.all : List ExpectedEffect -> Effect x a -> Result x a
+Expect.Effect.has3 : (b -> Expectation) -> (c -> Expectation) -> (d -> Expectation) -> Effect x a -> Effect x a
+Expect.Effect.has2 : (a -> b ->  Expectation) -> (Effect x a -> Expectation) ->  (Effect x b -> Expectation) -> Expectation
+Expect.Effect.timeNow : ((Time.Posix -> Effect x a) -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.completed : (a -> Expectation) -> Effect x a -> Expectation
+Expect.Effect.failed : (x -> Expectation) -> Effect x a -> Expectation
+
+
+-- SCENARIO: run a list of getElement tasks, folding over the list with Task.map2 to do them all in no particular order
+-- https://package.elm-lang.org/packages/elm/browser/1.0.1/Browser-Dom#getElement
+
+
+Expect.Effect.timeNow : Effect Never a Never -> Effect x Time.Posix ()
+Expect.Effect.httpRequestString : Effect Never a Never -> Effect x (Http.Response String) {url : String, body : String}
+Expect.Effect.followedBy : (Effect unbound1 unbound2 unbound3 -> Effect x2 a2 c2) -> (c1 -> a1) -> Effect x1 a1 c1 -> Effect x2 a2 c2
+
+Expect.Effect.toResult : Effect x a c -> Result x a
+
+-- With unexposed variant
+update msg model                -- (Model, Cmd Msg)
+    |> Tuple.second             -- Cmd Msg
+    |> fromCmd key              -- Effect x Msg c
+    |> Expect.Effect.toResult
+    |> Expect.equal (Ok (GotTime 12345))
+
+
+update msg model
+    |> Tuple.second
+    |> fromCmd key
+    |> Expect.Effect.timeNow
+    |> Expect.Effect.followedBy Expect.Effect.httpRequestString
+        (\() -> Time.millisToPosix 123456789)
+    |> Expect.Effect.toResult
+    |> Result.map .url
+    |> Expect.equal "/endpoint?time=123456789"
+
 
 --- Writing our test
 
@@ -109,10 +241,10 @@ update msg model
     |> fromCmd key
     |> Expect.Effect.timeNow
        (\callback ->
-            Time.millisToPosix 123456789
-                |> callback
+            Time.millisToPosix 123456789 -- Time.Posix
+                |> callback -- Effect
                 |> Expect.Effect.httpRequestString
-                   (\args _ -> Expect.equal "/endpoint?time=123456789")
+                   (\{url} callback -> Expect.equal url "/endpoint?time=123456789")
        )
 
 -- Getting time from Time.now and passing it to a callback that uses the
