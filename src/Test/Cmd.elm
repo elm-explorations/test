@@ -120,6 +120,37 @@ Task.map3
 
 
 
+Expect.Effect.all : List (forall b. Expect x b -> ( Expectation, b )) -> Expect x a -> Result (List String) a
+Expect.Effect.all : List EffectExpectation -> Expect x a -> Result (List String) a
+Expect.Effect.all : List Expectation -> Expect x a -> Result (List String) a
+
+Expect.Effect.httpRequestString : ({url : String, body : String} -> ( Expectation, Http.Response String )) -> EffectExpectation
+Expect.Effect.httpRequestString : ({url : String, body : String} -> (Http.Response String -> Effect x a) -> EffectExpectation) -> Effect x a -> EffectExpectation
+Expect.Effect.httpRequestString : ({url : String, body : String} -> (Http.Response String -> Effect x a) -> Expectation) -> Effect x a -> Expectation
+
+let
+    now = 12345789
+in
+update msg model      -- ( Model, Cmd Msg )
+    |> Tuple.second   -- Cmd Msg
+    |> fromCmd key    -- Effect x Msg
+    |> Expect.Effect.timeNow
+       (\nowCallback ->                              -- nowCallback : (Time.Posix -> Effect x Msg)
+            Time.millisToPosix now
+                |> nowCallback                       -- Effect x Msg
+                |> Expect.Effect.httpRequestString
+                   (\args httpCallback ->            -- httpCallback : (Http.Response String -> Effect x Msg)
+                      let
+                          currentTime = extractFromUrl args.url
+                          response =
+                              { body = Encode.encode 0 (Encode.object [ ("time", Encode.int currentTime) ]), status = 200, ... }
+                      in
+                      httpCallback response -- Effect x Msg
+                          |> Expect.Effect.completed (Expect.equal (GotEcho (Ok now))))
+                   )
+       )
+    |> Expect.Effect.toExpectation
+
                                                    -- succeeded twice == failure <--- prevent false positives
                                                    -- example: what if I give it (\_ -> Expect.pass) accidentally - might as well use has2 then
 
