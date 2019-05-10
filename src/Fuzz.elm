@@ -186,7 +186,8 @@ int =
 
 
 {-| A fuzzer for int values between a given minimum and maximum value,
-inclusive. Shrunken values will also be within the range.
+inclusive. The high and low boundaries will be tested often. Shrunken
+values will also be within the range.
 
 Remember that [Random.maxInt](http://package.elm-lang.org/packages/elm-lang/core/latest/Random#maxInt)
 is the maximum possible int value, so you can do `intRange x Random.maxInt` to get all
@@ -231,7 +232,8 @@ float =
 
 
 {-| A fuzzer for float values within between a given minimum and maximum
-value, inclusive. Shrunken values will also be within the range.
+value, inclusive. Values at the boundary will be tested often. Shrunken
+values will also be within the range.
 -}
 floatRange : Float -> Float -> Fuzzer Float
 floatRange lo hi =
