@@ -2,6 +2,7 @@
 
 | Version                                                                              | Notes                                                                                                                                                     |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [**1.2.1**](https://github.com/elm-explorations/test/tree/1.2.1)                     | Fixes a crash in `Test.Html` when the HTML contains nested `Html.Lazy` nodes. [#78](https://github.com/elm-explorations/test/issues/78)
 | [**1.2.0**](https://github.com/elm-explorations/test/tree/1.2.0)                     | Add HTML tests. [#41](https://github.com/elm-explorations/test/pull/41)
 | [**1.0.0**](https://github.com/elm-explorations/test/tree/1.0.0)                     | Update for Elm 0.19. Remove `Fuzz.andThen`, `Fuzz.conditional`, and `Test.Runner.getFailure`. Fail on equating floats to encourage checks with tolerance. `Test.Runner.fuzz` now returns a `Result`. |
 | renamed from **elm-community/elm-test** (below) to **elm-explorations/test** (above) |                                                                                                                                                           |
