@@ -26,6 +26,18 @@ all =
                     ]
                     |> Query.fromHtml
                     |> Query.has [ text "first text" ]
+        , test "lazy nodes inside of lazy are instantiated" <|
+            -- From https://github.com/elm-explorations/test/issues/78
+            \() ->
+                Lazy.lazy
+                    (\() ->
+                        Html.div []
+                            [ Lazy.lazy (\() -> Html.text "first text") ()
+                            ]
+                    )
+                    ()
+                    |> Query.fromHtml
+                    |> Query.has [ text "first text" ]
         , describe "parsing attributes" <|
             let
                 divWithAttribute attr =

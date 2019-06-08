@@ -27,6 +27,8 @@ function forceThunks(vNode) {
     // This is a lazy node; evaluate it
     var args = vNode[virtualDomKernelConstants.thunk];
     vNode[virtualDomKernelConstants.node] = vNode[virtualDomKernelConstants.thunk].apply(args);
+    // And then recurse into the evaluated node
+    vNode[virtualDomKernelConstants.node] = forceThunks(vNode[virtualDomKernelConstants.node]);
   }
   if (typeof vNode !== 'undefined' && vNode.$ === virtualDomKernelConstants.nodeTypeTagger) {
     // This is an Html.map; recurse into the node it is wrapping
