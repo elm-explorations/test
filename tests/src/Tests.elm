@@ -17,7 +17,6 @@ import Test.Html.Query.MarkdownTests
 import Test.Html.QueryTests
 import Test.Html.SelectorTests
 import Test.Runner
-import Test.Runner.Failure exposing (Reason(..))
 
 
 all : Test

@@ -20,17 +20,24 @@ var virtualDomKernelConstants =
 
 function forceThunks(vNode) {
   if (typeof vNode !== "undefined" && vNode.$ === "#2") {
-      vNode.b = forceThunks(vNode.b);
+    // This is a tuple (the kids : List (String, Html) field of a Keyed node); recurse into the right side of the tuple
+    vNode.b = forceThunks(vNode.b);
   }
   if (typeof vNode !== 'undefined' && vNode.$ === virtualDomKernelConstants.nodeTypeThunk && !vNode[virtualDomKernelConstants.node]) {
-      var args = vNode[virtualDomKernelConstants.thunk];
-      vNode[virtualDomKernelConstants.node] = vNode[virtualDomKernelConstants.thunk].apply(args);
+    // This is a lazy node; evaluate it
+    var args = vNode[virtualDomKernelConstants.thunk];
+    vNode[virtualDomKernelConstants.node] = vNode[virtualDomKernelConstants.thunk].apply(args);
+    // And then recurse into the evaluated node
+    vNode[virtualDomKernelConstants.node] = forceThunks(vNode[virtualDomKernelConstants.node]);
   }
   if (typeof vNode !== 'undefined' && vNode.$ === virtualDomKernelConstants.nodeTypeTagger) {
-      vNode[virtualDomKernelConstants.node] = forceThunks(vNode[virtualDomKernelConstants.node]);
+    // This is an Html.map; recurse into the node it is wrapping
+    vNode[virtualDomKernelConstants.node] = forceThunks(vNode[virtualDomKernelConstants.node]);
   }
   if (typeof vNode !== 'undefined' && typeof vNode[virtualDomKernelConstants.kids] !== 'undefined') {
-      vNode[virtualDomKernelConstants.kids] = vNode[virtualDomKernelConstants.kids].map(forceThunks);
+    // This is something with children (either a node with kids : List Html, or keyed with kids : List (String, Html));
+    // recurse into the children
+    vNode[virtualDomKernelConstants.kids] = vNode[virtualDomKernelConstants.kids].map(forceThunks);
   }
   return vNode;
 }
