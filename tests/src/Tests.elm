@@ -7,8 +7,8 @@ import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
 import Random
 import RunnerTests
-import Shrink
-import ShrinkTests
+import Simplify
+import SimplifyTests
 import Test exposing (..)
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
@@ -28,7 +28,7 @@ all =
         , expectationTests
         , fuzzerTests
         , floatWithinTests
-        , ShrinkTests.all
+        , SimplifyTests.all
         , RunnerTests.all
         , elmHtmlTests
         ]
@@ -101,25 +101,39 @@ expectationTests =
             , test "succeeds when equating two ints" <|
                 \_ -> 141 |> Expect.equal 141
             ]
+
+        -- , describe "Expect.equal on unicode strings should show pretty output"
+        --     [ test "ascii" <|
+        --         \_ -> "😻🙀👻" |> Expect.equal "🙀👻😻🙈"
+        --     , test "ascii space vs nbsp" <|
+        --         \_ -> "asd qwe" |> Expect.equal "asd\u{00a0}qwe"
+        --     , test "ascii only" <|
+        --         \_ -> "asd qwe" |> Expect.equal "asd dwe"
+        --     , test "newline diff" <|
+        --         \_ -> "first\u{000a}second" |> Expect.equal "first\r\nsecond"
+        --     , test "long lines" <|
+        --         \_ -> "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque in scelerisque arcu. Curabitur cursus efficitur turpis sed porttitor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nunc eu cursus ex. Proin accumsan quam quis dui semper finibus. Nunc vel nibh at tellus finibus rhoncus eu eget dolor. Sed eget neque ut lorem imperdiet fermentum. 😻 Morbi iaculis ante euismod, vulputate velit ut, varius velit. Nulla tempus dapibus mattis. In tempus, nisi a porta lobortis, nulla lacus iaculis quam, vel euismod magna risus at tortor. Integer porta urna odio. Nulla pellentesque dictum maximus. Donec auctor urna nec tortor imperdiet varius." |> Expect.equal "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque in scelerisque arcu. Curabitur cursus efficitur turpis sed porttitor. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nunc eu cursus ex. Proin accumsan quam quis dui semper finibus. Nunc vel nibh at tellus finibus rhoncus eu eget dolor. Sed eget neque ut lorem imperdiet fermentum. Morbi iaculis ante euismod, vulputate velit ut, varius velit. Nulla tempus dapibus mattis. In tempus, nisi a porta lobortis, nulla lacus iaculis quam, vel euismod magna risus at tortor. Integer porta urna odio. Nulla pellentesque dictum maximus. Donec auctor urna nec tortor imperdiet varius."
+        --     ]
         ]
 
 
 regressions : Test
 regressions =
     describe "regression tests"
-        [ fuzz (intRange 1 32) "for #39" <|
+        [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
             \positiveInt ->
                 positiveInt
                     |> Expect.greaterThan 0
-        , test "for #127" <|
+        , test "for elm-community/elm-test #127" <|
             {- If fuzz tests actually run 100 times, then asserting that no number
                in 1..8 equals 5 fails with 0.999998 probability. If they only run
                once, or stop after a duplicate due to #127, then it's much more
                likely (but not guaranteed) that the 5 won't turn up. See #128.
+               (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
                 fuzz
-                    (custom (Random.int 1 8) Shrink.noShrink)
+                    (custom (Random.int 1 8) Simplify.simplest)
                     "fuzz tests run 100 times"
                     (Expect.notEqual 5)
                     |> expectTestToFail

@@ -66,14 +66,82 @@ format description reason =
 
 
 verticalBar : String -> String -> String -> String
-verticalBar comparison expected actual =
-    [ actual
+verticalBar comparison below above =
+    [ above
     , "╵"
-    , "│ " ++ comparison
+    , "│ |> " ++ comparison
     , "╷"
-    , expected
+    , below
     ]
         |> String.join "\n"
+
+
+hexInt int =
+    if int == 0 then
+        "0"
+
+    else
+        let
+            zeroPad4 n =
+                if String.length n < 4 then
+                    zeroPad4 ("0" ++ n)
+
+                else
+                    n
+
+            hexIntInternal i =
+                if i == 0 then
+                    ""
+
+                else
+                    hexIntInternal (i // 16)
+                        ++ (case i |> remainderBy 16 of
+                                10 ->
+                                    "a"
+
+                                11 ->
+                                    "b"
+
+                                12 ->
+                                    "c"
+
+                                13 ->
+                                    "d"
+
+                                14 ->
+                                    "e"
+
+                                15 ->
+                                    "f"
+
+                                decimalDigit ->
+                                    String.fromInt decimalDigit
+                           )
+        in
+        zeroPad4 (hexIntInternal int)
+
+
+escapeUnicodeChars s =
+    let
+        isAsciiChar v =
+            (32 <= v && v <= 125)
+                -- in ascii a-z A-Z with a few common special characters
+                && (-- except ` and ^ because they're combining marks, like in è and ê.
+                    List.member v [ 94, 96 ] == False
+                   )
+    in
+    s
+        |> String.toList
+        |> List.map Char.toCode
+        |> List.map
+            (\c ->
+                if isAsciiChar c then
+                    String.fromChar (Char.fromCode c)
+
+                else
+                    "\\u{" ++ hexInt c ++ "}"
+            )
+        |> String.join ""
 
 
 listDiffToString :
@@ -135,29 +203,64 @@ equalityToString : { operation : String, expected : String, actual : String } ->
 equalityToString { operation, expected, actual } =
     -- TODO make sure this looks reasonable for multiline strings
     let
-        ( formattedExpected, belowFormattedExpected ) =
-            Diff.diff (String.toList expected) (String.toList actual)
+        ( ( valueBelow, diffArrowsBelow ), ( diffArrowsAbove, valueAbove ) ) =
+            formatEqualityDiffArrows expected actual
+
+        ( ( unicodeValueBelow, unicodeDiffArrowsBelow ), ( unicodeDiffArrowsAbove, unicodeValueAbove ) ) =
+            formatEqualityDiffArrows (escapeUnicodeChars expected) (escapeUnicodeChars actual)
+
+        combine things =
+            things
+                |> List.map (String.join "")
+                |> String.join "\n"
+    in
+    verticalBar
+        operation
+        (if String.join "" valueBelow /= String.join "" unicodeValueBelow then
+            -- we need to show the escaped string as well
+            combine
+                [ valueBelow
+                , diffArrowsBelow
+                , unicodeValueBelow ++ [ " (same string but with unicode characters escaped)" ]
+                , unicodeDiffArrowsBelow
+                ]
+
+         else
+            combine
+                [ valueBelow
+                , diffArrowsBelow
+                ]
+        )
+        (if String.join "" valueAbove /= String.join "" unicodeValueAbove then
+            -- we need to show the escaped string as well
+            combine
+                [ unicodeDiffArrowsAbove
+                , unicodeValueAbove ++ [ " (same string but with unicode characters escaped)" ]
+                , diffArrowsAbove
+                , valueAbove
+                ]
+
+         else
+            combine
+                [ diffArrowsAbove
+                , valueAbove
+                ]
+        )
+
+
+formatEqualityDiffArrows below above =
+    let
+        ( valueBelow, diffArrowsBelow ) =
+            Diff.diff (String.toList below) (String.toList above)
                 |> List.map formatExpectedChange
                 |> List.unzip
 
-        ( formattedActual, belowFormattedActual ) =
-            Diff.diff (String.toList actual) (String.toList expected)
+        ( diffArrowsAbove, valueAbove ) =
+            Diff.diff (String.toList above) (String.toList below)
                 |> List.map formatActualChange
                 |> List.unzip
-
-        combinedExpected =
-            String.join "\n"
-                [ String.join "" formattedExpected
-                , String.join "" belowFormattedExpected
-                ]
-
-        combinedActual =
-            String.join "\n"
-                [ String.join "" formattedActual
-                , String.join "" belowFormattedActual
-                ]
     in
-    verticalBar operation combinedExpected combinedActual
+    ( ( valueBelow, diffArrowsBelow ), ( diffArrowsAbove, valueAbove ) )
 
 
 formatExpectedChange : Change Char -> ( String, String )

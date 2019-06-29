@@ -79,7 +79,7 @@ main =
                 , ( Name "elm" "virtual-dom", [ Version 1 0 0] )
                 , ( Name "eeue56" "elm-lazy-list", [ Version 2 0 0] )
                 , ( Name "eeue56" "elm-lazy", [ Version 1 0 1] )
-                , ( Name "eeue56" "elm-shrink", [ Version 2 0 0] )
+                , ( Name "eeue56" "elm-simplify", [ Version 2 0 0] )
                 , ( Name "jinjor" "elm-diff", [ Version 1 0 5] )
                 , ( Name "elm-explorations" "test", [ Version 1 2 2] )
                 ]

@@ -10,7 +10,7 @@
         "Test.Runner.Failure",
         "Expect",
         "Fuzz",
-        "Shrink",
+        "Simplify",
         "Test.Html.Event",
         "Test.Html.Query",
         "Test.Html.Selector"

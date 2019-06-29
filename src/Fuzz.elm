@@ -1,7 +1,7 @@
 module Fuzz exposing
     ( int, intRange, float, floatRange, percentage, string, bool, maybe, result, list, array
     , Fuzzer, oneOf, constant, map, map2, map3, map4, map5, andMap, frequency
-    , tuple, tuple3
+    , pair, triple
     , custom, char, unit, order, invalid
     )
 
@@ -11,9 +11,9 @@ tests. You can typically pick out which ones you need according to their types.
 A `Fuzzer a` knows how to create values of type `a` in two different ways. It
 can create them randomly, so that your test's expectations are run against many
 values. Fuzzers will often generate edge cases likely to find bugs. If the
-fuzzer can make your test fail, it also knows how to "shrink" that failing input
+fuzzer can make your test fail, it also knows how to "simplify" that failing input
 into more minimal examples, some of which might also cause the tests to fail. In
-this way, fuzzers can usually find the smallest or simplest input that
+this way, fuzzers can usually find the simplest input that
 reproduces a bug.
 
 
@@ -31,7 +31,7 @@ reproduces a bug.
 
 Instead of using a tuple, consider using `fuzzN`.
 
-@docs tuple, tuple3
+@docs pair, triple
 
 
 ## Uncommon Fuzzers
@@ -55,21 +55,22 @@ import Lazy.List exposing (LazyList, append)
 import MicroRandomExtra as Random
 import Random exposing (Generator)
 import RoseTree exposing (RoseTree(..))
-import Shrink exposing (Shrinker)
+import Simplify exposing (Simplifier)
+import Simplify.Internal
 
 
 {-| The representation of fuzzers is opaque. Conceptually, a `Fuzzer a`
-consists of a way to randomly generate values of type `a`, and a way to shrink
+consists of a way to randomly generate values of type `a`, and a way to simplify
 those values.
 -}
 type alias Fuzzer a =
     Internal.Fuzzer a
 
 
-{-| Build a custom `Fuzzer a` by providing a `Generator a` and a `Shrinker a`. Generators are defined in
-[`elm/random`](http://package.elm-lang.org/packages/elm/random/latest). Shrinkers are defined in the [`Shrink`
-module](https://package.elm-lang.org/packages/elm-explorations/test/latest/Shrink). It is not possible to extract the
-generator and shrinker from an existing fuzzer.
+{-| Build a custom `Fuzzer a` by providing a `Generator a` and a `Simplifier a`. Generators are defined in
+[`elm/random`](http://package.elm-lang.org/packages/elm/random/latest). Simplifiers are defined in the [`Simplify`
+module](https://package.elm-lang.org/packages/elm-explorations/test/latest/Simplify). It is not possible to extract the
+generator and simplifier from an existing fuzzer.
 
 This function should be considered for advanced uses. It's often easier to use `map` and other functions in this
 module to create a fuzzer.
@@ -77,7 +78,7 @@ module to create a fuzzer.
 Here is an example for a record:
 
     import Random
-    import Shrink
+    import Simplify
 
     type alias Position =
         { x : Int, y : Int }
@@ -86,7 +87,7 @@ Here is an example for a record:
     position =
         Fuzz.custom
             (Random.map2 Position (Random.int -100 100) (Random.int -100 100))
-            (\{ x, y } -> Shrink.map Position (Shrink.int x) |> Shrink.andMap (Shrink.int y))
+            (\{ x, y } -> Simplify.map Position (Simplify.int x) |> Simplify.andMap (Simplify.int y))
 
 Here is an example for a custom union type, assuming there is already a `genName : Generator String` defined:
 
@@ -107,25 +108,21 @@ Here is an example for a custom union type, assuming there is already a `genName
                                 Random.map Age (Random.int 0 120)
                         )
 
-            shrinker question =
+            simplifier question =
                 case question of
                     Name n ->
-                        Shrink.string n |> Shrink.map Name
+                        Simplify.string n |> Simplify.map Name
 
                     Age i ->
-                        Shrink.int i |> Shrink.map Age
+                        Simplify.int i |> Simplify.map Age
         in
-        Fuzz.custom generator shrinker
+        Fuzz.custom generator simplifier
 
 -}
-custom : Generator a -> Shrinker a -> Fuzzer a
-custom generator shrinker =
-    let
-        shrinkTree a =
-            Rose a (Lazy.lazy <| \_ -> Lazy.force <| Lazy.List.map shrinkTree (shrinker a))
-    in
+custom : Generator a -> Simplifier a -> Fuzzer a
+custom generator simplifier =
     Ok <|
-        Random.map shrinkTree generator
+        Random.map (Simplify.Internal.simplifyTree simplifier) generator
 
 
 {-| A fuzzer for the unit value. Unit is a type with only one value, commonly
@@ -147,7 +144,7 @@ the true and false cases explicitly.
 -}
 bool : Fuzzer Bool
 bool =
-    custom Random.bool Shrink.bool
+    custom Random.bool Simplify.bool
 
 
 {-| A fuzzer for order values.
@@ -165,7 +162,7 @@ order =
             else
                 GT
     in
-    custom (Random.map intToOrder (Random.int 0 2)) Shrink.order
+    custom (Random.map intToOrder (Random.int 0 2)) Simplify.order
 
 
 {-| A fuzzer for int values. It will never produce `NaN`, `Infinity`, or `-Infinity`.
@@ -185,11 +182,12 @@ int =
                 , ( 1, Random.int (Random.minInt - Random.maxInt) 0 )
                 ]
     in
-    custom generator Shrink.int
+    custom generator Simplify.int
 
 
 {-| A fuzzer for int values between a given minimum and maximum value,
-inclusive. Shrunken values will also be within the range.
+inclusive. The high and low boundaries will be tested often. Shrunken
+values will also be within the range.
 
 Remember that [Random.maxInt](http://package.elm-lang.org/packages/elm-lang/core/latest/Random#maxInt)
 is the maximum possible int value, so you can do `intRange x Random.maxInt` to get all
@@ -209,7 +207,7 @@ intRange lo hi =
                 , ( 1, Random.constant hi )
                 ]
             )
-            (Shrink.keepIf (\i -> i >= lo && i <= hi) Shrink.int)
+            (Simplify.keepIf (\i -> i >= lo && i <= hi) Simplify.int)
 
 
 {-| A fuzzer for float values. It will never produce `NaN`, `Infinity`, or `-Infinity`.
@@ -230,11 +228,12 @@ float =
                 , ( 1, Random.float (toFloat <| Random.minInt - Random.maxInt) 0 )
                 ]
     in
-    custom generator Shrink.float
+    custom generator Simplify.float
 
 
 {-| A fuzzer for float values within between a given minimum and maximum
-value, inclusive. Shrunken values will also be within the range.
+value, inclusive. Values at the boundary will be tested often. Shrunken
+values will also be within the range.
 -}
 floatRange : Float -> Float -> Fuzzer Float
 floatRange lo hi =
@@ -249,7 +248,7 @@ floatRange lo hi =
                 , ( 1, Random.constant hi )
                 ]
             )
-            (Shrink.keepIf (\i -> i >= lo && i <= hi) Shrink.float)
+            (Simplify.keepIf (\i -> i >= lo && i <= hi) Simplify.float)
 
 
 {-| A fuzzer for percentage values. Generates random floats between `0.0` and
@@ -265,7 +264,7 @@ percentage =
                 , ( 1, Random.constant 1 )
                 ]
     in
-    custom generator Shrink.float
+    custom generator Simplify.float
 
 
 {-| A fuzzer for char values. Generates random ascii chars disregarding the control
@@ -273,7 +272,7 @@ characters and the extended character set.
 -}
 char : Fuzzer Char
 char =
-    custom asciiCharGenerator Shrink.character
+    custom asciiCharGenerator Simplify.character
 
 
 asciiCharGenerator : Generator Char
@@ -315,7 +314,7 @@ string =
             [ ( 1, whitespaceGenerator )
             ]
         )
-        Shrink.string
+        Simplify.string
 
 
 {-| Given a fuzzer of a type, create a fuzzer of a maybe for that type.
@@ -371,14 +370,14 @@ list fuzzer =
             (\validFuzzer ->
                 genLength
                     |> Random.andThen (\a -> Random.list a validFuzzer)
-                    |> Random.map listShrinkHelp
+                    |> Random.map listSimplifyHelp
             )
 
 
-listShrinkHelp : List (RoseTree a) -> RoseTree (List a)
-listShrinkHelp listOfTrees =
-    {- This extends listShrinkRecurse algorithm with an attempt to shrink directly to the empty list. -}
-    listShrinkRecurse listOfTrees
+listSimplifyHelp : List (RoseTree a) -> RoseTree (List a)
+listSimplifyHelp listOfTrees =
+    {- This extends listSimplifyRecurse algorithm with an attempt to simplify directly to the empty list. -}
+    listSimplifyRecurse listOfTrees
         |> mapChildren (Lazy.List.cons <| RoseTree.singleton [])
 
 
@@ -387,12 +386,12 @@ mapChildren fn (Rose root children) =
     Rose root (fn children)
 
 
-listShrinkRecurse : List (RoseTree a) -> RoseTree (List a)
-listShrinkRecurse listOfTrees =
-    {- Shrinking a list of RoseTrees
-       We need to do two things. First, shrink individual values. Second, shorten the list.
-       To shrink individual values, we create every list copy of the input list where any
-       one value is replaced by a shrunken form.
+listSimplifyRecurse : List (RoseTree a) -> RoseTree (List a)
+listSimplifyRecurse listOfTrees =
+    {- Simplifying a list of RoseTrees
+       We need to do two things. First, simplify individual values. Second, shorten the list.
+       To simplify individual values, we create every list copy of the input list where any
+       one value is replaced by a simplified form.
        To shorten the length of the list, remove elements at various positions in the list.
        In all cases, recurse! The goal is to make a little forward progress and then recurse.
     -}
@@ -406,12 +405,12 @@ listShrinkRecurse listOfTrees =
         dropFirstHalf : List (RoseTree a) -> RoseTree (List a)
         dropFirstHalf list_ =
             List.drop (List.length list_ // 2) list_
-                |> listShrinkRecurse
+                |> listSimplifyRecurse
 
         dropSecondHalf : List (RoseTree a) -> RoseTree (List a)
         dropSecondHalf list_ =
             List.take (List.length list_ // 2) list_
-                |> listShrinkRecurse
+                |> listSimplifyRecurse
 
         halved : LazyList (RoseTree (List a))
         halved =
@@ -426,22 +425,22 @@ listShrinkRecurse listOfTrees =
             else
                 Lazy.List.empty
 
-        shrinkOne prefix aList =
+        simplifyOne prefix aList =
             case aList of
                 [] ->
                     Lazy.List.empty
 
-                (Rose x shrunkenXs) :: more ->
-                    Lazy.List.map (\childTree -> prefix ++ (childTree :: more) |> listShrinkRecurse) shrunkenXs
+                (Rose x simplifiedXs) :: more ->
+                    Lazy.List.map (\childTree -> prefix ++ (childTree :: more) |> listSimplifyRecurse) simplifiedXs
 
-        shrunkenVals =
+        simplifiedVals =
             Lazy.lazy <|
                 \_ ->
                     Lazy.List.numbers
                         |> Lazy.List.map (\i -> i - 1)
                         |> Lazy.List.take n
                         |> Lazy.List.andThen
-                            (\i -> shrinkOne (List.take i listOfTrees) (List.drop i listOfTrees))
+                            (\i -> simplifyOne (List.take i listOfTrees) (List.drop i listOfTrees))
                         |> Lazy.force
 
         shortened =
@@ -450,7 +449,7 @@ listShrinkRecurse listOfTrees =
                     List.range 0 (n - 1)
                         |> Lazy.List.fromList
                         |> Lazy.List.map (\index -> removeOne index listOfTrees)
-                        |> Lazy.List.map listShrinkRecurse
+                        |> Lazy.List.map listSimplifyRecurse
                         |> Lazy.force
 
         removeOne index aList =
@@ -458,7 +457,7 @@ listShrinkRecurse listOfTrees =
                 (List.take index aList)
                 (List.drop (index + 1) aList)
     in
-    Rose root (append halved (append shortened shrunkenVals))
+    Rose root (append halved (append shortened simplifiedVals))
 
 
 {-| Given a fuzzer of a type, create a fuzzer of an array of that type.
@@ -469,21 +468,21 @@ array fuzzer =
     map Array.fromList (list fuzzer)
 
 
-{-| Turn a tuple of fuzzers into a fuzzer of tuples.
+{-| Turn a pair of fuzzers into a fuzzer of pairs.
 -}
-tuple : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
-tuple ( fuzzerA, fuzzerB ) =
+pair : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
+pair ( fuzzerA, fuzzerB ) =
     map2 (\a b -> ( a, b )) fuzzerA fuzzerB
 
 
-{-| Turn a 3-tuple of fuzzers into a fuzzer of 3-tuples.
+{-| Turn a triple of fuzzers into a fuzzer of triples.
 -}
-tuple3 : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
-tuple3 ( fuzzerA, fuzzerB, fuzzerC ) =
+triple : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
+triple ( fuzzerA, fuzzerB, fuzzerC ) =
     map3 (\a b c -> ( a, b, c )) fuzzerA fuzzerB fuzzerC
 
 
-{-| Create a fuzzer that only and always returns the value provided, and performs no shrinking. This is hardly random,
+{-| Create a fuzzer that only and always returns the value provided, and performs no simplifying. This is hardly random,
 and so this function is best used as a helper when creating more complicated fuzzers.
 -}
 constant : a -> Fuzzer a
@@ -491,7 +490,7 @@ constant x =
     Ok <| Random.constant (RoseTree.singleton x)
 
 
-{-| Map a function over a fuzzer. This applies to both the generated and the shrunken values.
+{-| Map a function over a fuzzer. This applies to both the generated and the simplified values.
 -}
 map : (a -> b) -> Fuzzer a -> Fuzzer b
 map =
@@ -533,7 +532,7 @@ The argument order is meant to accommodate chaining:
         |> andMap anotherFuzzer
         |> andMap aThirdFuzzer
 
-Note that shrinking may be better using `mapN`.
+Note that simplifying may be better using `mapN`.
 
 -}
 andMap : Fuzzer a -> Fuzzer (a -> b) -> Fuzzer b
@@ -642,23 +641,23 @@ invalid reason =
 
 map2RoseTree : (a -> b -> c) -> RoseTree a -> RoseTree b -> RoseTree c
 map2RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2) as rose2) =
-    {- Shrinking a pair of RoseTrees
-       Recurse on all pairs created by substituting one element for any of its shrunken values.
-       A weakness of this algorithm is that it expects that values can be shrunken independently.
-       That is, to shrink from (a,b) to (a',b'), we must go through (a',b) or (a,b').
-       "No pairs sum to zero" is a pathological predicate that cannot be shrunken this way.
+    {- Simplifying a pair of RoseTrees
+       Recurse on all pairs created by substituting one element for any of its simplified values.
+       A weakness of this algorithm is that it expects that values can be simplified independently.
+       That is, to simplify from (a,b) to (a',b'), we must go through (a',b) or (a,b').
+       "No pairs sum to zero" is a pathological predicate that cannot be simplified this way.
     -}
     let
         root =
             transform root1 root2
 
-        shrink1 =
+        simplify1 =
             Lazy.List.map (\subtree -> map2RoseTree transform subtree rose2) children1
 
-        shrink2 =
+        simplify2 =
             Lazy.List.map (\subtree -> map2RoseTree transform rose1 subtree) children2
     in
-    Rose root <| append shrink1 shrink2
+    Rose root <| append simplify1 simplify2
 
 
 
@@ -672,16 +671,16 @@ map3RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2)
         root =
             transform root1 root2 root3
 
-        shrink1 =
+        simplify1 =
             Lazy.List.map (\childOf1 -> map3RoseTree transform childOf1 rose2 rose3) children1
 
-        shrink2 =
+        simplify2 =
             Lazy.List.map (\childOf2 -> map3RoseTree transform rose1 childOf2 rose3) children2
 
-        shrink3 =
+        simplify3 =
             Lazy.List.map (\childOf3 -> map3RoseTree transform rose1 rose2 childOf3) children3
     in
-    Rose root <| append shrink1 (append shrink2 shrink3)
+    Rose root <| append simplify1 (append simplify2 simplify3)
 
 
 map4RoseTree : (a -> b -> c -> d -> e) -> RoseTree a -> RoseTree b -> RoseTree c -> RoseTree d -> RoseTree e
@@ -690,19 +689,19 @@ map4RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2)
         root =
             transform root1 root2 root3 root4
 
-        shrink1 =
+        simplify1 =
             Lazy.List.map (\childOf1 -> map4RoseTree transform childOf1 rose2 rose3 rose4) children1
 
-        shrink2 =
+        simplify2 =
             Lazy.List.map (\childOf2 -> map4RoseTree transform rose1 childOf2 rose3 rose4) children2
 
-        shrink3 =
+        simplify3 =
             Lazy.List.map (\childOf3 -> map4RoseTree transform rose1 rose2 childOf3 rose4) children3
 
-        shrink4 =
+        simplify4 =
             Lazy.List.map (\childOf4 -> map4RoseTree transform rose1 rose2 rose3 childOf4) children4
     in
-    Rose root <| append shrink1 (append shrink2 (append shrink3 shrink4))
+    Rose root <| append simplify1 (append simplify2 (append simplify3 simplify4))
 
 
 map5RoseTree : (a -> b -> c -> d -> e -> f) -> RoseTree a -> RoseTree b -> RoseTree c -> RoseTree d -> RoseTree e -> RoseTree f
@@ -711,19 +710,19 @@ map5RoseTree transform ((Rose root1 children1) as rose1) ((Rose root2 children2)
         root =
             transform root1 root2 root3 root4 root5
 
-        shrink1 =
+        simplify1 =
             Lazy.List.map (\childOf1 -> map5RoseTree transform childOf1 rose2 rose3 rose4 rose5) children1
 
-        shrink2 =
+        simplify2 =
             Lazy.List.map (\childOf2 -> map5RoseTree transform rose1 childOf2 rose3 rose4 rose5) children2
 
-        shrink3 =
+        simplify3 =
             Lazy.List.map (\childOf3 -> map5RoseTree transform rose1 rose2 childOf3 rose4 rose5) children3
 
-        shrink4 =
+        simplify4 =
             Lazy.List.map (\childOf4 -> map5RoseTree transform rose1 rose2 rose3 childOf4 rose5) children4
 
-        shrink5 =
+        simplify5 =
             Lazy.List.map (\childOf5 -> map5RoseTree transform rose1 rose2 rose3 rose4 childOf5) children5
     in
-    Rose root <| append shrink1 (append shrink2 (append shrink3 (append shrink4 shrink5)))
+    Rose root <| append simplify1 (append simplify2 (append simplify3 (append simplify4 simplify5)))

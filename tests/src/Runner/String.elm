@@ -105,8 +105,7 @@ indentLines str =
         |> String.join "\n"
 
 
-{-| Run a test and return a tuple of the output message and the number of
-tests that failed.
+{-| Run a test and return a Summary.
 
 Fuzz tests use a default run count of 100, and a fixed initial seed.
 
@@ -116,8 +115,7 @@ run =
     runWithOptions defaultRuns defaultSeed
 
 
-{-| Run a test and return a tuple of the output message and the number of
-tests that failed.
+{-| Run a test and return a Summary.
 -}
 runWithOptions : Int -> Random.Seed -> Test -> Summary
 runWithOptions runs seed test =
