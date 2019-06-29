@@ -9,7 +9,7 @@ rm -Rf elm_home/0.19.0/package/elm-explorations/test
 mkdir -p elm_home
 mkdir -p elm_home/0.19.0/package
 
-PACKAGE_VERSION="1.2.1"
+PACKAGE_VERSION="1.2.2"
 mkdir -p elm_home/0.19.0/package/elm-explorations/test/${PACKAGE_VERSION}
 rsync -va ../ elm_home/0.19.0/package/elm-explorations/test/${PACKAGE_VERSION}/ --exclude tests --exclude elm-stuff --exclude .git --exclude node_modules
 
