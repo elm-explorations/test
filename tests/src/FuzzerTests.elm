@@ -167,7 +167,7 @@ manualFuzzerTests =
                 in
                 unfold [] pair
                     |> Expect.all
-                        [ List.all failsTest >> Expect.true "Not all elements were even"
+                        [ List.all failsTest >> Expect.equal True >> Expect.onFail "Not all elements were even"
                         , List.head
                             >> Maybe.map (Expect.all [ Expect.lessThan 5, Expect.atLeast 0 ])
                             >> Maybe.withDefault (Expect.fail "Did not cause failure")
@@ -200,7 +200,7 @@ manualFuzzerTests =
                 in
                 unfold [] pair
                     |> Expect.all
-                        [ List.all failsTest >> Expect.true "Not all contained the letter e"
+                        [ List.all failsTest >> Expect.equal True >> Expect.onFail "Not all contained the letter e"
                         , List.head >> Expect.equal (Just "e")
                         , List.reverse >> List.head >> Expect.equal (Maybe.map Tuple.first pair)
                         ]
@@ -251,12 +251,14 @@ whitespaceTest =
             \str ->
                 str
                     |> Validate.isBlank
-                    |> Expect.true "Validate.isBlank should consider whitespace blank"
+                    |> Expect.equal True
+                    >> Expect.onFail "Validate.isBlank should consider whitespace blank"
         , fuzz2 whitespace whitespace "non-whitespace characters mean it's not blank" <|
             \prefix suffix ->
                 (prefix ++ "_" ++ suffix)
                     |> Validate.isBlank
-                    |> Expect.false "Validate.isBlank shouldn't consider strings containing non-whitespace characters blank"
+                    |> Expect.equal False
+                    >> Expect.onFail "Validate.isBlank shouldn't consider strings containing non-whitespace characters blank"
         ]
 
 
@@ -267,12 +269,14 @@ email =
             \() ->
                 ""
                     |> Validate.isValidEmail
-                    |> Expect.false "Validate.isValidEmail should have considered empty string blank"
+                    |> Expect.equal False
+                    >> Expect.onFail "Validate.isValidEmail should have considered empty string blank"
         , test "valid email is valid" <|
             \() ->
                 "foo@bar.com"
                     |> Validate.isValidEmail
-                    |> Expect.true "Validate.isValidEmail should have considered foo@bar.com a valid email address"
+                    |> Expect.equal True
+                    >> Expect.onFail "Validate.isValidEmail should have considered foo@bar.com a valid email address"
         ]
 
 
