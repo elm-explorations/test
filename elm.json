@@ -3,7 +3,7 @@
     "name": "elm-explorations/test",
     "summary": "Write unit and fuzz tests for Elm code.",
     "license": "BSD-3-Clause",
-    "version": "1.2.0",
+    "version": "1.2.2",
     "exposed-modules": [
         "Test",
         "Test.Runner",
