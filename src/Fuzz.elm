@@ -38,7 +38,6 @@ Instead of using a tuple, consider using [`fuzz2`][fuzz2] or [`fuzz3`][fuzz3].
 
 @docs custom, char, unit, order, invalid
 
-
 [fuzz2]: /packages/elm-explorations/test/latest/Test#fuzz2
 [fuzz3]: /packages/elm-explorations/test/latest/Test#fuzz3
 
