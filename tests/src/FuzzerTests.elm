@@ -293,26 +293,41 @@ whitespace =
 unicodeStringFuzzerTests : Test
 unicodeStringFuzzerTests =
     describe "unicode string fuzzer" <|
+        -- These tests are a bit hard to read. Sorry about that.
+        --
+        -- The tools we have at our disposal are:
+        -- - Forall (∀) in the form of normal fuzz tests
+        -- - Exists not (∃𝑥¬) in the form of expectTestToFail
+        --
+        -- so with these tools we made these statistical tests:
+        --
+        -- `exists (fuzzed string) such that ((fuzzed string) contains (specific string))` -- what we want to test
+        -- <=> (¬¬𝑥 <=> 𝑥) (since the only tool for Exists we have is Exists not, we negate the body to counter that negation)
+        -- `exists (fuzzed string) such that (not (not ((fuzzed string) contains (specific string))))` -- what we actually test here
+        -- where
+        -- `expectTestsToFail x` <=> `exists (fuzzed string) such that (not x)`
+        -- so what our fuzz tests should looks like is
+        -- `(not ((fuzzed string) contains (specific string)))`
         [ test "generates ascii" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates ascii" <|
-                        \str -> str |> String.contains "E" |> Expect.equal True
+                        \str -> str |> String.contains "E" |> Expect.equal False
         , test "generates whitespace" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates whitespace" <|
-                        \str -> str |> String.contains "\t" |> Expect.equal True
+                        \str -> str |> String.contains "\t" |> Expect.equal False
         , test "generates combining diacritical marks" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates combining diacritical marks" <|
-                        \str -> str |> String.contains "̃" |> Expect.equal True
+                        \str -> str |> String.contains "̃" |> Expect.equal False
         , test "generates emoji" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates emoji" <|
-                        \str -> str |> String.contains "🔥" |> Expect.equal True
+                        \str -> str |> String.contains "🔥" |> Expect.equal False
         , test "generates long strings with a single character" <|
             \() ->
                 expectTestToFail <|
