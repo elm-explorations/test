@@ -29,7 +29,7 @@ reproduces a bug.
 
 ## Tuple Fuzzers
 
-Instead of using a tuple, consider using `fuzzN`.
+Instead of using a tuple, consider using [`fuzz2`][fuzz2] or [`fuzz3`][fuzz3].
 
 @docs pair, triple
 
@@ -37,6 +37,9 @@ Instead of using a tuple, consider using `fuzzN`.
 ## Uncommon Fuzzers
 
 @docs custom, char, unit, order, invalid
+
+[fuzz2]: /packages/elm-explorations/test/latest/Test#fuzz2
+[fuzz3]: /packages/elm-explorations/test/latest/Test#fuzz3
 
 -}
 
