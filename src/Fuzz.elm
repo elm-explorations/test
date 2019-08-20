@@ -321,22 +321,19 @@ Shorter strings are more common, especially the empty string.
 string : Fuzzer String
 string =
     let
-        unicodeGenerator : Generator String
+        ( firstFreq, restFreqs ) =
+            unicodeCharGeneratorFrequencies
+
+        lengthGenerator =
+            Random.frequency
+                ( 3, Random.int 1 10 )
+                [ ( 0.2, Random.constant 0 )
+                , ( 1, Random.int 11 50 )
+                , ( 1, Random.int 50 1000 )
+                ]
+
         unicodeGenerator =
-            let
-                ( freq, rest ) =
-                    unicodeCharGeneratorFrequencies
-            in
-            frequencyList
-                (Random.frequency
-                    ( 3, Random.int 1 10 )
-                    [ ( 0.2, Random.constant 0 )
-                    , ( 1, Random.int 11 50 )
-                    , ( 1, Random.int 50 1000 )
-                    ]
-                )
-                freq
-                rest
+            frequencyList lengthGenerator firstFreq restFreqs
                 |> Random.map String.fromList
     in
     custom unicodeGenerator Simplify.string
