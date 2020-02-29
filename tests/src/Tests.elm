@@ -92,6 +92,19 @@ expectationTests =
                         |> Expect.all []
                         |> expectToFail
             ]
+        , describe "Expect.oneOf"
+            [ test "fails with empty list" <|
+                \_ ->
+                    "dummy subject"
+                        |> Expect.oneOf []
+                        |> expectToFail
+            , test "fails with bad expectations" <|
+                \_ ->
+                    [1, 2, 3]
+                        |> List.length
+                        |> Expect.oneOf [ Expect.greaterThan 5, Expect.lessThan 0 ]
+                        |> expectToFail
+            ]
         , describe "Expect.equal"
             [ test "fails when equating two floats (see #230)" <|
                 \_ ->

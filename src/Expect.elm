@@ -690,6 +690,51 @@ allHelp list query =
                     outcome
 
 
+{-| Passes if at least one of the given functions passes when applied to the
+subject.
+
+Passing an empty list is assumed to be a mistake, so `Expect.oneOf []`
+will always return a failed expectation no matter what else it is passed.
+
+    Expect.oneOf
+        [ Expect.greatherThan 8
+        , Expect.lessThan 5
+        , Expect.lessThan 1
+        ]
+        (List.length [1, 2, 3])
+    -- Passes because (3 < 5) is True, although (3 < 8) and (3 > 1)
+
+-}
+oneOf : List (subject -> Expectation) -> subject -> Expectation
+oneOf list query =
+    if List.isEmpty list then
+        Test.Expectation.fail
+            { reason = Invalid EmptyList
+            , description = "Expect.oneOf was given an empty list. You must make at least one expectation to have a valid test!"
+            }
+
+    else
+        oneOfHelp list query
+
+
+oneOfHelp : List (subject -> Expectation) -> subject -> Expectation
+oneOfHelp list query =
+    case list of
+        [] ->
+            Test.Expectation.fail
+                { reason = Invalid EmptyList
+                , description = "Expect.oneOf ran out of expectations."
+                }
+
+        check :: rest ->
+            case check query of
+                Test.Expectation.Pass ->
+                    pass
+
+                outcome ->
+                    oneOfHelp rest query
+
+
 
 {---- Private helper functions ----}
 
