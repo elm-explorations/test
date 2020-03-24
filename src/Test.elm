@@ -356,7 +356,7 @@ You may find them elsewhere called [property-based tests](http://blog.jessitron.
     import Expect
 
 
-    fuzz (list int) "List.length should always be positive" <|
+    fuzz (list int) "List.length should always be non-negative" <|
         -- This anonymous function will be run 100 times, each time with a
         -- randomly-generated fuzzList value.
         \fuzzList ->
