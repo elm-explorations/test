@@ -68,6 +68,7 @@ fuzzerTests =
                     Expect.equal valNoSimplify valWithSimplify
             , simplifyingTests
             , manualFuzzerTests
+            , unicodeStringFuzzerTests
             ]
         ]
 
@@ -287,3 +288,76 @@ whitespace =
         |> Fuzz.oneOf
         |> Fuzz.list
         |> Fuzz.map String.fromList
+
+
+unicodeStringFuzzerTests : Test
+unicodeStringFuzzerTests =
+    describe "unicode string fuzzer" <|
+        -- These tests are a bit hard to read. Sorry about that.
+        --
+        -- The tools we have at our disposal are:
+        -- - Forall (∀) in the form of normal fuzz tests
+        -- - Exists not (∃𝑥¬) in the form of expectTestToFail
+        --
+        -- so with these tools we made these statistical tests:
+        --
+        -- `exists (fuzzed string) such that ((fuzzed string) contains (specific string))` -- what we want to test
+        -- <=> (¬¬𝑥 <=> 𝑥) (since the only tool for Exists we have is Exists not, we negate the body to counter that negation)
+        -- `exists (fuzzed string) such that (not (not ((fuzzed string) contains (specific string))))` -- what we actually test here
+        -- where
+        -- `expectTestsToFail x` <=> `exists (fuzzed string) such that (not x)`
+        -- so what our fuzz tests should looks like is
+        -- `(not ((fuzzed string) contains (specific string)))`
+        [ test "generates ascii" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates ascii" <|
+                        \str -> str |> String.contains "E" |> Expect.equal False
+        , test "generates whitespace" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates whitespace" <|
+                        \str -> str |> String.contains "\t" |> Expect.equal False
+        , test "generates combining diacritical marks" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates combining diacritical marks" <|
+                        \str -> str |> String.contains "̃" |> Expect.equal False
+        , test "generates emoji" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates emoji" <|
+                        \str -> str |> String.contains "🔥" |> Expect.equal False
+        , test "generates long strings with a single character" <|
+            \() ->
+                expectTestToFail <|
+                    fuzz string "generates long strings with a single character" <|
+                        \str ->
+                            let
+                                countSequentialEqualCharsAtStartOfString s =
+                                    case s of
+                                        a :: b :: cs ->
+                                            if a == b then
+                                                1 + countSequentialEqualCharsAtStartOfString (b :: cs)
+
+                                            else
+                                                0
+
+                                        _ ->
+                                            0
+                            in
+                            str
+                                |> String.toList
+                                |> countSequentialEqualCharsAtStartOfString
+                                |> (\x -> x > 10)
+                                |> -- expecting this test to pass at least once, but we don't have an expectToPassAtLeastOnce function, so instead this inner expectation is reversed and we use expectToFail
+                                   Expect.equal False
+        , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
+            -- if characters that span more than one utf-16 character work, this version of the unicode string fuzzer is good to go
+            \() -> "🔥" |> String.reverse |> Expect.equal "🔥"
+
+        --, test "String.reverse implements unicode string reversing correctly" <|
+        --    -- String.reverse still doesn't properly implement unicode string reversing, so combining emojis like skin tones or families break
+        --    -- Here's a test that should pass, since these emoji families are supposed to be counted as single elements when reversing the string. When I'm writing this, I instead get a per-character string reversal, which renders as four emojis after each other "👦👦👩👩" (plus a bunch of non-printable characters in-between).
+        --    \() -> "👩‍👩‍👦‍👦" |> String.reverse |> Expect.equal "👩‍👩‍👦‍👦"
+        ]
