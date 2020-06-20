@@ -8,8 +8,8 @@
   "author": "Richard Feldman",
   "license": "BSD-3-Clause",
   "devDependencies": {
-    "elm": "^0.19.0-bugfix2",
-    "elm-format": "^0.8.1"
+    "elm": "latest-0.19.0",
+    "elm-format": "latest-0.19.0"
   },
   "dependencies": {}
 }
