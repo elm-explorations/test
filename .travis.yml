@@ -1,6 +1,5 @@
-sudo: false
-
 language: node_js
+
 node_js:
   - "8"
   - "10"
@@ -10,10 +9,3 @@ os:
   - osx
   - linux
 
-install:
-  - node --version
-  - npm --version
-  - npm install
-
-script:
-  - npm test
