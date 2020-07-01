@@ -268,7 +268,7 @@ The number of times to run each fuzz test. (Default is 100.)
     import Expect
 
 
-    fuzzWith { runs = 350 } (list int) "List.length should always be positive" <|
+    fuzzWith { runs = 350 } (list int) "List.length should never be negative" <|
         -- This anonymous function will be run 350 times, each time with a
         -- randomly-generated fuzzList value. (It will always be a list of ints
         -- because of (list int) above.)
