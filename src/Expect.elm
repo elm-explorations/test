@@ -361,23 +361,25 @@ an error, but you don't care what the actual result is.
 _(Tip: If your function returns a `Maybe` instead, consider `Expect.notEqual Nothing`.)_
 
     -- Passes
-    String.toInt "not an int"
-        |> Expect.err
+    String.toInt "20"
+        |> Result.fromMaybe "not an int"
+        |> Expect.ok
 
-Test failures will be printed with the unexpected `Ok` value contrasting with
-any `Err`.
+Test failures will be printed with the unexpected `Err` value contrasting with
+any `Ok`.
 
     -- Fails
-    String.toInt "20"
-        |> Expect.err
+    String.toInt "not an int"
+        |> Result.fromMaybe "not an int"
+        |> Expect.ok
 
     {-
 
-    Ok 20
+    Err "not an int"
     ╷
-    │ Expect.err
+    │ Expect.ok
     ╵
-    Err _
+    Ok _
 
     -}
 
@@ -404,6 +406,7 @@ _(Tip: If your function returns a `Maybe` instead, consider `Expect.equal Nothin
 
     -- Passes
     String.toInt "not an int"
+        |> Result.fromMaybe "not an int"
         |> Expect.err
 
 Test failures will be printed with the unexpected `Ok` value contrasting with
@@ -411,6 +414,7 @@ any `Err`.
 
     -- Fails
     String.toInt "20"
+        |> Result.fromMaybe "not an int"
         |> Expect.err
 
     {-
