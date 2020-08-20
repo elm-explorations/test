@@ -4,6 +4,7 @@
   "description": "tests for elm-test, so you can elm-test while you elm-test",
   "scripts": {
     "test": "bash tests/run-tests.sh",
+    "test:random": "RANDOMIZED=1 bash tests/run-tests.sh",
     "format": "elm-format --validate src tests/src benchmarks"
   },
   "author": "Richard Feldman",

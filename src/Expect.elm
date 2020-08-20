@@ -698,16 +698,6 @@ allHelp list query =
 {---- Private helper functions ----}
 
 
-reportFailure : String -> String -> String -> Expectation
-reportFailure comparison expected actual =
-    { description = comparison
-
-    -- We may need to wrap expected and actual in quotes to maintain 0.18 behavior
-    , reason = Comparison expected actual
-    }
-        |> Test.Expectation.fail
-
-
 reportCollectionFailure : String -> a -> b -> List c -> List d -> Expectation
 reportCollectionFailure comparison expected actual missingKeys extraKeys =
     { description = comparison

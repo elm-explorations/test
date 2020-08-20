@@ -48,7 +48,7 @@ summarize { output, passed, failed, autoFail } =
     let
         headline =
             if failed > 0 then
-                output ++ "\n\nTEST RUN FAILED"
+                "TEST RUN FAILED"
 
             else
                 case autoFail of

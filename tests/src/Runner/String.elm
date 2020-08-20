@@ -22,7 +22,11 @@ import Test.Runner exposing (Runner, SeededRunners(..))
 and the number of failed tests.
 -}
 type alias Summary =
-    { output : String, passed : Int, failed : Int, autoFail : Maybe String }
+    { output : String
+    , passed : Int
+    , failed : Int
+    , autoFail : Maybe String
+    }
 
 
 toOutput : Summary -> SeededRunners -> Summary

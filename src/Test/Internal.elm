@@ -1,7 +1,8 @@
-module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
+module Test.Internal exposing (Test(..), blankDescriptionFailure, crash, duplicatedName, failNow, toString)
 
-import Elm.Kernel.Debug
-import Random exposing (Generator)
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- import Elm.Kernel.Debug
+
+import Random
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation(..))
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
@@ -85,3 +86,8 @@ duplicatedName tests =
 toString : a -> String
 toString =
     Elm.Kernel.Debug.toString
+
+
+crash : String -> a
+crash =
+    Elm.Kernel.Debug.todo

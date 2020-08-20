@@ -1,15 +1,13 @@
 module Tests exposing (all)
 
-import Expect exposing (FloatingPointTolerance(..))
+import Expect exposing (Expectation, FloatingPointTolerance(..))
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
-import PerformanceRegressionTests
 import Random
 import RunnerTests
-import Simplify
-import SimplifyTests
+import ShrinkingChallengeTests exposing (shrinkingChallenges)
 import Test exposing (..)
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
@@ -29,9 +27,9 @@ all =
         , expectationTests
         , fuzzerTests
         , floatWithinTests
-        , SimplifyTests.all
         , RunnerTests.all
         , elmHtmlTests
+        , shrinkingChallenges
 
         -- , PerformanceRegressionTests.all -- these are intentionally uncaught failing tests
         ]
@@ -135,11 +133,20 @@ regressions =
                (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
-                fuzz
-                    (custom (Random.int 1 8) Simplify.simplest)
+                fuzz (intRange 1 8)
                     "fuzz tests run 100 times"
                     (Expect.notEqual 5)
                     |> expectTestToFail
+        , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
+            -- if characters that span more than one utf-16 character work, this version of the unicode string fuzzer is good to go
+            \() -> "🔥" |> String.reverse |> Expect.equal "🔥"
+
+        {-
+           , test "String.reverse implements unicode string reversing correctly" <|
+               -- String.reverse still doesn't properly implement unicode string reversing, so combining emojis like skin tones or families break
+               -- Here's a test that should pass, since these emoji families are supposed to be counted as single elements when reversing the string. When I'm writing this, I instead get a per-character string reversal, which renders as four emojis after each other "👦👦👩👩" (plus a bunch of non-printable characters in-between).
+               \() -> "👩‍👩‍👦‍👦" |> String.reverse |> Expect.equal "👩‍👩‍👦‍👦"
+        -}
         ]
 
 

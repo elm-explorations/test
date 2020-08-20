@@ -1,13 +1,12 @@
 module Test.Fuzz exposing (fuzzTest)
 
-import Dict exposing (Dict)
-import Fuzz exposing (Fuzzer)
-import Fuzz.Internal exposing (ValidFuzzer)
-import Lazy.List
-import Random exposing (Generator)
-import RoseTree exposing (RoseTree(..))
+import Fuzz.Internal exposing (Fuzzer)
+import GenResult exposing (GenResult(..))
+import PRNG
+import Random
+import Simplify
 import Test.Expectation exposing (Expectation(..))
-import Test.Internal as Internal exposing (Test(..), blankDescriptionFailure, failNow)
+import Test.Internal exposing (Test(..), blankDescriptionFailure)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -23,114 +22,141 @@ fuzzTest fuzzer untrimmedDesc getExpectation =
         blankDescriptionFailure
 
     else
-        case fuzzer of
-            Err reason ->
-                failNow
-                    { description = reason
-                    , reason = Invalid InvalidFuzzer
-                    }
-
-            Ok validFuzzer ->
-                -- Preliminary checks passed; run the fuzz test
-                ElmTestVariant__Labeled desc <| validatedFuzzTest validFuzzer getExpectation
+        ElmTestVariant__Labeled desc <| validatedFuzzTest fuzzer getExpectation
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : ValidFuzzer a -> (a -> Expectation) -> Test
+validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Test
 validatedFuzzTest fuzzer getExpectation =
     ElmTestVariant__FuzzTest
         (\seed runs ->
-            case runAllFuzzIterations fuzzer getExpectation seed runs |> Dict.toList of
-                [] ->
+            case runUntilFailure fuzzer getExpectation seed runs of
+                Nothing ->
                     [ Pass ]
 
-                failures ->
-                    List.map formatExpectation failures
+                Just failure ->
+                    [ formatExpectation failure ]
         )
 
 
-type alias Failures =
-    Dict String Expectation
+type alias Failure =
+    { given : Maybe String
+    , expectation : Expectation
+    }
 
 
 {-| Runs the specified number of fuzz tests and returns a dictionary of simplified failures.
 -}
-runAllFuzzIterations : ValidFuzzer a -> (a -> Expectation) -> Random.Seed -> Int -> Failures
-runAllFuzzIterations fuzzer getExpectation initialSeed totalRuns =
+runUntilFailure : Fuzzer a -> (a -> Expectation) -> Random.Seed -> Int -> Maybe Failure
+runUntilFailure fuzzer getExpectation initialSeed totalRuns =
     runOneFuzzIteration fuzzer getExpectation
-        |> foldUntil totalRuns ( Dict.empty, initialSeed )
+        |> foldUntil
+            totalRuns
+            (\( failure, _ ) -> failure /= Nothing)
+            ( Nothing, initialSeed )
         -- throw away the random seed
         |> Tuple.first
 
 
 {-| Generate a fuzzed value, test it, and record the simplified test failure if any.
 -}
-runOneFuzzIteration : ValidFuzzer a -> (a -> Expectation) -> ( Failures, Random.Seed ) -> ( Failures, Random.Seed )
-runOneFuzzIteration fuzzer getExpectation ( failures, currentSeed ) =
+runOneFuzzIteration : Fuzzer a -> (a -> Expectation) -> ( Maybe Failure, Random.Seed ) -> ( Maybe Failure, Random.Seed )
+runOneFuzzIteration fuzzer getExpectation ( _, currentSeed ) =
     let
-        ( rosetree, nextSeed ) =
-            Random.step fuzzer currentSeed
+        genResult : GenResult a
+        genResult =
+            Fuzz.Internal.generate
+                (PRNG.random currentSeed)
+                fuzzer
 
-        newFailures =
-            case testGeneratedValue rosetree getExpectation of
+        maybeNextSeed : Maybe Random.Seed
+        maybeNextSeed =
+            genResult
+                |> GenResult.getPrng
+                |> PRNG.getSeed
+
+        nextSeed : Random.Seed
+        nextSeed =
+            case maybeNextSeed of
+                Just seed ->
+                    seed
+
                 Nothing ->
-                    -- test passed, nothing to change
-                    failures
+                    stepSeed currentSeed
 
-                Just ( k, v ) ->
-                    -- record test failure
-                    Dict.insert k v failures
+        maybeFailure : Maybe Failure
+        maybeFailure =
+            case genResult of
+                Rejected { reason } ->
+                    Just
+                        { given = Nothing
+                        , expectation =
+                            Test.Expectation.fail
+                                { description = reason
+                                , reason = Invalid InvalidFuzzer
+                                }
+                        }
+
+                Generated { prng, value } ->
+                    testGeneratedValue
+                        { getExpectation = getExpectation
+                        , fuzzer = fuzzer
+                        , randomRun = PRNG.getRun prng
+                        , value = value
+                        , expectation = getExpectation value
+                        }
     in
-    ( newFailures, nextSeed )
+    ( maybeFailure, nextSeed )
+
+
+{-| Random.next is private ¯\_(ツ)\_/¯
+-}
+stepSeed : Random.Seed -> Random.Seed
+stepSeed seed =
+    seed
+        |> Random.step (Random.int 0 0)
+        |> Tuple.second
 
 
 {-| Run a function whose inputs are the same as its outputs a given number of times. Requires the initial state to pass
 in and returns the final state. This generic combinator extracts the "run n times" logic from our test running code.
 -}
-foldUntil : Int -> a -> (a -> a) -> a
-foldUntil remainingRuns initialState f =
-    if remainingRuns <= 1 then
+foldUntil : Int -> (a -> Bool) -> a -> (a -> a) -> a
+foldUntil remainingRuns endingCondition initialState f =
+    if remainingRuns <= 1 || endingCondition initialState then
         initialState
 
     else
-        foldUntil (remainingRuns - 1) (f initialState) f
+        foldUntil (remainingRuns - 1) endingCondition (f initialState) f
 
 
-{-| Given a rosetree -- a root to test and branches of simplifications -- run the test and perform simplification if it fails.
--}
-testGeneratedValue : RoseTree a -> (a -> Expectation) -> Maybe ( String, Expectation )
-testGeneratedValue rosetree getExpectation =
-    case getExpectation (RoseTree.root rosetree) of
+testGeneratedValue : Simplify.State a -> Maybe Failure
+testGeneratedValue state =
+    case state.expectation of
         Pass ->
             Nothing
 
-        failedExpectation ->
-            Just <| findSimplestFailure rosetree getExpectation failedExpectation
+        Fail _ ->
+            Just <| findSimplestFailure state
 
 
-{-| Knowing that the rosetree's root already failed, finds the key and value of the simplest failure.
--}
-findSimplestFailure : RoseTree a -> (a -> Expectation) -> Expectation -> ( String, Expectation )
-findSimplestFailure (Rose failingValue branches) getExpectation oldExpectation =
-    case Lazy.List.headAndTail branches of
-        Just ( (Rose possiblyFailingValue _) as firstChild, otherChildren ) ->
-            case getExpectation possiblyFailingValue of
-                -- recurse "horizontally" on other simplifications of the last known failing value
-                -- discard simplifications of the passing value (the _)
-                Pass ->
-                    findSimplestFailure (Rose failingValue otherChildren) getExpectation oldExpectation
+findSimplestFailure : Simplify.State a -> Failure
+findSimplestFailure state =
+    let
+        ( simplestValue, _, expectation ) =
+            Simplify.simplify state
+    in
+    { given = Just <| Test.Internal.toString simplestValue
+    , expectation = expectation
+    }
 
-                -- recurse downward on simplifications of the newly-found failing value
-                -- discard simplifications of the previous failing value (otherChildren)
-                newExpectation ->
-                    findSimplestFailure firstChild getExpectation newExpectation
 
-        -- base case: we cannot simplify any more
+formatExpectation : Failure -> Expectation
+formatExpectation { given, expectation } =
+    case given of
         Nothing ->
-            ( Internal.toString failingValue, oldExpectation )
+            expectation
 
-
-formatExpectation : ( String, Expectation ) -> Expectation
-formatExpectation ( given, expectation ) =
-    Test.Expectation.withGiven given expectation
+        Just given_ ->
+            Test.Expectation.withGiven given_ expectation
