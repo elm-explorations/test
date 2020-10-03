@@ -32,14 +32,14 @@ fuzzTest fuzzer untrimmedDesc getExpectation =
 
             Ok validFuzzer ->
                 -- Preliminary checks passed; run the fuzz test
-                Labeled desc <| validatedFuzzTest validFuzzer getExpectation
+                ElmTestVariant__Labeled desc <| validatedFuzzTest validFuzzer getExpectation
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
 validatedFuzzTest : ValidFuzzer a -> (a -> Expectation) -> Test
 validatedFuzzTest fuzzer getExpectation =
-    FuzzTest
+    ElmTestVariant__FuzzTest
         (\seed runs ->
             case runAllFuzzIterations fuzzer getExpectation seed runs |> Dict.toList of
                 [] ->

@@ -7,20 +7,24 @@ import Test.Expectation exposing (Expectation(..))
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
+{-| All variants of this type has the `ElmTestVariant__` prefix so that
+node-test-runner can recognize them in the compiled JavaScript. This lets us
+add more variants here without having to update the runner.
+-}
 type Test
-    = UnitTest (() -> List Expectation)
-    | FuzzTest (Random.Seed -> Int -> List Expectation)
-    | Labeled String Test
-    | Skipped Test
-    | Only Test
-    | Batch (List Test)
+    = ElmTestVariant__UnitTest (() -> List Expectation)
+    | ElmTestVariant__FuzzTest (Random.Seed -> Int -> List Expectation)
+    | ElmTestVariant__Labeled String Test
+    | ElmTestVariant__Skipped Test
+    | ElmTestVariant__Only Test
+    | ElmTestVariant__Batch (List Test)
 
 
 {-| Create a test that always fails for the given reason and description.
 -}
 failNow : { description : String, reason : Reason } -> Test
 failNow record =
-    UnitTest
+    ElmTestVariant__UnitTest
         (\() -> [ Test.Expectation.fail record ])
 
 
@@ -38,22 +42,22 @@ duplicatedName =
         names : Test -> List String
         names test =
             case test of
-                Labeled str _ ->
+                ElmTestVariant__Labeled str _ ->
                     [ str ]
 
-                Batch subtests ->
+                ElmTestVariant__Batch subtests ->
                     List.concatMap names subtests
 
-                UnitTest _ ->
+                ElmTestVariant__UnitTest _ ->
                     []
 
-                FuzzTest _ ->
+                ElmTestVariant__FuzzTest _ ->
                     []
 
-                Skipped subTest ->
+                ElmTestVariant__Skipped subTest ->
                     names subTest
 
-                Only subTest ->
+                ElmTestVariant__Only subTest ->
                     names subTest
 
         insertOrFail : String -> Result String (Set String) -> Result String (Set String)
