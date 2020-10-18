@@ -23,7 +23,7 @@ module Test exposing
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Set
-import Test.Fuzz
+import Test.Fuzz exposing (Meta)
 import Test.Internal as Internal
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
@@ -301,7 +301,7 @@ for example like this:
                     |> Expect.equal (List.member target nums)
 
 -}
-fuzzWith : FuzzOptions -> Fuzzer a -> String -> (a -> Expectation) -> Test
+fuzzWith : FuzzOptions -> Fuzzer a -> String -> (Meta x -> a -> Expectation) -> Test
 fuzzWith options fuzzer desc getTest =
     if options.runs < 1 then
         Internal.failNow
@@ -368,7 +368,7 @@ You may find them elsewhere called [property-based tests](http://blog.jessitron.
 fuzz :
     Fuzzer a
     -> String
-    -> (a -> Expectation)
+    -> (Meta x -> a -> Expectation)
     -> Test
 fuzz =
     Test.Fuzz.fuzzTest
@@ -394,14 +394,14 @@ fuzz2 :
     Fuzzer a
     -> Fuzzer b
     -> String
-    -> (a -> b -> Expectation)
+    -> (Meta x -> a -> b -> Expectation)
     -> Test
 fuzz2 fuzzA fuzzB desc =
     let
         fuzzer =
             Fuzz.pair ( fuzzA, fuzzB )
     in
-    (\f ( a, b ) -> f a b) >> fuzz fuzzer desc
+    (\f meta ( a, b ) -> f meta a b) >> fuzz fuzzer desc
 
 
 {-| Run a [fuzz test](#fuzz) using three random inputs.
@@ -414,20 +414,11 @@ fuzz3 :
     -> Fuzzer b
     -> Fuzzer c
     -> String
-    -> (a -> b -> c -> Expectation)
+    -> (Meta x -> a -> b -> c -> Expectation)
     -> Test
 fuzz3 fuzzA fuzzB fuzzC desc =
     let
         fuzzer =
             Fuzz.triple ( fuzzA, fuzzB, fuzzC )
     in
-    uncurry3 >> fuzz fuzzer desc
-
-
-
--- INTERNAL HELPERS --
-
-
-uncurry3 : (a -> b -> c -> d) -> ( a, b, c ) -> d
-uncurry3 fn ( a, b, c ) =
-    fn a b c
+    (\f meta ( a, b, c ) -> f meta a b c) >> fuzz fuzzer desc
