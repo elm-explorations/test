@@ -248,19 +248,25 @@ equalityToString { operation, expected, actual } =
         )
 
 
+formatEqualityDiffArrows : String -> String -> ( ( List String, List String ), ( List String, List String ) )
 formatEqualityDiffArrows below above =
-    let
-        ( valueBelow, diffArrowsBelow ) =
-            Diff.diff (String.toList below) (String.toList above)
-                |> List.map formatExpectedChange
-                |> List.unzip
+    if String.length below * String.length above > 300 * 300 then
+        -- The Diff.diff diffing algorithm is roughly O(len(a) * len(b)), so we need some cutoff point where we just give up on diffing.
+        ( ( [ below ], [ " -- skipping diffing because input is too large" ] ), ( [ " -- skipping diffing because input is too large" ], [ above ] ) )
 
-        ( diffArrowsAbove, valueAbove ) =
-            Diff.diff (String.toList above) (String.toList below)
-                |> List.map formatActualChange
-                |> List.unzip
-    in
-    ( ( valueBelow, diffArrowsBelow ), ( diffArrowsAbove, valueAbove ) )
+    else
+        let
+            ( valueBelow, diffArrowsBelow ) =
+                Diff.diff (String.toList below) (String.toList above)
+                    |> List.map formatExpectedChange
+                    |> List.unzip
+
+            ( diffArrowsAbove, valueAbove ) =
+                Diff.diff (String.toList above) (String.toList below)
+                    |> List.map formatActualChange
+                    |> List.unzip
+        in
+        ( ( valueBelow, diffArrowsBelow ), ( diffArrowsAbove, valueAbove ) )
 
 
 formatExpectedChange : Change Char -> ( String, String )

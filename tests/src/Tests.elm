@@ -5,6 +5,7 @@ import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
+import PerformanceRegressionTests
 import Random
 import RunnerTests
 import Simplify
@@ -31,6 +32,8 @@ all =
         , SimplifyTests.all
         , RunnerTests.all
         , elmHtmlTests
+
+        -- , PerformanceRegressionTests.all -- these are intentionally uncaught failing tests
         ]
 
 
