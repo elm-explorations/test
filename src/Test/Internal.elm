@@ -10,6 +10,8 @@ import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 {-| All variants of this type has the `ElmTestVariant__` prefix so that
 node-test-runner can recognize them in the compiled JavaScript. This lets us
 add more variants here without having to update the runner.
+
+For more information, see https://github.com/elm-explorations/test/pull/153
 -}
 type Test
     = ElmTestVariant__UnitTest (() -> List Expectation)
