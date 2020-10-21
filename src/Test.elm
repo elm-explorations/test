@@ -60,7 +60,7 @@ concat tests =
                     }
 
             Ok _ ->
-                Internal.Batch tests
+                Internal.ElmTestVariant__Batch tests
 
 
 {-| Apply a description to a list of tests.
@@ -121,7 +121,7 @@ describe untrimmedDesc tests =
                         }
 
                 else
-                    Internal.Labeled desc (Internal.Batch tests)
+                    Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__Batch tests)
 
 
 {-| Return a [`Test`](#Test) that evaluates a single
@@ -147,7 +147,7 @@ test untrimmedDesc thunk =
         Internal.blankDescriptionFailure
 
     else
-        Internal.Labeled desc (Internal.UnitTest (\() -> [ thunk () ]))
+        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk () ]))
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests
@@ -216,7 +216,7 @@ an `only` inside a `skip`, it will also get skipped.
 -}
 only : Test -> Test
 only =
-    Internal.Only
+    Internal.ElmTestVariant__Only
 
 
 {-| Returns a [`Test`](#Test) that gets skipped.
@@ -252,7 +252,7 @@ an `only` inside a `skip`, it will also get skipped.
 -}
 skip : Test -> Test
 skip =
-    Internal.Skipped
+    Internal.ElmTestVariant__Skipped
 
 
 {-| Options [`fuzzWith`](#fuzzWith) accepts. Currently there is only one but this
@@ -316,29 +316,29 @@ fuzzWith options fuzzer desc getTest =
 fuzzWithHelp : FuzzOptions -> Test -> Test
 fuzzWithHelp options aTest =
     case aTest of
-        Internal.UnitTest _ ->
+        Internal.ElmTestVariant__UnitTest _ ->
             aTest
 
-        Internal.FuzzTest run ->
-            Internal.FuzzTest (\seed _ -> run seed options.runs)
+        Internal.ElmTestVariant__FuzzTest run ->
+            Internal.ElmTestVariant__FuzzTest (\seed _ -> run seed options.runs)
 
-        Internal.Labeled label subTest ->
-            Internal.Labeled label (fuzzWithHelp options subTest)
+        Internal.ElmTestVariant__Labeled label subTest ->
+            Internal.ElmTestVariant__Labeled label (fuzzWithHelp options subTest)
 
-        Internal.Skipped subTest ->
+        Internal.ElmTestVariant__Skipped subTest ->
             -- It's important to treat skipped tests exactly the same as normal,
             -- until after seed distribution has completed.
             fuzzWithHelp options subTest
-                |> Internal.Only
+                |> Internal.ElmTestVariant__Only
 
-        Internal.Only subTest ->
+        Internal.ElmTestVariant__Only subTest ->
             fuzzWithHelp options subTest
-                |> Internal.Only
+                |> Internal.ElmTestVariant__Only
 
-        Internal.Batch tests ->
+        Internal.ElmTestVariant__Batch tests ->
             tests
                 |> List.map (fuzzWithHelp options)
-                |> Internal.Batch
+                |> Internal.ElmTestVariant__Batch
 
 
 {-| Take a function that produces a test, and calls it several (usually 100) times, using a randomly-generated input
