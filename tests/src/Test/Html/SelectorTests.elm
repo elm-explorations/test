@@ -46,7 +46,7 @@ textSelectors : Test
 textSelectors =
     describe "Selector.text"
         [ fuzz3 (list string) string (list string) "Finds one result" <|
-            \before str after ->
+            \_ before str after ->
                 let
                     textNodes =
                         [ before, [ str ], after ]
@@ -57,7 +57,7 @@ textSelectors =
                     |> Query.fromHtml
                     |> Query.has [ text str ]
         , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
-            \before strings after ->
+            \_ before strings after ->
                 let
                     textNodes =
                         [ before, strings, after ]

@@ -19,24 +19,24 @@ fuzzerTests =
     describe "Fuzzer methods that use Debug.crash don't call it"
         [ describe "FuzzN (uses use pair or triple) testing string length properties"
             [ fuzz2 string string "fuzz2" <|
-                \a b ->
+                \_ a b ->
                     testStringLengthIsPreserved [ a, b ]
             , fuzz3 string string string "fuzz3" <|
-                \a b c ->
+                \_ a b c ->
                     testStringLengthIsPreserved [ a, b, c ]
             ]
         , fuzz
             (intRange 1 6)
             "intRange"
-            (Expect.greaterThan 0)
+            (\_ -> Expect.greaterThan 0)
         , fuzz
             (frequency [ ( 1, intRange 1 6 ), ( 1, intRange 1 20 ) ])
             "Fuzz.frequency"
-            (Expect.greaterThan 0)
-        , fuzz (result string int) "Fuzz.result" <| \r -> Expect.pass
+            (\_ -> Expect.greaterThan 0)
+        , fuzz (result string int) "Fuzz.result" <| \_ r -> Expect.pass
         , describe "Whitebox testing using Fuzz.Internal"
             [ fuzz randomSeedFuzzer "the same value is generated with and without simplifying" <|
-                \seed ->
+                \_ seed ->
                     let
                         step gen =
                             Random.step gen seed
@@ -85,18 +85,18 @@ simplifyingTests =
     testSimplifying <|
         describe "tests that fail intentionally to test simplifying"
             [ fuzz2 int int "Every pair of ints has a zero" <|
-                \i j ->
+                \_ i j ->
                     (i == 0)
                         || (j == 0)
                         |> expectTrueAndExpectSimplifyResultToEqualString "(1,1)"
             , fuzz3 int int int "Every triple of ints has a zero" <|
-                \i j k ->
+                \_ i j k ->
                     (i == 0)
                         || (j == 0)
                         || (k == 0)
                         |> expectTrueAndExpectSimplifyResultToEqualString "(1,1,1)"
             , fuzz (list int) "All lists are sorted" <|
-                \aList ->
+                \_ aList ->
                     let
                         checkPair l =
                             case l of
@@ -134,7 +134,7 @@ manualFuzzerTests : Test
 manualFuzzerTests =
     describe "Test.Runner.{fuzz, simplify}"
         [ fuzz randomSeedFuzzer "Claim there are no even numbers" <|
-            \seed ->
+            \_ seed ->
                 let
                     -- fuzzer is guaranteed to produce an even number
                     fuzzer =
@@ -175,7 +175,7 @@ manualFuzzerTests =
                         , List.reverse >> List.head >> Expect.equal (Maybe.map Tuple.first pair)
                         ]
         , fuzz randomSeedFuzzer "No strings contain the letter e" <|
-            \seed ->
+            \_ seed ->
                 let
                     -- fuzzer is guaranteed to produce a string with the letter e
                     fuzzer =
@@ -206,7 +206,7 @@ manualFuzzerTests =
                         , List.reverse >> List.head >> Expect.equal (Maybe.map Tuple.first pair)
                         ]
         , fuzz randomSeedFuzzer "List simplifier finds the smallest counter example" <|
-            \seed ->
+            \_ seed ->
                 let
                     fuzzer : Fuzzer (List Int)
                     fuzzer =
@@ -249,13 +249,13 @@ whitespaceTest : Test
 whitespaceTest =
     describe "fuzzing whitespace (taken from rtfeldman/elm-validate, which crashed when this first ran)"
         [ fuzz whitespace "whitespace characters are blank" <|
-            \str ->
+            \_ str ->
                 str
                     |> Validate.isBlank
                     |> Expect.equal True
                     >> Expect.onFail "Validate.isBlank should consider whitespace blank"
         , fuzz2 whitespace whitespace "non-whitespace characters mean it's not blank" <|
-            \prefix suffix ->
+            \_ prefix suffix ->
                 (prefix ++ "_" ++ suffix)
                     |> Validate.isBlank
                     |> Expect.equal False
@@ -312,27 +312,27 @@ unicodeStringFuzzerTests =
             \() ->
                 expectTestToFail <|
                     fuzz string "generates ascii" <|
-                        \str -> str |> String.contains "E" |> Expect.equal False
+                        \_ str -> str |> String.contains "E" |> Expect.equal False
         , test "generates whitespace" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates whitespace" <|
-                        \str -> str |> String.contains "\t" |> Expect.equal False
+                        \_ str -> str |> String.contains "\t" |> Expect.equal False
         , test "generates combining diacritical marks" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates combining diacritical marks" <|
-                        \str -> str |> String.contains "̃" |> Expect.equal False
+                        \_ str -> str |> String.contains "̃" |> Expect.equal False
         , test "generates emoji" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates emoji" <|
-                        \str -> str |> String.contains "🔥" |> Expect.equal False
+                        \_ str -> str |> String.contains "🔥" |> Expect.equal False
         , test "generates long strings with a single character" <|
             \() ->
                 expectTestToFail <|
                     fuzz string "generates long strings with a single character" <|
-                        \str ->
+                        \_ str ->
                             let
                                 countSequentialEqualCharsAtStartOfString s =
                                     case s of

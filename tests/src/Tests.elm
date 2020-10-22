@@ -1,5 +1,6 @@
 module Tests exposing (all)
 
+import DebugLogTests
 import Expect exposing (FloatingPointTolerance(..))
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
@@ -31,6 +32,7 @@ all =
         , SimplifyTests.all
         , RunnerTests.all
         , elmHtmlTests
+        , DebugLogTests.all
         ]
 
 
@@ -63,7 +65,7 @@ readmeExample =
                         |> String.reverse
                         |> Expect.equal "GFEDCBA"
             , fuzz string "restores the original string if you run it again" <|
-                \randomlyGeneratedString ->
+                \_ randomlyGeneratedString ->
                     randomlyGeneratedString
                         |> String.reverse
                         |> String.reverse
@@ -121,7 +123,7 @@ regressions : Test
 regressions =
     describe "regression tests"
         [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
-            \positiveInt ->
+            \_ positiveInt ->
                 positiveInt
                     |> Expect.greaterThan 0
         , test "for elm-community/elm-test #127" <|
@@ -135,7 +137,7 @@ regressions =
                 fuzz
                     (custom (Random.int 1 8) Simplify.simplest)
                     "fuzz tests run 100 times"
-                    (Expect.notEqual 5)
+                    (\_ -> Expect.notEqual 5)
                     |> expectTestToFail
         ]
 
@@ -162,17 +164,17 @@ testTests =
         , describe "fuzz"
             [ test "fails with empty name" <|
                 \() ->
-                    fuzz Fuzz.bool "" expectPass
+                    fuzz Fuzz.bool "" (always expectPass)
                         |> expectTestToFail
             ]
         , describe "fuzzWith"
             [ test "fails with fewer than 1 run" <|
                 \() ->
-                    fuzzWith { runs = 0 } Fuzz.bool "nonpositive" expectPass
+                    fuzzWith { runs = 0 } Fuzz.bool "nonpositive" (always expectPass)
                         |> expectTestToFail
             , test "fails with empty name" <|
                 \() ->
-                    fuzzWith { runs = 1 } Fuzz.bool "" expectPass
+                    fuzzWith { runs = 1 } Fuzz.bool "" (always expectPass)
                         |> expectTestToFail
             ]
         , describe "Test.todo"

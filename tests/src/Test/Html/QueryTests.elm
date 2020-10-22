@@ -581,7 +581,7 @@ testHas : Test
 testHas =
     describe "Query.has"
         [ fuzz (Fuzz.list Fuzz.string) "Passes for empty selector list" <|
-            \strings ->
+            \_ strings ->
                 Html.div [] (List.map Html.text strings)
                     |> Query.fromHtml
                     |> Query.has []

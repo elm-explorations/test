@@ -35,14 +35,14 @@ exactly the string "Seed test".
 fuzzTest : Test
 fuzzTest =
     fuzz int "It receives the expected number" <|
-        \num ->
+        \_ num ->
             Expect.equal num expectedNum
 
 
 fuzzTestAfterOneDistributed : Test
 fuzzTestAfterOneDistributed =
     fuzz int "This should be different than expectedNum, because there is a fuzz test before it." <|
-        \num ->
+        \_ num ->
             Expect.equal num oneSeedAlreadyDistributed
 
 
@@ -52,7 +52,7 @@ tests =
         [ fuzzTest ]
     , describe "Seed test"
         [ fuzz int "It receives the expected number even though this text is different" <|
-            \num ->
+            \_ num ->
                 Expect.equal num expectedNum
         ]
     , describe "Seed test"
@@ -94,19 +94,19 @@ tests =
         ]
     , Test.concat
         [ fuzz int "top-level fuzz tests don't affect subsequent top-level fuzz tests, since they use their labels to get different seeds" <|
-            \num ->
+            \_ num ->
                 Expect.equal num -8
         , describe "Seed test"
             [ fuzzTest ]
         , describe "another top-level fuzz test"
             [ fuzz int "it still gets different values, due to computing the seed as a hash of the label, and these labels must be unique" <|
-                \num ->
+                \_ num ->
                     Expect.equal num -1079557009
             ]
         ]
     , describe "Fuzz tests with different outer describe texts get different seeds"
         [ fuzz int "It receives the expected number" <|
-            \num ->
+            \_ num ->
                 Expect.equal num 3556635839
         ]
     ]
@@ -141,7 +141,7 @@ noAutoFail =
         [ describe "Seed test"
             [ only <|
                 fuzz int "No Autofail here" <|
-                    \num ->
+                    \_ num ->
                         Expect.equal num expectedNum
             , test "This should never get run" <|
                 \() ->
@@ -152,14 +152,14 @@ noAutoFail =
       describe "Seed test"
         [ skip <|
             fuzz int "Skip test sanity check" <|
-                \_ ->
+                \_ _ ->
                     Expect.fail "Test.skip is broken! This should not have been run."
         , fuzzTestAfterOneDistributed
         ]
     , -- the previous test gets the same answer if Test.skip is removed
       describe "Seed test"
         [ fuzz int "Skip test sanity check" <|
-            \_ ->
+            \_ _ ->
                 Expect.pass
         , fuzzTestAfterOneDistributed
         ]
@@ -167,7 +167,7 @@ noAutoFail =
       describe "Seed test"
         [ only <|
             fuzz int "No Autofail here" <|
-                \num ->
+                \_ num ->
                     Expect.equal num expectedNum
         , test "this should never get run" <|
             \() ->

@@ -25,7 +25,7 @@ fromTest =
     describe "TestRunner.fromTest"
         [ describe "test length"
             [ fuzz2 int int "only positive tests runs are valid" <|
-                \runs intSeed ->
+                \_ runs intSeed ->
                     case Test.Runner.fromTest runs (Random.initialSeed intSeed) passing of
                         Invalid str ->
                             if runs > 0 then
