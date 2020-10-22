@@ -48,7 +48,7 @@ Check out [a large real-world test suite](https://github.com/rtfeldman/elm-css/t
 
 ### Running tests locally
 
-Here's how to set up and run your tests using the CLI test runner:
+Here's how to set up and run your tests using the [CLI test runner](https://github.com/rtfeldman/node-test-runner):
 
 1. Run `npm install -g elm-test` if you haven't already.
 2. `cd` into the project's root directory that has your `elm.json`.
