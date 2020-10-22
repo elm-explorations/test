@@ -43,19 +43,15 @@ fuzzerTests =
 
                         aFuzzer =
                             triple
-                                ( pair ( list int, array float )
-                                , pair
-                                    ( maybe bool
-                                    , result unit char
+                                (pair (list int) (array float))
+                                (pair (maybe bool) (result unit char))
+                                (pair
+                                    (triple
+                                        percentage
+                                        (map2 (+) int int)
+                                        (frequency [ ( 1, constant True ), ( 3, constant False ) ])
                                     )
-                                , pair
-                                    ( triple
-                                        ( percentage
-                                        , map2 (+) int int
-                                        , frequency [ ( 1, constant True ), ( 3, constant False ) ]
-                                        )
-                                    , triple ( intRange 0 100, floatRange -51 pi, map abs int )
-                                    )
+                                    (triple (intRange 0 100) (floatRange -51 pi) (map abs int))
                                 )
                                 |> Test.Runner.fuzz
 
