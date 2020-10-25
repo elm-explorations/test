@@ -294,7 +294,7 @@ for example like this:
 
 
     fuzzWith { runs = 4200 }
-        (pair ( list int, int ))
+        (pair (list int) int)
         "List.reverse never influences List.member" <|
             \(nums, target) ->
                 List.member target (List.reverse nums)
@@ -399,7 +399,7 @@ fuzz2 :
 fuzz2 fuzzA fuzzB desc =
     let
         fuzzer =
-            Fuzz.pair ( fuzzA, fuzzB )
+            Fuzz.pair fuzzA fuzzB
     in
     (\f ( a, b ) -> f a b) >> fuzz fuzzer desc
 
@@ -419,7 +419,7 @@ fuzz3 :
 fuzz3 fuzzA fuzzB fuzzC desc =
     let
         fuzzer =
-            Fuzz.triple ( fuzzA, fuzzB, fuzzC )
+            Fuzz.triple fuzzA fuzzB fuzzC
     in
     uncurry3 >> fuzz fuzzer desc
 
