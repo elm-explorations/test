@@ -342,7 +342,7 @@ fuzzWithHelp options aTest =
 
 
 {-| Take a function that produces a test, and calls it several (usually 100) times, using a randomly-generated input
-from a [`Fuzzer`](http://package.elm-lang.org/packages/elm-community/elm-test/latest/Fuzz) each time. This allows you to
+from a [`Fuzzer`](http://package.elm-lang.org/packages/elm-explorations/test/latest/Fuzz) each time. This allows you to
 test that a property that should always be true is indeed true under a wide variety of conditions. The function also
 takes a string describing the test.
 

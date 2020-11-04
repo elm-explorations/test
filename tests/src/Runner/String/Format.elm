@@ -155,7 +155,7 @@ listDiffToString index description { expected, actual } originals =
         ( [], [] ) ->
             [ "Two lists were unequal previously, yet ended up equal later."
             , "This should never happen!"
-            , "Please report this bug to https://github.com/elm-community/elm-test/issues - and include these lists: "
+            , "Please report this bug to https://github.com/elm-explorations/test/issues - and include these lists: "
             , "\n"
             , Debug.toString originals.originalExpected
             , "\n"
