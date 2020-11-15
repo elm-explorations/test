@@ -2,6 +2,11 @@
 
 Write unit and fuzz tests for Elm code.
 
+When people say “elm-test” they usually refer to either:
+
+- This Elm library for writing tests.
+- The name of the [Node.js CLI tool for running tests](https://github.com/rtfeldman/node-test-runner).
+
 ## Quick Start
 
 Here are three example tests:
@@ -46,27 +51,11 @@ This code uses a few common functions:
 
 Check out [a large real-world test suite](https://github.com/rtfeldman/elm-css/tree/master/tests) for more.
 
-### Running tests locally
+Run [elm-test init](https://github.com/rtfeldman/node-test-runner#init) to generate some example tests to get you started.
 
-Here's how to set up and run your tests using the [CLI test runner](https://github.com/rtfeldman/node-test-runner):
+### Running tests
 
-1. Run `npm install -g elm-test` if you haven't already.
-2. `cd` into the project's root directory that has your `elm.json`.
-3. Run `elm-test init`. It will create a `tests` directory inside this one,
-   with some files in it.
-5. Run `elm-test`.
-6. Edit `tests/Example.elm` to introduce new tests.
-
-Hint: If you have dependencies add them via `elm-test install authorName/dependencyName`.
-
-Bonus hint: Run `elm-test --watch` to rerun your tests whenever a file is saved.
-
-### Running tests on CI
-
-Here are some examples of running tests on CI servers:
-
-* [`travis.yml`](https://github.com/rtfeldman/elm-css/blob/master/.travis.yml)
-* [`appveyor.yml`](https://github.com/rtfeldman/elm-css/blob/master/appveyor.yml)
+Head over to the [CLI test runner](https://github.com/rtfeldman/node-test-runner) for instructions on how to get started!
 
 ### Not running tests
 
