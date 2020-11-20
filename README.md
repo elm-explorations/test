@@ -4,8 +4,8 @@ Write unit and fuzz tests for Elm code.
 
 When people say “elm-test” they usually refer to either:
 
-- This Elm library for writing tests.
-- The name of the [Node.js CLI tool for running tests](https://github.com/rtfeldman/node-test-runner).
+- This Elm package for writing tests.
+- [rtfeldman/node-test-runner](https://github.com/rtfeldman/node-test-runner) – a CLI tool (called `elm-test`) for running tests defined using this package in the terminal.
 
 ## Quick Start
 
@@ -51,11 +51,15 @@ This code uses a few common functions:
 
 Check out [a large real-world test suite](https://github.com/rtfeldman/elm-css/tree/master/tests) for more.
 
-Run [elm-test init](https://github.com/rtfeldman/node-test-runner#init) to generate some example tests to get you started.
+Tip! Run [elm-test init](https://github.com/rtfeldman/node-test-runner#init) to generate some example tests to get you started.
 
 ### Running tests
 
-Head over to the [CLI test runner](https://github.com/rtfeldman/node-test-runner) for instructions on how to get started!
+This package lets you define tests ([Test](https://package.elm-lang.org/packages/elm-explorations/test/latest/Test#Test) values).
+
+To execute your tests and see if they pass you need a program that can consume your tests, run them and report the results.
+
+The most popular test runner is [rtfeldman/node-test-runner](https://github.com/rtfeldman/node-test-runner). It’s a CLI tool that lets you run tests in the terminal. Head over to that project for instructions on how to get started!
 
 ### Not running tests
 
