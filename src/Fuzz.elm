@@ -493,17 +493,17 @@ array fuzzer =
     map Array.fromList (list fuzzer)
 
 
-{-| Turn a pair of fuzzers into a fuzzer of pairs.
+{-| Create a fuzzer of pairs from two fuzzers.
 -}
-pair : ( Fuzzer a, Fuzzer b ) -> Fuzzer ( a, b )
-pair ( fuzzerA, fuzzerB ) =
+pair : Fuzzer a -> Fuzzer b -> Fuzzer ( a, b )
+pair fuzzerA fuzzerB =
     map2 (\a b -> ( a, b )) fuzzerA fuzzerB
 
 
-{-| Turn a triple of fuzzers into a fuzzer of triples.
+{-| Create a fuzzer of triples from three fuzzers.
 -}
-triple : ( Fuzzer a, Fuzzer b, Fuzzer c ) -> Fuzzer ( a, b, c )
-triple ( fuzzerA, fuzzerB, fuzzerC ) =
+triple : Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer ( a, b, c )
+triple fuzzerA fuzzerB fuzzerC =
     map3 (\a b c -> ( a, b, c )) fuzzerA fuzzerB fuzzerC
 
 
