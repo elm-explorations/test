@@ -1,4 +1,4 @@
-module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
+module Test.Internal exposing (Key(..), Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
 
 import Elm.Kernel.Debug
 import Random exposing (Generator)
@@ -21,6 +21,13 @@ type Test
     | ElmTestVariant__Skipped Test
     | ElmTestVariant__Only Test
     | ElmTestVariant__Batch (List Test)
+
+
+{-| Proof that we're running a test right now.
+Used with fromCmd and fromSub, to grant them permission to inspect Cmd and Sub values.
+-}
+type Key
+    = Key
 
 
 {-| Create a test that always fails for the given reason and description.

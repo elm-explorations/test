@@ -127,10 +127,6 @@ describe untrimmedDesc tests =
 {-| Return a [`Test`](#Test) that evaluates a single
 [`Expectation`](../Expect#Expectation).
 
-    import Test exposing (fuzz)
-    import Expect
-
-
     test "the empty list has 0 length" <|
         \_ ->
             List.length []
