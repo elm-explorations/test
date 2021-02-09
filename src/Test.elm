@@ -53,9 +53,13 @@ concat tests =
 
     else
         case Internal.duplicatedName tests of
-            Err duped ->
+            Err dups ->
+                let
+                    dupDescription duped =
+                        "A test group contains multiple tests named '" ++ duped ++ "'. Do some renaming so that tests have unique names."
+                in
                 Internal.failNow
-                    { description = "A test group contains multiple tests named '" ++ duped ++ "'. Do some renaming so that tests have unique names."
+                    { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
                     , reason = Invalid DuplicatedName
                     }
 
@@ -107,18 +111,24 @@ describe untrimmedDesc tests =
 
     else
         case Internal.duplicatedName tests of
-            Err duped ->
-                Internal.failNow
-                    { description = "The tests '" ++ desc ++ "' contain multiple tests named '" ++ duped ++ "'. Let's rename them so we know which is which."
-                    , reason = Invalid DuplicatedName
-                    }
+            Err dups ->
+                let
+                    dupDescription duped =
+                        "Contains multiple tests named '" ++ duped ++ "'. Let's rename them so we know which is which."
+                in
+                Internal.ElmTestVariant__Labeled desc <|
+                    Internal.failNow
+                        { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
+                        , reason = Invalid DuplicatedName
+                        }
 
             Ok childrenNames ->
                 if Set.member desc childrenNames then
-                    Internal.failNow
-                        { description = "The test '" ++ desc ++ "' contains a child test of the same name. Let's rename them so we know which is which."
-                        , reason = Invalid DuplicatedName
-                        }
+                    Internal.ElmTestVariant__Labeled desc <|
+                        Internal.failNow
+                            { description = "The test '" ++ desc ++ "' contains a child test of the same name. Let's rename them so we know which is which."
+                            , reason = Invalid DuplicatedName
+                            }
 
                 else
                     Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__Batch tests)
