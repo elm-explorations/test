@@ -102,7 +102,7 @@ Here is an example for a custom union type, assuming there is already a `genName
     question =
         let
             generator =
-                Random.bool
+                uniform True [False]
                     |> Random.andThen
                         (\b ->
                             if b then
