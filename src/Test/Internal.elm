@@ -39,8 +39,8 @@ blankDescriptionFailure =
         }
 
 
-duplicatedName : List Test -> Result String (Set String)
-duplicatedName =
+duplicatedName : List Test -> Result (Set String) (Set String)
+duplicatedName tests =
     let
         names : Test -> List String
         names test =
@@ -63,19 +63,23 @@ duplicatedName =
                 ElmTestVariant__Only subTest ->
                     names subTest
 
-        insertOrFail : String -> Result String (Set String) -> Result String (Set String)
-        insertOrFail newName =
-            Result.andThen
-                (\oldNames ->
-                    if Set.member newName oldNames then
-                        Err newName
+        accumDuplicates : String -> ( Set String, Set String ) -> ( Set String, Set String )
+        accumDuplicates newName ( dups, uniques ) =
+            if Set.member newName uniques then
+                ( Set.insert newName dups, uniques )
 
-                    else
-                        Ok <| Set.insert newName oldNames
-                )
+            else
+                ( dups, Set.insert newName uniques )
+
+        ( dupsAccum, uniquesAccum ) =
+            List.concatMap names tests
+                |> List.foldl accumDuplicates ( Set.empty, Set.empty )
     in
-    List.concatMap names
-        >> List.foldl insertOrFail (Ok Set.empty)
+    if Set.isEmpty dupsAccum then
+        Ok uniquesAccum
+
+    else
+        Err dupsAccum
 
 
 toString : a -> String
