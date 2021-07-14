@@ -1,15 +1,12 @@
 module Tests exposing (all)
 
-import Expect exposing (FloatingPointTolerance(..))
+import Expect exposing (Expectation, FloatingPointTolerance(..))
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
-import PerformanceRegressionTests
-import Random
 import RunnerTests
-import Simplify
-import SimplifyTests
+import ShrinkingChallengeTests exposing (shrinkingChallenges)
 import Test exposing (..)
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
@@ -29,11 +26,9 @@ all =
         , expectationTests
         , fuzzerTests
         , floatWithinTests
-        , SimplifyTests.all
         , RunnerTests.all
         , elmHtmlTests
-
-        -- , PerformanceRegressionTests.all -- these are intentionally uncaught failing tests
+        , shrinkingChallenges
         ]
 
 
@@ -135,8 +130,7 @@ regressions =
                (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
-                fuzz
-                    (custom (Random.int 1 8) Simplify.simplest)
+                fuzz (intRange 1 8)
                     "fuzz tests run 100 times"
                     (Expect.notEqual 5)
                     |> expectTestToFail

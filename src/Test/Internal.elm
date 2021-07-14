@@ -1,7 +1,7 @@
 module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
 
-import Elm.Kernel.Debug
-import Random exposing (Generator)
+-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- import Elm.Kernel.Debug
+import Random
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation(..))
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
@@ -15,8 +15,8 @@ For more information, see <https://github.com/elm-explorations/test/pull/153>
 
 -}
 type Test
-    = ElmTestVariant__UnitTest (() -> List Expectation)
-    | ElmTestVariant__FuzzTest (Random.Seed -> Int -> List Expectation)
+    = ElmTestVariant__UnitTest (() -> Expectation)
+    | ElmTestVariant__FuzzTest (Random.Seed -> Int -> Expectation)
     | ElmTestVariant__Labeled String Test
     | ElmTestVariant__Skipped Test
     | ElmTestVariant__Only Test
@@ -28,7 +28,7 @@ type Test
 failNow : { description : String, reason : Reason } -> Test
 failNow record =
     ElmTestVariant__UnitTest
-        (\() -> [ Test.Expectation.fail record ])
+        (\() -> Test.Expectation.fail record)
 
 
 blankDescriptionFailure : Test

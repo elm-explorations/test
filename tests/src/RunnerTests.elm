@@ -197,8 +197,7 @@ fromTest =
                     case toSeededRunners (test "crashes" <| \() -> Debug.todo "crash") of
                         Plain [ runner ] ->
                             runner.run ()
-                                |> List.head
-                                |> Maybe.andThen Test.Runner.getFailureReason
+                                |> Test.Runner.getFailureReason
                                 |> Expect.equal
                                     (Just
                                         { given = Nothing

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -ex
 
@@ -27,7 +27,22 @@ cp ./versions.dat elm_home/0.19.1/packages/versions.dat
 
 export ELM_HOME="$(pwd)"/elm_home
 
+# randomize the seeds before running
+grep -ERiIl 'initialSeed [0-9]+' src |
+while read -r FILE
+do
+  SEED=$(head -200 /dev/urandom | cksum | cut -f1 -d " ")
+  sed -i.bak "s/initialSeed [0-9]\+/initialSeed ${SEED}/g" "${FILE}"
+done
+
 elm make src/Main.elm --output elm.js
+
+# restore seeds back
+find . -type f -name '*.bak' |
+while read -r FILE
+do
+  mv "${FILE}" "${FILE//.bak/}"
+done
 
 # node -prof elm.js # for performance testing, combine with node --prof-process tests/isolate-* > test-processed.txt
 node elm.js

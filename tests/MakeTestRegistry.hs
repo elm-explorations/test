@@ -69,17 +69,19 @@ main =
     encodeFile "./versions.dat" $
         PackageRegistry 0 $
             fromList
-                [ ( Name "elm" "core", [ Version 1 0 0 ] )
-                , ( Name "elm" "browser", [ Version 1 0 0] )
+                [ ( Name "elm" "browser", [ Version 1 0 2] )
+                , ( Name "elm" "bytes", [ Version 1 0 8 ] )
+                , ( Name "elm" "core", [ Version 1 0 5 ] )
                 , ( Name "elm" "html", [ Version 1 0 0] )
+                , ( Name "elm" "json", [ Version 1 1 3] )
                 , ( Name "elm" "random", [ Version 1 0 0] )
-                , ( Name "elm" "json", [ Version 1 0 0] )
                 , ( Name "elm" "time", [ Version 1 0 0] )
                 , ( Name "elm" "url", [ Version 1 0 0] )
-                , ( Name "elm" "virtual-dom", [ Version 1 0 0] )
-                , ( Name "eeue56" "elm-lazy-list", [ Version 2 0 0] )
-                , ( Name "eeue56" "elm-lazy", [ Version 1 0 1] )
-                , ( Name "eeue56" "elm-simplify", [ Version 2 0 0] )
-                , ( Name "jinjor" "elm-diff", [ Version 1 0 5] )
+                , ( Name "elm" "virtual-dom", [ Version 1 0 2] )
+                , ( Name "elm-explorations" "linear-algebra", [ Version 1 0 3] )
+                , ( Name "elm-explorations" "markdown", [ Version 1 0 0] )
                 , ( Name "elm-explorations" "test", [ Version 1 2 2] )
+                , ( Name "elm-explorations" "webgl", [ Version 1 1 2] )
+                , ( Name "jinjor" "elm-diff", [ Version 1 0 6] )
+                , ( Name "turboMaCk" "queue", [ Version 1 0 2] )
                 ]
