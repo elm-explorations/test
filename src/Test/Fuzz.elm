@@ -22,7 +22,7 @@ fuzzTest fuzzer untrimmedDesc getExpectation =
         blankDescriptionFailure
 
     else
-        ElmTestVariant__Labeled desc <| validatedFuzzTest validFuzzer getExpectation
+        ElmTestVariant__Labeled desc <| validatedFuzzTest fuzzer getExpectation
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.

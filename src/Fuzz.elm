@@ -257,7 +257,7 @@ percentage =
        Here we know the top 12 bits of the high int wouldn't be used for the
        mantissa calculations so we don't bother generating those.
     -}
-    pair ( internalInt 0x000FFFFF, int32 )
+    pair (internalInt 0x000FFFFF) int32
         |> map Fuzz.Float.fractionalFloat
 
 
