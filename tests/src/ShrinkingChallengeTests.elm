@@ -211,9 +211,8 @@ difference1 =
         "difference1"
         ( 10, 10 )
         (Fuzz.pair
-            ( Fuzz.intRange 0 Random.maxInt
-            , Fuzz.intRange 0 Random.maxInt
-            )
+            (Fuzz.intRange 0 Random.maxInt)
+            (Fuzz.intRange 0 Random.maxInt)
         )
         (\( x, y ) -> x < 10 || x /= y)
 
@@ -227,9 +226,8 @@ difference2 =
         "difference2"
         ( 10, 6 )
         (Fuzz.pair
-            ( Fuzz.intRange 0 Random.maxInt
-            , Fuzz.intRange 0 Random.maxInt
-            )
+            (Fuzz.intRange 0 Random.maxInt)
+            (Fuzz.intRange 0 Random.maxInt)
         )
         (\( x, y ) ->
             let
@@ -249,9 +247,8 @@ difference3 =
         "difference3"
         ( 10, 9 )
         (Fuzz.pair
-            ( Fuzz.intRange 0 Random.maxInt
-            , Fuzz.intRange 0 Random.maxInt
-            )
+            (Fuzz.intRange 0 Random.maxInt)
+            (Fuzz.intRange 0 Random.maxInt)
         )
         (\( x, y ) -> x < 10 || abs (x - y) /= 1)
 
@@ -407,9 +404,8 @@ deletion =
             |> Fuzz.andThen
                 (\list ->
                     Fuzz.pair
-                        ( Fuzz.constant list
-                        , Fuzz.oneOfValues list
-                        )
+                        (Fuzz.constant list)
+                        (Fuzz.oneOfValues list)
                 )
         )
         (\( list, el ) -> not (List.member el (removeFirst el list)))

@@ -167,9 +167,8 @@ fuzzerSpecificationTests =
             [ simplifiesTowards "redistributed additive pair"
                 ( 1, 1000 )
                 (Fuzz.pair
-                    ( Fuzz.intRange 0 1000
-                    , Fuzz.intRange 0 1000
-                    )
+                    (Fuzz.intRange 0 1000)
+                    (Fuzz.intRange 0 1000)
                 )
                 (\( m, n ) -> m + n <= 1000)
             , simplifiesTowards "list written in flip-a-coin way"
@@ -253,13 +252,13 @@ fuzzerSpecificationTests =
             , describe "pair"
                 [ simplifiesTowards "Every pair of ints has a zero"
                     ( 1, 1 )
-                    (Fuzz.pair ( Fuzz.int, Fuzz.int ))
+                    (Fuzz.pair Fuzz.int Fuzz.int)
                     (\( i, j ) -> (i == 0) || (j == 0))
                 ]
             , describe "triple"
                 [ simplifiesTowards "Every triple of ints has a zero"
                     ( 1, 1, 1 )
-                    (Fuzz.triple ( Fuzz.int, Fuzz.int, Fuzz.int ))
+                    (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
                     (\( i, j, k ) -> (i == 0) || (j == 0) || (k == 0))
                 ]
             , describe "map"
@@ -550,9 +549,8 @@ fuzzerSpecificationTests =
                         |> Fuzz.andThen
                             (\m ->
                                 Fuzz.pair
-                                    ( Fuzz.constant m
-                                    , Fuzz.intRange m (m + 10)
-                                    )
+                                    (Fuzz.constant m)
+                                    (Fuzz.intRange m (m + 10))
                             )
                     )
                     (\( m, n ) -> m <= n && n <= m + 10)
