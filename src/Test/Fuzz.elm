@@ -22,14 +22,14 @@ fuzzTest fuzzer untrimmedDesc getExpectation =
         blankDescriptionFailure
 
     else
-        Labeled desc <| validatedFuzzTest fuzzer getExpectation
+        ElmTestVariant__Labeled desc <| validatedFuzzTest validFuzzer getExpectation
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
 validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Test
 validatedFuzzTest fuzzer getExpectation =
-    FuzzTest
+    ElmTestVariant__FuzzTest
         (\seed runs ->
             case runUntilFailure fuzzer getExpectation seed runs of
                 Nothing ->

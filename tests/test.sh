@@ -44,4 +44,5 @@ do
   mv "${FILE}" "${FILE//.bak/}"
 done
 
+# node -prof elm.js # for performance testing, combine with node --prof-process tests/isolate-* > test-processed.txt
 node elm.js

@@ -230,14 +230,14 @@ distributeSeeds =
 distributeSeedsHelp : Bool -> Int -> Random.Seed -> Test -> Distribution
 distributeSeedsHelp hashed runs seed test =
     case test of
-        Internal.UnitTest aRun ->
+        Internal.ElmTestVariant__UnitTest aRun ->
             { seed = seed
             , all = [ Runnable (Thunk (\_ -> aRun ())) ]
             , only = []
             , skipped = []
             }
 
-        Internal.FuzzTest aRun ->
+        Internal.ElmTestVariant__FuzzTest aRun ->
             let
                 ( firstSeed, nextSeed ) =
                     Random.step Random.independentSeed seed
@@ -248,7 +248,7 @@ distributeSeedsHelp hashed runs seed test =
             , skipped = []
             }
 
-        Internal.Labeled description subTest ->
+        Internal.ElmTestVariant__Labeled description subTest ->
             -- This fixes https://github.com/elm-community/elm-test/issues/192
             -- The first time we hit a Labeled, we want to use the hash of
             -- that label, along with the original seed, as our starting
@@ -301,7 +301,7 @@ distributeSeedsHelp hashed runs seed test =
                 , skipped = List.map (Labeled description) next.skipped
                 }
 
-        Internal.Skipped subTest ->
+        Internal.ElmTestVariant__Skipped subTest ->
             let
                 -- Go through the motions in order to obtain the seed, but then
                 -- move everything to skipped.
@@ -314,7 +314,7 @@ distributeSeedsHelp hashed runs seed test =
             , skipped = next.all
             }
 
-        Internal.Only subTest ->
+        Internal.ElmTestVariant__Only subTest ->
             let
                 next =
                     distributeSeedsHelp hashed runs seed subTest
@@ -322,7 +322,7 @@ distributeSeedsHelp hashed runs seed test =
             -- `only` all the things!
             { next | only = next.all }
 
-        Internal.Batch tests ->
+        Internal.ElmTestVariant__Batch tests ->
             List.foldl (batchDistribute hashed runs) (emptyDistribution seed) tests
 
 
