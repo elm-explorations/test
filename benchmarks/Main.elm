@@ -5,7 +5,7 @@ import Benchmark.Runner as Runner
 import Expect exposing (Expectation)
 import Random.Pcg
 import Snippets
-import Test.Internal exposing (Test(Labeled, Test))
+import Test.Internal exposing (Test(..))
 
 
 main : Runner.BenchmarkProgram
