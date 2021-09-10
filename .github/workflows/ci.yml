@@ -1,0 +1,59 @@
+name: CI
+
+# CI is run on pull requests and on push to the main branch
+on:
+  pull_request:
+  push:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    # This job is to run the tests
+    name: Run tests of elm-test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Run on Mac, Windows, and Linux, for multiple Node versions
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        node: ['8', '10', '12', '14']
+
+    env:
+      ELM_HOME: '${{ github.workspace }}/elm-home'
+
+    steps:
+      # Clone the repository
+      - uses: actions/checkout@v2
+
+      # Setup Node JS
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node }}
+
+      # Install elm and cache ELM_HOME
+      - name: Install elm
+        uses: mpizenberg/elm-tooling-action@v1.2
+        with:
+          cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
+          cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
+
+      - name: Run the tests
+        run: ./tests/make.sh && (cd tests && ./tests.sh)
+
+  check_formatting:
+    # This job is to check the formatting of files
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      # Clone the repository
+      - uses: actions/checkout@v2
+
+      # Install elm-format
+      - name: Install elm-format
+        uses: mpizenberg/elm-tooling-action@v1.2
+        with:
+          cache-key: format-${{ matrix.os }}-node${{ matrix.node }}-0
+          cache-restore-key: format-${{ matrix.os }}-node${{ matrix.node }}
+
+      - name: Check formatting
+        run: elm-format --validate src tests/src benchmarks
