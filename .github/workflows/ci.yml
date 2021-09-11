@@ -38,7 +38,7 @@ jobs:
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
 
       - name: Run the tests
-        run: ./tests/make.sh && (cd tests && ./tests.sh)
+        run: ./tests/make.sh && (cd tests && ./test.sh)
 
   check_formatting:
     # This job is to check the formatting of files
