@@ -13,7 +13,9 @@ PACKAGE_VERSION=`grep \"version ../elm.json | cut -d \" -f 4`
 mkdir -p elm_home/0.19.1/packages/elm-explorations/test/${PACKAGE_VERSION}
 rsync -va ../ elm_home/0.19.1/packages/elm-explorations/test/${PACKAGE_VERSION}/ --exclude tests --exclude elm-stuff --exclude .git --exclude node_modules
 
-if which runhaskell; then
+if [ "$CI" = true ]; then
+    echo "Running in CI"
+elif which runhaskell; then
     # this produces ./versions.dat, but that file
     # is checked in, so it's fine to skip regenerating if
     # haskell is not available (such as on CI)
