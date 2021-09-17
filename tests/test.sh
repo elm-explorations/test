@@ -2,6 +2,8 @@
 
 set -ex
 
+echo $PATH
+
 # Change current working directory to this one.
 cd "${0%/*}"
 

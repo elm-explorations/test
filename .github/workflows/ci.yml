@@ -37,6 +37,9 @@ jobs:
           cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
 
+      - name: Display PATH env var
+        run: echo $PATH
+
       - name: Run the tests
         run: npm test
 
