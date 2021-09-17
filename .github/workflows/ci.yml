@@ -38,7 +38,7 @@ jobs:
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
 
       - name: Run the tests
-        run: ./tests/make.sh && (cd tests && ./test.sh)
+        run: npm test
 
   check_formatting:
     # This job is to check the formatting of files
@@ -56,4 +56,4 @@ jobs:
           cache-restore-key: format-${{ matrix.os }}-node${{ matrix.node }}
 
       - name: Check formatting
-        run: elm-format --validate src tests/src benchmarks
+        run: npm run format
