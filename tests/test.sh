@@ -2,6 +2,9 @@
 
 set -ex
 
+# Change current working directory to this one.
+cd "${0%/*}"
+
 rm -f elm.js
 rm -Rf elm-stuff
 rm -Rf elm_home/0.19.1/packages/elm-explorations/test
