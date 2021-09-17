@@ -38,9 +38,11 @@ jobs:
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
 
       - name: Display PATH env var
+        shell: bash
         run: echo $PATH
 
       - name: Run the tests
+        shell: bash
         run: npm test
 
   check_formatting:
