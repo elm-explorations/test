@@ -37,14 +37,7 @@ jobs:
           cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
 
-      - name: pre-test (no npm)
-        run: tests/make.sh
-
-      - name: test (no npm)
-        run: tests/test.sh
-
-      - name: Run the tests (with npm)
-        shell: bash
+      - name: Run the tests
         run: npm test
 
   check_formatting:
