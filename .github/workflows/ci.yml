@@ -14,8 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Run on Mac, Windows, and Linux, for multiple Node versions
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        # Run on Mac and Linux, for multiple Node versions
+        os: [macos-latest, ubuntu-latest]
         node: ['8', '10', '12', '14']
 
     env:
