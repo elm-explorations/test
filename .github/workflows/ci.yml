@@ -14,8 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Run on Mac, Windows, and Linux, for multiple Node versions
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        # Run on Mac and Linux, for multiple Node versions
+        os: [macos-latest, ubuntu-latest]
         node: ['8', '10', '12', '14']
 
     env:
@@ -38,7 +38,7 @@ jobs:
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
 
       - name: Run the tests
-        run: ./tests/make.sh && (cd tests && ./tests.sh)
+        run: npm test
 
   check_formatting:
     # This job is to check the formatting of files
@@ -56,4 +56,4 @@ jobs:
           cache-restore-key: format-${{ matrix.os }}-node${{ matrix.node }}
 
       - name: Check formatting
-        run: elm-format --validate src tests/src benchmarks
+        run: npm run format
