@@ -7,7 +7,9 @@ import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
 type Selector
     = All (List Selector)
     | Classes (List String)
+    | ClassesNS (List String)
     | Class String
+    | ClassNS String
     | Attribute { name : String, value : String }
     | BoolAttribute { name : String, value : Bool }
     | Style { key : String, value : String }
