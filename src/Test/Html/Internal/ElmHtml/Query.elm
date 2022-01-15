@@ -244,6 +244,11 @@ hasClass queryString facts =
     List.member queryString (classnames facts)
 
 
+hasClassNS : String -> Facts msg -> Bool
+hasClassNS queryString facts =
+    List.member queryString (classnamesNS facts)
+
+
 hasClasses : List String -> Facts msg -> Bool
 hasClasses classList facts =
     containsAll classList (classnames facts)
@@ -265,11 +270,13 @@ classnames facts =
         |> Maybe.withDefault ""
         |> String.split " "
 
+
 classnamesNS : Facts msg -> List String
 classnamesNS facts =
     Dict.get "class" facts.stringAttributes
         |> Maybe.withDefault ""
         |> String.split " "
+
 
 containsAll : List a -> List a -> Bool
 containsAll a b =
@@ -288,6 +295,10 @@ nodeRecordPredicate selector =
         ClassName classname ->
             .facts
                 >> hasClass classname
+
+        ClassNameNS classname ->
+            .facts
+                >> hasClassNS classname
 
         ClassList classList ->
             .facts
