@@ -343,9 +343,17 @@ markdownPredicate selector =
             .facts
                 >> hasClass classname
 
+        ClassNameNS classname ->
+            .facts
+                >> hasClassNS classname
+
         ClassList classList ->
             .facts
                 >> hasClasses classList
+
+        ClassListNS classList ->
+            .facts
+                >> hasClassesNS classList
 
         Tag tag ->
             always False
