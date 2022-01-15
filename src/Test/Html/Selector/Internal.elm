@@ -145,8 +145,14 @@ query fn fnAll selector list =
                 Classes classes ->
                     List.concatMap (fn (ElmHtmlQuery.ClassList classes)) elems
 
+                ClassesNS classes ->
+                    List.concatMap (fn (ElmHtmlQuery.ClassListNS classes)) elems
+
                 Class class ->
                     List.concatMap (fn (ElmHtmlQuery.ClassList [ class ])) elems
+
+                ClassNS class ->
+                    List.concatMap (fn (ElmHtmlQuery.ClassListNS [ class ])) elems
 
                 Attribute { name, value } ->
                     List.concatMap (fn (ElmHtmlQuery.Attribute name value)) elems
