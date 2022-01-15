@@ -249,6 +249,11 @@ hasClasses classList facts =
     containsAll classList (classnames facts)
 
 
+hasClassesNS : List String -> Facts msg -> Bool
+hasClassesNS classList facts =
+    containsAll classList (classnamesNS facts)
+
+
 hasStyle : { key : String, value : String } -> Facts msg -> Bool
 hasStyle style facts =
     Dict.get style.key facts.styles == Just style.value
@@ -260,6 +265,11 @@ classnames facts =
         |> Maybe.withDefault ""
         |> String.split " "
 
+classnamesNS : Facts msg -> List String
+classnamesNS facts =
+    Dict.get "class" facts.stringAttributes
+        |> Maybe.withDefault ""
+        |> String.split " "
 
 containsAll : List a -> List a -> Bool
 containsAll a b =
@@ -282,6 +292,10 @@ nodeRecordPredicate selector =
         ClassList classList ->
             .facts
                 >> hasClasses classList
+
+        ClassListNS classList ->
+            .facts
+                >> hasClassesNS classList
 
         Tag tag ->
             .tag
