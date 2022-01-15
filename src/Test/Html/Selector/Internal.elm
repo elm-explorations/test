@@ -42,8 +42,14 @@ selectorToString criteria =
         Classes list ->
             "classes " ++ quoteString (String.join " " list)
 
+        ClassesNS list ->
+            "classesNS " ++ quoteString (String.join " " list)
+
         Class class ->
             "class " ++ quoteString class
+
+        ClassNS class ->
+            "classNS " ++ quoteString class
 
         Attribute { name, value } ->
             "attribute "
