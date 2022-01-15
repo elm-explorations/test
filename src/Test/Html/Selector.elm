@@ -1,7 +1,7 @@
 module Test.Html.Selector exposing
     ( Selector
     , tag, text, containing, attribute, all
-    , id, class, classNS, classes, exactClassName, style, checked, selected, disabled
+    , id, class, classNS, classes, classesNS, exactClassName, style, checked, selected, disabled
     )
 
 {-| Selecting HTML elements.
@@ -16,7 +16,7 @@ module Test.Html.Selector exposing
 
 ## Attributes
 
-@docs id, class, classNS, classes, exactClassName, style, checked, selected, disabled
+@docs id, class, classNS, classes, classesNS, exactClassName, style, checked, selected, disabled
 
 -}
 
@@ -83,6 +83,32 @@ To match the element's exact class attribute string, use [`exactClassName`](#exa
 classes : List String -> Selector
 classes =
     Classes
+
+
+{-| Matches svg elements that have all the given classes (and possibly others as well).
+
+When you only care about one class instead of several, you can use
+[`classNS`](#classNS) instead of passing this function a list with one value in it.
+
+To match the element's exact class attribute string, use [`exactClassNameNS`](#exactClassNameNS).
+
+    import Svg.Html as SvgHtml
+    import Svg.Attributes as SvgAttr
+    import Test.Html.Query as Query
+    import Test exposing (test)
+    import Test.Html.Selector exposing (classesNS)
+
+
+    test "Svg has the classes svg-styles and svg-large" <|
+        \() ->
+            SvgHtml.svg [ SvgAttr.class "svg-styles svg-large" ] []
+                |> Query.fromHtml
+                |> Query.has [ classesNS [ "svg-styles", "svg-large" ] ]
+
+-}
+classesNS : List String -> Selector
+classesNS =
+    ClassesNS
 
 
 {-| Matches elements that have the given class (and possibly others as well).
