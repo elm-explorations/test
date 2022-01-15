@@ -1,7 +1,7 @@
 module Test.Html.Selector exposing
     ( Selector
     , tag, text, containing, attribute, all
-    , id, class, classNS, classes, classesNS, exactClassName, style, checked, selected, disabled
+    , id, class, classNS, classes, classesNS, exactClassName, exactClassNameNS, style, checked, selected, disabled
     )
 
 {-| Selecting HTML elements.
@@ -16,7 +16,7 @@ module Test.Html.Selector exposing
 
 ## Attributes
 
-@docs id, class, classNS, classes, classesNS, exactClassName, style, checked, selected, disabled
+@docs id, class, classNS, classes, classesNS, exactClassName, exactClassNameNS, style, checked, selected, disabled
 
 -}
 
@@ -184,6 +184,31 @@ to matching the entire class attribute exactly.
 exactClassName : String -> Selector
 exactClassName =
     namedAttr "className"
+
+
+{-| Matches the svg element's exact class attribute string.
+
+This is used less often than [`classNS`](#classNS) or [`classesNS`](#classesNS),
+which check for the _presence_ of a class as opposed to matching the entire
+class attribute exactly.
+
+    import Svg.Html as SvgHtml
+    import Svg.Attributes as SvgAttr
+    import Test.Html.Query as Query
+    import Test exposing (test)
+    import Test.Html.Selector exposing (exactClassNameNS)
+
+
+    test "Svg has the exact class 'svg-styles svg-large'" <|
+        \() ->
+            SvgHtml.svg [ SvgAttr.class "btn btn-large" ] []
+                |> Query.fromHtml
+                |> Query.has [ exactClassNameNS "svg-styles svg-large" ]
+
+-}
+exactClassNameNS : String -> Selector
+exactClassNameNS =
+    namedAttr "class"
 
 
 {-| Matches elements that have the given `id` attribute.
