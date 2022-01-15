@@ -29,7 +29,9 @@ import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 type Selector
     = Id String
     | ClassName String
+    | ClassNameNS String
     | ClassList (List String)
+    | ClassListNS (List String)
     | Tag String
     | Attribute String String
     | BoolAttribute String Bool
