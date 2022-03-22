@@ -8,5 +8,8 @@
     "format": "elm-format --validate src tests/src benchmarks"
   },
   "author": "Richard Feldman",
-  "license": "BSD-3-Clause"
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "elm-test": "^0.19.1-revision7"
+  }
 }

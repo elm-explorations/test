@@ -1,15 +1,10 @@
 module Tests exposing (all)
 
 import Expect exposing (FloatingPointTolerance(..))
-import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
-import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
-import PerformanceRegressionTests
 import Random
-import RunnerTests
 import Simplify
-import SimplifyTests
 import Test exposing (..)
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
@@ -27,13 +22,7 @@ all =
         , regressions
         , testTests
         , expectationTests
-        , fuzzerTests
-        , floatWithinTests
-        , SimplifyTests.all
-        , RunnerTests.all
         , elmHtmlTests
-
-        -- , PerformanceRegressionTests.all -- these are intentionally uncaught failing tests
         ]
 
 

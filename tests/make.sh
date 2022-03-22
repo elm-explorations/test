@@ -8,11 +8,13 @@ if [[ $(git rev-parse --show-toplevel) != $(pwd) ]]; then
   exit 1
 fi
 
+elm="${ELM:-elm}"
+
 FILE_WITH_IMPORT=src/Test/Internal.elm
 
 sed -i.bak 's/import Elm\.Kernel\.Debug/-- import Elm\.Kernel\.Debug/g' "$FILE_WITH_IMPORT"
 
-elm make --docs=documentation.json
+$elm make --docs=documentation.json
 exit_code=$?
 
 mv "$FILE_WITH_IMPORT.bak" "$FILE_WITH_IMPORT"

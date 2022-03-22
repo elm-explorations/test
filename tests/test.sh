@@ -32,7 +32,4 @@ cp ./versions.dat elm_home/0.19.1/packages/versions.dat
 
 export ELM_HOME="$(pwd)"/elm_home
 
-elm make src/Main.elm --output elm.js
-
-# node -prof elm.js # for performance testing, combine with node --prof-process tests/isolate-* > test-processed.txt
-node elm.js
+elm-test 'src/**/*.elm'
