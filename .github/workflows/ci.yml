@@ -16,7 +16,7 @@ jobs:
       matrix:
         # Run on Mac and Linux, for multiple Node versions
         os: [macos-latest, ubuntu-latest]
-        node: ['8', '10', '12', '14']
+        node: ['10', '12', '14', '16']
 
     env:
       ELM_HOME: '${{ github.workspace }}/elm-home'
@@ -30,12 +30,30 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      # Install elm and cache ELM_HOME
-      - name: Install elm
-        uses: mpizenberg/elm-tooling-action@v1.2
+      # Re-use node_modules between runs until package.json changes.
+      - name: Cache node_modules
+        id: cache-node_modules
+        uses: actions/cache@v2
         with:
-          cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
-          cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
+          path: node_modules
+          key: node_modules-${{ hashFiles('package.json') }}
+
+      # Re-use ~/.elm between runs until elm.json, elm-tooling.json or
+      # review/elm.json changes. The Elm compiler saves downloaded Elm packages
+      # to ~/.elm, and elm-tooling saves downloaded tool executables there.
+      - name: Cache ~/.elm
+        uses: actions/cache@v2
+        with:
+          path: ~/.elm
+          key: elm-${{ hashFiles('elm.json', 'elm-tooling.json', 'review/elm.json') }}
+
+      - name: npm install
+        env:
+          NO_ELM_TOOLING_INSTALL: 1
+        run: npm install
+
+      - name: elm-tooling install
+        run: npx --no-install elm-tooling install
 
       - name: Run the tests
         run: npm test
