@@ -277,6 +277,7 @@ text somewhere in their descendants.
                 [ Html.button [ onClick NopeMsg ] [ Html.text "not me" ]
                 , Html.button [ onClick ClickedMsg ] [ Html.text "click me" ]
                 ]
+                |> Query.fromHtml
                 |> Query.find
                     [ tag "button"
                     , containing [ text "click me" ]
