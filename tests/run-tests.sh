@@ -10,13 +10,8 @@ cd "${0%/*}" # Change current working directory to this one.
 LIBRARY_PATH=$(cd .. && pwd)
 PACKAGE_NAME="elm-explorations/test"
 PACKAGE_VERSION="1.2.2"
-ORIGINAL_ELM_HOME="${ELM_HOME}"
 ELM_HOME="elm_home"
 PACKAGE_PATH="${ELM_HOME}/0.19.1/packages/${PACKAGE_NAME}/${PACKAGE_VERSION}"
-
-echo "Remembering original ELM_HOME=${ORIGINAL_ELM_HOME}"
-echo "Temporarily setting ELM_HOME=${ELM_HOME}"
-export ELM_HOME
 
 echo "Cleaning up elm.js, elm-stuff, ${ELM_HOME}"
 rm -rf elm.js
@@ -30,9 +25,9 @@ cp -r ../elm.json  "${PACKAGE_PATH}/elm.json"
 cp -r ../README.md "${PACKAGE_PATH}/README.md"
 cp -r ../LICENSE   "${PACKAGE_PATH}/LICENSE"
 
-echo "Compiling the test suite"
+echo "Compiling the test suite with ELM_HOME=${ELM_HOME}"
 echo -en "${COLOR_OFF}";
-elm make src/Main.elm --output elm.js
+ELM_HOME="${ELM_HOME}" elm make src/Main.elm --output elm.js
 
 echo -en "${DIM}";
 echo "Running the test suite"
@@ -42,9 +37,6 @@ node elm.js
 
 echo -en "${DIM}";
 echo "----------------------------------------------------"
-echo "Restoring the original ELM_HOME=${ORIGINAL_ELM_HOME}"
-export ELM_HOME="${ORIGINAL_ELM_HOME}"
-
 echo "Navigating back to the original directory"
 cd - >/dev/null
 echo -en "${COLOR_OFF}";
