@@ -29,6 +29,13 @@ echo "Compiling the test suite with ELM_HOME=${ELM_HOME}"
 echo -en "${COLOR_OFF}";
 ELM_HOME="${ELM_HOME}" elm make src/Main.elm --output elm.js
 
+if [ ! -f elm.js ]; then
+    echo -en "${DIM}";
+    echo "Compilation failed"
+    echo -en "${COLOR_OFF}";
+    exit 1
+fi
+
 echo -en "${DIM}";
 echo "Running the test suite"
 echo "----------------------------------------------------"
