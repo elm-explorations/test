@@ -3,8 +3,7 @@
   "version": "0.0.0",
   "description": "tests for elm-test, so you can elm-test while you elm-test",
   "scripts": {
-    "pre-test": "bash tests/make.sh",
-    "test": "bash tests/test.sh",
+    "test": "bash tests/run-tests.sh",
     "format": "elm-format --validate src tests/src benchmarks"
   },
   "author": "Richard Feldman",
