@@ -13,10 +13,10 @@ PACKAGE_VERSION="1.2.2"
 ELM_HOME="elm_home"
 PACKAGE_PATH="${ELM_HOME}/0.19.1/packages/${PACKAGE_NAME}/${PACKAGE_VERSION}"
 
-echo "Cleaning up elm.js, elm-stuff, ${ELM_HOME}"
+echo "Removing temporary files from previous runs"
 rm -rf elm.js
 rm -rf elm-stuff
-rm -rf "${ELM_HOME}"
+rm -rf "${PACKAGE_PATH}"
 
 echo "Copying the library from ${LIBRARY_PATH} to ${PACKAGE_PATH}"
 mkdir -p "${PACKAGE_PATH}"
