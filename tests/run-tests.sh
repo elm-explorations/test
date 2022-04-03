@@ -7,9 +7,8 @@ echo -en "${DIM}";
 echo "Navigating to the tests/ directory"
 cd "${0%/*}" # Change current working directory to this one.
 
-LIBRARY_PATH=$(cd .. && pwd)
-PACKAGE_NAME="elm-explorations/test"
-PACKAGE_VERSION="1.2.2"
+PACKAGE_NAME=$(grep '"name"' ../elm.json | cut -d \" -f4)
+PACKAGE_VERSION=$(grep '"version"' ../elm.json | cut -d \" -f4)
 ELM_HOME="elm_home"
 PACKAGE_PATH="${ELM_HOME}/0.19.1/packages/${PACKAGE_NAME}/${PACKAGE_VERSION}"
 
@@ -18,7 +17,7 @@ rm -rf elm.js
 rm -rf elm-stuff
 rm -rf "${PACKAGE_PATH}"
 
-echo "Copying the library from ${LIBRARY_PATH} to ${PACKAGE_PATH}"
+echo "Copying the library from .. to ${PACKAGE_PATH}"
 mkdir -p "${PACKAGE_PATH}"
 cp -r ../src       "${PACKAGE_PATH}/src"
 cp -r ../elm.json  "${PACKAGE_PATH}/elm.json"
@@ -41,9 +40,3 @@ echo "Running the test suite"
 echo "----------------------------------------------------"
 echo -en "${COLOR_OFF}";
 node elm.js
-
-echo -en "${DIM}";
-echo "----------------------------------------------------"
-echo "Navigating back to the original directory"
-cd - >/dev/null
-echo -en "${COLOR_OFF}";
