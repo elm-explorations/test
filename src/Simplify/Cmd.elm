@@ -84,7 +84,7 @@ cmdsForRun run =
     List.fastConcat
         [ deletionCmds length
         , zeroCmds length
-        , minimizeChoiceCmds length
+        , minimizeChoiceCmds run length
         , minimizeFloatCmds run length
         , sortCmds length
         , redistributeCmds length
@@ -120,15 +120,22 @@ sortCmds length =
         }
 
 
-minimizeChoiceCmds : Int -> List SimplifyCmd
-minimizeChoiceCmds length =
-    List.range 0 (length - 1)
-        |> List.reverse
-        |> List.map
-            (\index ->
-                { type_ = MinimizeChoice { index = index }
-                , minLength = index + 1
-                }
+minimizeChoiceCmds : RandomRun -> Int -> List SimplifyCmd
+minimizeChoiceCmds run length =
+    run
+        |> RandomRun.toList
+        |> List.indexedMap Tuple.pair
+        |> List.filterMap
+            (\( index, value ) ->
+                if value > 0 then
+                    Just
+                        { type_ = MinimizeChoice { index = index }
+                        , minLength = index + 1
+                        }
+
+                else
+                    -- no point in trying to minimize a 0
+                    Nothing
             )
 
 

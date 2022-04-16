@@ -389,14 +389,18 @@ minimizeChoice { index } state =
             noImprovement state
 
         Just value ->
-            binarySearchShrink
-                { low = 0
-                , high = value
-                , state = state
-                , updateRun =
-                    \value_ accRun ->
-                        RandomRun.set index value_ accRun
-                }
+            if value == 0 then
+                noImprovement state
+
+            else
+                binarySearchShrink
+                    { low = 0
+                    , high = value
+                    , state = state
+                    , updateRun =
+                        \value_ accRun ->
+                            RandomRun.set index value_ accRun
+                    }
 
 
 decrementTogether : { leftIndex : Int, rightIndex : Int, by : Int } -> State a -> SimplifyResult a

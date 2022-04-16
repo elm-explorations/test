@@ -2,6 +2,7 @@
 
 # With RANDOMIZED=1, replaces all Random.initialSeed calls with a random integer.
 # With SEED=3937524181, replaces all Random.initialSeed calls with that seed.
+# With NOCLEANUP=1, won't remove elm-stuff etc. (tests should be a bit faster as a result)
 
 DIM="\e[2m";
 COLOR_OFF="\e[0m";
@@ -15,10 +16,12 @@ PACKAGE_VERSION=$(grep '"version"' ../elm.json | cut -d \" -f4)
 ELM_HOME="elm_home"
 PACKAGE_PATH="${ELM_HOME}/0.19.1/packages/${PACKAGE_NAME}/${PACKAGE_VERSION}"
 
-echo "Removing temporary files from previous runs"
-rm -rf elm.js
-rm -rf elm-stuff
-rm -rf "${PACKAGE_PATH}"
+if [ -z ${NOCLEANUP+x} ]; then
+  echo "Removing temporary files from previous runs"
+  rm -rf elm.js
+  rm -rf elm-stuff
+  rm -rf "${PACKAGE_PATH}"
+fi
 
 echo "Copying the library from .. to ${PACKAGE_PATH}"
 mkdir -p "${PACKAGE_PATH}"
