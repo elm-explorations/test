@@ -525,8 +525,10 @@ fuzzerSpecificationTests =
                     (not << List.isEmpty)
                 , simplifiesTowards "simplest" [] (Fuzz.list Fuzz.int) fullySimplify
                 , simplifiesTowardsWith { runs = 2000 } "next simplest" [ 0 ] (Fuzz.list Fuzz.int) (\x -> x == [])
-                , simplifiesTowards "All lists are sorted"
-                    [ 0, -1 ]
+                , simplifiesTowardsMany "All lists are sorted"
+                    [ [ 0, -1 ]
+                    , [ 1, 0 ]
+                    ]
                     (Fuzz.list Fuzz.int)
                     (\list -> list == List.sort list)
                 ]
