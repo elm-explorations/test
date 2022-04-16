@@ -269,9 +269,13 @@ Will occasionally try infinities and NaN. If you don't want to generate these, u
 float : Fuzzer Float
 float =
     intFrequency
-        [ ( 5, wellShrinkingFloat )
-        , ( 1, constant (-1 / 0) )
+        [ {- Just to shrink nicely. The wellShrinkingFloat below needs 3 items
+             in the RandomRun so sometimes it's not an option anymore.
+          -}
+          ( 1, constant 0 )
+        , ( 5, wellShrinkingFloat )
         , ( 1, constant (1 / 0) )
+        , ( 1, constant (-1 / 0) )
         , ( 1, constant (0 / 0) )
         ]
 

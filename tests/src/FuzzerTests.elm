@@ -324,15 +324,7 @@ fuzzerSpecificationTests =
                     Fuzz.char
                     (\c -> Char.toCode c > 0x0001F525)
                 , simplifiesTowards "simplest" ' ' Fuzz.char fullySimplify
-                , simplifiesTowardsMany "next simplest"
-                    -- lowest representatives of all the special-case groups
-                    [ '!'
-                    , '\t'
-                    , Char.fromCode 0x0302
-                    , '🌈'
-                    ]
-                    Fuzz.char
-                    (\c -> c == ' ')
+                , simplifiesTowards "next simplest" '!' Fuzz.char (\c -> c == ' ')
                 ]
             , describe "asciiString"
                 [ canGenerate "" Fuzz.asciiString
@@ -533,10 +525,8 @@ fuzzerSpecificationTests =
                     (not << List.isEmpty)
                 , simplifiesTowards "simplest" [] (Fuzz.list Fuzz.int) fullySimplify
                 , simplifiesTowardsWith { runs = 2000 } "next simplest" [ 0 ] (Fuzz.list Fuzz.int) (\x -> x == [])
-                , simplifiesTowardsMany "All lists are sorted"
-                    [ [ 1, 0 ]
-                    , [ 0, -1 ]
-                    ]
+                , simplifiesTowards "All lists are sorted"
+                    [ 0, -1 ]
                     (Fuzz.list Fuzz.int)
                     (\list -> list == List.sort list)
                 ]
@@ -665,33 +655,14 @@ fuzzerSpecificationTests =
                 , canGenerateSatisfying "Infinity" Fuzz.float isInfinite
                 , canGenerateSatisfying "negative" Fuzz.float (\f -> f < 0)
                 , canGenerateSatisfying "positive" Fuzz.float (\f -> f > 0)
-                , simplifiesTowardsMany "simplest"
-                    [ 0
-                    , -1 / 0
-                    , 1 / 0
-                    , 0 / 0
-                    ]
-                    Fuzz.float
-                    fullySimplify
-                , simplifiesTowardsMany "next simplest"
-                    [ 1 / 0
-                    , -1 / 0
-                    , 0 / 0
-                    , 1
-                    ]
-                    Fuzz.float
-                    (\x -> x == 0)
+                , simplifiesTowards "simplest" 0 Fuzz.float fullySimplify
+                , simplifiesTowards "next simplest" 1 Fuzz.float (\x -> x == 0)
                 , simplifiesTowards "simplest outside 0, infinities and NaN" 1 Fuzz.float (\x -> x == 0 || isInfinite x || isNaN x)
                 , simplifiesTowards "simplest non-int"
                     1.5
                     Fuzz.float
                     (\x -> isInfinite x || isNaN x || String.toInt (String.fromFloat x) /= Nothing)
-                , simplifiesTowardsMany "simplest negative"
-                    [ -1
-                    , -1 / 0
-                    ]
-                    Fuzz.float
-                    (\x -> x >= 0)
+                , simplifiesTowards "simplest negative" -1 Fuzz.float (\x -> x >= 0)
                 ]
             , describe "floatAtLeast"
                 [ describe "n <= 0"

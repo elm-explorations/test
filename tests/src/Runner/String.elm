@@ -51,6 +51,16 @@ toOutput summary seededRunners =
 
 toOutputHelp : Runner -> Summary -> Summary
 toOutputHelp runner summary =
+    {-
+       let
+           _ =
+               Debug.log "==================" ()
+       in
+       let
+           _ =
+               Debug.log "TEST" runner.labels
+       in
+    -}
     runner.run ()
         |> List.foldl (fromExpectation runner.labels) summary
 

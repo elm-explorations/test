@@ -81,7 +81,7 @@ simplifyWhileProgress state =
     {-
        let
            _ =
-               logState "simplify" state
+               logState "\ncurrent best" state
        in
     -}
     let
@@ -131,10 +131,7 @@ logRun : String -> RandomRun -> RandomRun
 logRun label run =
     let
         _ =
-            Debug.log label
-                ( RandomRun.toList run
-                , RandomRun.length run
-                )
+            Debug.log label (RandomRun.toList run)
     in
     run
 
@@ -142,8 +139,8 @@ logRun label run =
 logState : String -> State a -> State a
 logState label state =
     let
-        _ =
-            logRun label state.randomRun
+        runString =
+            Debug.toString (RandomRun.toList state.randomRun)
     in
     let
         _ =
@@ -151,7 +148,7 @@ logState label state =
                 Generated { value } ->
                     let
                         _ =
-                            Debug.log (label ++ " - value") value
+                            Debug.log (label ++ " - " ++ runString ++ " --->") value
                     in
                     ()
 
@@ -163,30 +160,48 @@ logState label state =
 
 runCmd : SimplifyCmd -> State a -> SimplifyResult a
 runCmd cmd state =
-    case cmd.type_ of
-        DeleteChunkAndMaybeDecrementPrevious chunk ->
-            deleteChunkAndMaybeDecrementPrevious chunk state
+    let
+        {-
+           _ =
+               logRun ("trying " ++ Debug.toString cmd.type_ ++ " on") state.randomRun
+        -}
+        result =
+            case cmd.type_ of
+                DeleteChunkAndMaybeDecrementPrevious chunk ->
+                    deleteChunkAndMaybeDecrementPrevious chunk state
 
-        ReplaceChunkWithZero chunk ->
-            replaceChunkWithZero chunk state
+                ReplaceChunkWithZero chunk ->
+                    replaceChunkWithZero chunk state
 
-        SortChunk chunk ->
-            sortChunk chunk state
+                SortChunk chunk ->
+                    sortChunk chunk state
 
-        MinimizeFloat options ->
-            minimizeFloat options state
+                MinimizeFloat options ->
+                    minimizeFloat options state
 
-        MinimizeChoice options ->
-            minimizeChoice options state
+                MinimizeChoice options ->
+                    minimizeChoice options state
 
-        RedistributeChoicesAndMaybeIncrement options ->
-            redistributeChoicesAndMaybeIncrement options state
+                RedistributeChoicesAndMaybeIncrement options ->
+                    redistributeChoicesAndMaybeIncrement options state
 
-        DecrementTogether options ->
-            decrementTogether options state
+                DecrementTogether options ->
+                    decrementTogether options state
 
-        SwapChunkWithNeighbour chunk ->
-            swapChunkWithNeighbour chunk state
+                SwapChunkWithNeighbour chunk ->
+                    swapChunkWithNeighbour chunk state
+    in
+    {-
+       let
+           _ =
+               if result.wasImprovement then
+                   logState "Success" result.newState
+
+               else
+                   result.newState
+       in
+    -}
+    result
 
 
 {-| Tries the new RandomRun with the given fuzzer and test fn, and if the run
