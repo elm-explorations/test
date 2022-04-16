@@ -1,7 +1,6 @@
 module Test.Internal exposing (Test(..), blankDescriptionFailure, crash, duplicatedName, failNow, toString)
 
--- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- import Elm.Kernel.Debug
-
+import Elm.Kernel.Debug
 import Random
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation)
