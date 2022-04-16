@@ -4,9 +4,9 @@ module Fuzz exposing
     , float, niceFloat, percentage, floatRange, floatAtLeast, floatAtMost
     , char, asciiChar, string, stringOfLengthBetween, asciiString, asciiStringOfLengthBetween
     , pair, triple, list, listOfLength, listOfLengthBetween, array, maybe, result
-    , bool, unit, order, invalid, weightedBool
+    , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
-    , constant, map, map2, map3, map4, map5, andMap, andThen, filter
+    , constant, map, map2, map3, map4, map5, andMap, andThen, filter, reject
     )
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
@@ -49,7 +49,7 @@ Note that `pair` and `triple` fuzzers are equivalent to using [`fuzz2`][fuzz2] o
 
 ## Other fuzzers
 
-@docs bool, unit, order, invalid, weightedBool
+@docs bool, unit, order, weightedBool
 
 
 ## Choosing fuzzers
@@ -59,7 +59,7 @@ Note that `pair` and `triple` fuzzers are equivalent to using [`fuzz2`][fuzz2] o
 
 ## Working with Fuzzers
 
-@docs constant, map, map2, map3, map4, map5, andMap, andThen, filter
+@docs constant, map, map2, map3, map4, map5, andMap, andThen, filter, reject
 
 [fuzz2]: /packages/elm-explorations/test/latest/Test#fuzz2
 [fuzz3]: /packages/elm-explorations/test/latest/Test#fuzz3
@@ -1099,6 +1099,14 @@ invalid reason =
                 { reason = reason
                 , prng = prng
                 }
+
+
+{-| A fuzzer that rejects generating values for the provided reason. Any tests
+using a `reject` fuzzer will fail.
+-}
+reject : String -> Fuzzer a
+reject reason =
+    invalid reason
 
 
 {-| A fuzzer that only lets through values satisfying the given predicate
