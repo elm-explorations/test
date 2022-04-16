@@ -36,9 +36,8 @@ runAllTests a =
 
         _ =
             [ [ Runner.String.run Tests.all ]
-
-            --, List.map runSeedTest SeedTests.tests
-            --, List.map (runSeedTest >> removeAutoFail) SeedTests.noAutoFail
+            , List.map runSeedTest SeedTests.tests
+            , List.map (runSeedTest >> removeAutoFail) SeedTests.noAutoFail
             ]
                 |> List.concat
                 |> List.foldl combineSummaries emptySummary
