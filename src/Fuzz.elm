@@ -119,6 +119,11 @@ order =
     oneOfValues [ LT, EQ, GT ]
 
 
+intBucketingThreshold : Int
+intBucketingThreshold =
+    255
+
+
 intPreferences : List { weight : Int, bits : Int }
 intPreferences =
     [ { weight = 4, bits = 4 } -- 0..15
@@ -196,39 +201,64 @@ intRange lo hi =
         let
             int_ : Int -> Fuzzer Int
             int_ upperLimit =
-                let
-                    range : Int
-                    range =
-                        upperLimit + 1
+                {- Two variants:
 
-                    maxBits : Int
-                    maxBits =
-                        range
-                            -- find how many bits the number takes
-                            |> toFloat
-                            |> logBase 2
-                            |> ceiling
-                            -- then find the next power of 2 (which is what our intPreferences are)
-                            |> toFloat
-                            |> logBase 2
-                            |> ceiling
-                            |> (\n -> 2 ^ n)
-                in
-                intPreferences
-                    |> List.filter (\{ bits } -> bits <= maxBits)
-                    |> (\list_ ->
-                            {- failsafe for values taking less than 4 bits
-                               (lowest bitcount in intPreferences)
-                            -}
-                            if List.isEmpty list_ then
-                                List.take 1 intPreferences
+                   1. If the range of numbers is low enough, we skip the
+                      bucketing and just do uniform choice in the whole range.
 
-                            else
-                                list_
-                       )
-                    |> List.map (\{ weight, bits } -> ( weight, intBits bits ))
-                    |> intFrequency
-                    |> map (modBy range)
+                      Meaning `intRange INT_BELOW_THRESHOLD` will only draw
+                      one integer.
+
+                   2. If the range is above some threshold, we turn on the
+                      bucketing and prefer smaller values.
+
+                      Meaning `intRange INT_ABOVE_THRESHOLD` will draw
+                      two integers: one for the bucket and one for the actual
+                      integer inside.
+                -}
+                if upperLimit <= intBucketingThreshold then
+                    {- TODO PERF: is
+                           intBits bitsCount |> map (modBy (upperLimit + 1))
+                       faster than
+                           uniformInt upperLimit
+                       ?
+                    -}
+                    uniformInt upperLimit
+
+                else
+                    let
+                        range : Int
+                        range =
+                            upperLimit + 1
+
+                        maxBits : Int
+                        maxBits =
+                            range
+                                -- find how many bits the number takes
+                                |> toFloat
+                                |> logBase 2
+                                |> ceiling
+                                -- then find the next power of 2 (which is what our intPreferences are)
+                                |> toFloat
+                                |> logBase 2
+                                |> ceiling
+                                |> (\n -> 2 ^ n)
+                    in
+                    intPreferences
+                        |> List.filter (\{ bits } -> bits <= maxBits)
+                        |> (\list_ ->
+                                {- failsafe for values taking less than 4 bits
+                                   (lowest bitcount in intPreferences)
+                                -}
+                                if List.isEmpty list_ then
+                                    List.take 1 intPreferences
+
+                                else
+                                    list_
+                           )
+                        |> List.map (\{ weight, bits } -> ( weight, intBits bits ))
+                        |> intFrequency
+                        |> map (modBy range)
         in
         if lo >= 0 then
             -- both non-negative
