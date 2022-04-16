@@ -14,7 +14,6 @@ import Bitwise
 import Bytes exposing (Endianness(..))
 import Bytes.Decode
 import Bytes.Encode
-import Dict exposing (Dict)
 import MicroBitwiseExtra as Bitwise
 
 
@@ -244,7 +243,7 @@ reorderMantissa unbiasedExponent ( hi, lo ) =
 
 
 getExponent : ( Int, Int ) -> Int
-getExponent ( hi, lo ) =
+getExponent ( hi, _ ) =
     hi
         |> Bitwise.shiftRightZfBy 20
         |> Bitwise.keepBits 11
@@ -279,7 +278,7 @@ setExponent exponent ( hi, lo ) =
 
 
 setMantissa : Int -> ( Int, Int ) -> ( Int, Int )
-setMantissa mantissa ( hi, lo ) =
+setMantissa mantissa ( hi, _ ) =
     let
         ( mantissaHi, mantissaLo ) =
             Bitwise.int52ToTuple mantissa
@@ -287,7 +286,7 @@ setMantissa mantissa ( hi, lo ) =
     ( hi
         |> Bitwise.and 0xFFF00000
         |> Bitwise.or
-            (mantissa
+            (mantissaHi
                 |> Bitwise.keepBits 20
             )
         |> Bitwise.signedToUnsigned

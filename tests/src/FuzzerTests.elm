@@ -5,7 +5,6 @@ import Expect exposing (Expectation)
 import Fuzz exposing (..)
 import Helpers exposing (..)
 import Random
-import Set
 import Test exposing (..)
 import Test.Runner exposing (Simplifiable)
 

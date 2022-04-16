@@ -4,7 +4,7 @@ module Test.Internal exposing (Test(..), blankDescriptionFailure, crash, duplica
 
 import Random
 import Set exposing (Set)
-import Test.Expectation exposing (Expectation(..))
+import Test.Expectation exposing (Expectation)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 

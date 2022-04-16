@@ -1,8 +1,6 @@
 module PerformanceRegressionTests exposing (all)
 
 import Expect
-import Helpers exposing (expectTestToFail, expectToFail)
-import Simplify
 import Test exposing (..)
 
 

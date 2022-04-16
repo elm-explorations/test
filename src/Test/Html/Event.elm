@@ -36,7 +36,7 @@ import Dict
 import Expect exposing (Expectation)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode exposing (Value)
-import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..), Tagger)
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..))
 import Test.Html.Query as Query
 import Test.Html.Query.Internal as QueryInternal
 import Test.Internal as Internal
@@ -357,7 +357,7 @@ findHandler : Event msg -> Result String (Decoder (Handling msg))
 findHandler (Event ( eventName, _ ) (QueryInternal.Single _ query)) =
     QueryInternal.traverse query
         |> Result.andThen (QueryInternal.verifySingle eventName)
-        |> Result.mapError (QueryInternal.queryErrorToString query)
+        |> Result.mapError QueryInternal.queryErrorToString
         |> Result.andThen (findEvent eventName)
 
 
@@ -400,9 +400,6 @@ findEvent eventName element =
 
         MarkdownNode node ->
             eventDecoder node
-
-        NoOp ->
-            Err ("I found an element I did not know how to deal with, so simulating \"" ++ eventName ++ "\" events on it would be impossible. This is a problem with elm-test! Sorry about that. If you have time, could you report this issue on https://github.com/elm-explorations/test/issues with a http://sscce.org to reproduce this error message?")
 
 
 checkStopPropagation : Event msg -> Result String Bool

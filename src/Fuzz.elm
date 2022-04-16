@@ -955,7 +955,7 @@ intFrequency fuzzers =
 
     else
         case fuzzers of
-            ( n, f ) :: rest ->
+            ( n, _ ) :: rest ->
                 let
                     weightSum : Int
                     weightSum =

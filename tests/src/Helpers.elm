@@ -9,7 +9,6 @@ module Helpers exposing
     , different
     , doesNotReject
     , expectPass
-    , expectSimplifiesTo
     , expectTestToFail
     , expectToFail
     , passes
@@ -18,22 +17,16 @@ module Helpers exposing
     , same
     , simplifiesTowards
     , simplifiesTowardsMany
-    , simplifiesTowardsManyWith
     , simplifiesTowardsWith
-    , succeeded
-    , testFailing
-    , testFailingWith
-    , testSimplifyingWith
     , testStringLengthIsPreserved
     )
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Random
-import Set
 import Test exposing (Test)
 import Test.Runner exposing (Runner, SeededRunners)
-import Test.Runner.Failure exposing (Reason(..))
+import Test.Runner.Failure exposing (Reason)
 
 
 defaultRuns : { runs : Int }
@@ -97,11 +90,6 @@ testSimplifyingWith { runs } test =
             Debug.todo "Unexpected number of test runners in `testSimplifyingWith`"
 
 
-testFailing : Test -> Test
-testFailing test =
-    testFailingWith defaultRuns test
-
-
 testFailingWith : { runs : Int } -> Test -> Test
 testFailingWith { runs } test =
     let
@@ -115,7 +103,7 @@ testFailingWith { runs } test =
                         |> String.join "\n"
                         |> Err
 
-                Just g ->
+                Just _ ->
                     Ok ()
 
         seed =
@@ -180,16 +168,6 @@ expectTestToFail test =
         |> List.concatMap (\{ run } -> run ())
         |> List.map (\expectation () -> expectToFail expectation)
         |> (\expectations -> Expect.all expectations ())
-
-
-succeeded : Expectation -> Bool
-succeeded expectation =
-    case Test.Runner.getFailureReason expectation of
-        Nothing ->
-            True
-
-        Just _ ->
-            False
 
 
 passToFail :

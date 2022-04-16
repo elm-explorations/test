@@ -1,6 +1,6 @@
 module SeedTests exposing (fixedSeed, noAutoFail, tests)
 
-import Expect exposing (FloatingPointTolerance(..))
+import Expect
 import Fuzz exposing (..)
 import Random
 import Test exposing (..)

@@ -2,7 +2,7 @@ module Test.Html.EventTests exposing (all)
 
 import Expect
 import Html exposing (Html, button, div, input, text)
-import Html.Attributes as Attr exposing (href)
+import Html.Attributes as Attr
 import Html.Events exposing (..)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
@@ -10,7 +10,7 @@ import Json.Decode exposing (Value, succeed)
 import Json.Encode as Encode
 import Test exposing (..)
 import Test.Html.Event as Event exposing (Event)
-import Test.Html.Query as Query exposing (Single)
+import Test.Html.Query as Query
 import Test.Html.Selector exposing (tag)
 
 

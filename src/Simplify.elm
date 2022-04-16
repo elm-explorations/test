@@ -23,8 +23,6 @@ those cases you can do `andThen`:
 
 -}
 
-import Bitwise
-import Fuzz
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
@@ -387,7 +385,7 @@ minimizeChoice { index } state =
 
 
 decrementTogether : { leftIndex : Int, rightIndex : Int, by : Int } -> State a -> SimplifyResult a
-decrementTogether ({ leftIndex, rightIndex, by } as opts) state =
+decrementTogether { leftIndex, rightIndex, by } state =
     let
         simplifiedRun : RandomRun
         simplifiedRun =

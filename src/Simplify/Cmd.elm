@@ -175,7 +175,7 @@ decrementTogetherCmds length =
                 2
     in
     List.range 0 (length - 2)
-        |> List.concatMap
+        |> List.fastConcatMap
             (\index ->
                 let
                     maxOffset =
@@ -184,7 +184,7 @@ decrementTogetherCmds length =
                             (length - index - 1)
                 in
                 List.range 1 maxOffset
-                    |> List.concatMap
+                    |> List.fastConcatMap
                         (\offset ->
                             [ 4, 2, 1 ]
                                 |> List.map

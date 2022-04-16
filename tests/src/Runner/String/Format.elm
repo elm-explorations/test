@@ -163,12 +163,12 @@ listDiffToString index description { expected, actual } originals =
             ]
                 |> String.join ""
 
-        ( first :: _, [] ) ->
+        ( _ :: _, [] ) ->
             verticalBar (description ++ " was shorter than")
                 (Debug.toString originals.originalExpected)
                 (Debug.toString originals.originalActual)
 
-        ( [], first :: _ ) ->
+        ( [], _ :: _ ) ->
             verticalBar (description ++ " was longer than")
                 (Debug.toString originals.originalExpected)
                 (Debug.toString originals.originalActual)
@@ -272,7 +272,7 @@ formatEqualityDiffArrows below above =
 formatExpectedChange : Change Char -> ( String, String )
 formatExpectedChange diff =
     case diff of
-        Added char ->
+        Added _ ->
             ( "", "" )
 
         Removed char ->
@@ -285,7 +285,7 @@ formatExpectedChange diff =
 formatActualChange : Change Char -> ( String, String )
 formatActualChange diff =
     case diff of
-        Added char ->
+        Added _ ->
             ( "", "" )
 
         Removed char ->

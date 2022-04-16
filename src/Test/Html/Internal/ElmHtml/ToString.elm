@@ -11,7 +11,7 @@ module Test.Html.Internal.ElmHtml.ToString exposing
 
 -}
 
-import Dict exposing (Dict)
+import Dict
 import String
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
@@ -42,14 +42,11 @@ nodeToLines options nodeType =
         NodeEntry record ->
             nodeRecordToString options record
 
-        CustomNode record ->
+        CustomNode _ ->
             []
 
         MarkdownNode record ->
             [ record.model.markdown ]
-
-        NoOp ->
-            []
 
 
 {-| Convert a given html node to a string based on the type
@@ -123,7 +120,7 @@ nodeRecordToString options { tag, children, facts } =
                 |> Maybe.map (\name -> "class=\"" ++ name ++ "\"")
 
         stringAttributes =
-            Dict.filter (\k v -> k /= "className") facts.stringAttributes
+            Dict.filter (\k _ -> k /= "className") facts.stringAttributes
                 |> Dict.toList
                 |> List.map (\( k, v ) -> k ++ "=\"" ++ v ++ "\"")
                 |> String.join " "

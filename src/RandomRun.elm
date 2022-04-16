@@ -9,9 +9,7 @@ module RandomRun exposing
     , get
     , isEmpty
     , isFull
-    , isInBounds
     , length
-    , maxLength
     , nextChoice
     , replace
     , replaceChunkWithZero

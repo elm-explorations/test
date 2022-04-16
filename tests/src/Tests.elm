@@ -1,11 +1,10 @@
 module Tests exposing (all)
 
-import Expect exposing (Expectation, FloatingPointTolerance(..))
+import Expect
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
-import Random
 import RunnerTests
 import ShrinkingChallengeTests exposing (shrinkingChallenges)
 import Test exposing (..)

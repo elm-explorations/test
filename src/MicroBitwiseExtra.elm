@@ -10,7 +10,6 @@ module MicroBitwiseExtra exposing
 
 import Array exposing (Array)
 import Bitwise
-import MicroListExtra as List
 
 
 isBitSet : Int -> Int -> Bool
