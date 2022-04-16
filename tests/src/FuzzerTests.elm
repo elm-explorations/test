@@ -662,7 +662,12 @@ fuzzerSpecificationTests =
                     1.5
                     Fuzz.float
                     (\x -> isInfinite x || isNaN x || String.toInt (String.fromFloat x) /= Nothing)
-                , simplifiesTowards "simplest negative" -1 Fuzz.float (\x -> x >= 0)
+                , simplifiesTowardsMany "simplest negative"
+                    [ -1
+                    , -1 / 0
+                    ]
+                    Fuzz.float
+                    (\x -> x >= 0)
                 ]
             , describe "floatAtLeast"
                 [ describe "n <= 0"
