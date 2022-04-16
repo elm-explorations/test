@@ -658,7 +658,12 @@ fuzzerSpecificationTests =
                 , canGenerateSatisfying "negative" Fuzz.float (\f -> f < 0)
                 , canGenerateSatisfying "positive" Fuzz.float (\f -> f > 0)
                 , simplifiesTowards "simplest" 0 Fuzz.float fullySimplify
-                , simplifiesTowards "next simplest" 1 Fuzz.float (\x -> x == 0)
+                , simplifiesTowardsMany "next simplest"
+                    [ 1
+                    , 1 / 0
+                    ]
+                    Fuzz.float
+                    (\x -> x == 0)
                 , simplifiesTowards "simplest outside 0, infinities and NaN" 1 Fuzz.float (\x -> x == 0 || isInfinite x || isNaN x)
                 , simplifiesTowards "simplest non-int"
                     1.5
