@@ -1,6 +1,5 @@
 module Test.Internal exposing (Test(..), blankDescriptionFailure, crash, duplicatedName, failNow, toString)
 
-import {- This might need commenting out when just developing with `elm make`. -} Elm.Kernel.Debug
 import Random
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation)
