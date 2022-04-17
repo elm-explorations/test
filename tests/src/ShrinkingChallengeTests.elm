@@ -261,6 +261,7 @@ binHeap =
         "binHeap"
         [ Heap 1 Nothing (Just (Heap 0 Nothing Nothing))
         , Heap 0 Nothing (Just (Heap -1 Nothing Nothing))
+        , Heap 0 (Just (Heap -1 Nothing Nothing)) Nothing
 
         -- TODO check why this didn't get shrunk further. Seed 3215002169
         , Heap 0 Nothing (Just (Heap 0 (Just (Heap 1 Nothing Nothing)) (Just (Heap 0 Nothing Nothing))))
@@ -308,6 +309,7 @@ coupling =
         , [ 0, 0, 0, 0, 0, 0, 7, 6 ]
         , [ 0, 0, 0, 0, 0, 0, 0, 8, 7 ]
         , [ 0, 0, 0, 0, 0, 0, 0, 0, 9, 8 ]
+        , [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 9 ]
 
         {- To shrink [0,0,0,4,3] down to [0,0,3,2], [0,2,1] or [1,0],
            we'd need to simultaneously:

@@ -548,8 +548,7 @@ binarySearchLoop old ({ low, high, state, updateRun } as options) =
                    converts to 32bit and has caused this binaryShrinkLoop inside
                    MinimizeFloat to loop infinitely in the past.
                 -}
-                (low + round ((toFloat high - toFloat low) / 2))
-                    |> Bitwise.signedToUnsigned
+                low + round ((toFloat high - toFloat low) / 2)
 
             newRun =
                 updateRun mid options.state.randomRun
