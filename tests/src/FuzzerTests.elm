@@ -4,7 +4,7 @@ import Array
 import Expect exposing (Expectation)
 import Fuzz exposing (..)
 import Helpers exposing (..)
-import Random
+import Random exposing (Generator)
 import Test exposing (..)
 import Test.Runner exposing (Simplifiable)
 
@@ -299,15 +299,7 @@ fuzzerSpecificationTests =
                     (\v -> v == 1 - 2 ^ -52 || v <= 0.25)
                 ]
             , describe "asciiChar"
-                [ passes "Range 32..126"
-                    Fuzz.asciiChar
-                    (\char ->
-                        let
-                            code =
-                                Char.toCode char
-                        in
-                        code >= 32 && code <= 126
-                    )
+                [ passes "Range 32..126" Fuzz.asciiChar isAsciiChar
                 , simplifiesTowards "simplest" ' ' Fuzz.asciiChar fullySimplify
                 , simplifiesTowards "next simplest" '!' Fuzz.asciiChar (\c -> c == ' ')
                 , simplifiesTowards "above A" 'B' Fuzz.asciiChar (\c -> Char.toCode c <= Char.toCode 'A')
@@ -316,6 +308,7 @@ fuzzerSpecificationTests =
             , describe "char"
                 [ canGenerateSatisfying "Alpha" Fuzz.char Char.isAlpha
                 , canGenerateSatisfying "Digit" Fuzz.char Char.isDigit
+                , canGenerateSatisfying "ASCII" Fuzz.char isAsciiChar
                 , canGenerate '\t' Fuzz.char
                 , canGenerate (Char.fromCode 0x0303) Fuzz.char
                 , canGenerate '🔥' Fuzz.char
@@ -339,6 +332,7 @@ fuzzerSpecificationTests =
                     (\x -> x == "" || String.all (not << Char.isAlpha) x)
                 , canGenerateSatisfying "Alpha" Fuzz.asciiString (String.any Char.isAlpha)
                 , canGenerateSatisfying "Digit" Fuzz.asciiString (String.any Char.isDigit)
+                , canGenerateSatisfying "ASCII" Fuzz.asciiString (String.any isAsciiChar)
                 , canGenerateSatisfying "whitespace" Fuzz.asciiString (String.contains " ")
                 , cannotGenerateSatisfying "combining diacritical marks"
                     Fuzz.asciiString
@@ -365,12 +359,17 @@ fuzzerSpecificationTests =
                     (\x -> x == "" || String.all (not << Char.isAlpha) x)
                 , canGenerateSatisfying "Alpha" Fuzz.string (String.any Char.isAlpha)
                 , canGenerateSatisfying "Digit" Fuzz.string (String.any Char.isDigit)
+                , canGenerateSatisfying "ASCII" Fuzz.string (String.any isAsciiChar)
                 , canGenerateSatisfying "whitespace" Fuzz.string (String.contains "\t")
                 , canGenerateSatisfying "combining diacritical marks"
                     Fuzz.string
                     -- going a roundabout way about this to keep Vim from being confused about unclosed strings
                     (String.contains (String.fromChar (Char.fromCode 0x0303)))
                 , canGenerateSatisfying "emoji" Fuzz.string (String.contains "🔥")
+                , canGenerateSatisfyingWith { runs = 3000 }
+                    "Unicode above the special cases"
+                    Fuzz.string
+                    (String.any (\c -> Char.toCode c > 0x0001F525))
                 ]
             , describe "oneOfValues"
                 [ canGenerate 1 (Fuzz.oneOfValues [ 1, 42 ])
@@ -564,24 +563,360 @@ fuzzerSpecificationTests =
                 , simplifiesTowards "simplest" Array.empty (Fuzz.array Fuzz.int) fullySimplify
                 , simplifiesTowards "next simplest" (Array.fromList [ 0 ]) (Fuzz.array Fuzz.int) (\x -> Array.isEmpty x)
                 ]
-            , todo "uniformInt"
-            , todo "stringOfLength"
-            , todo "stringOfLengthBetween"
-            , todo "asciiStringOfLength"
-            , todo "asciiStringOfLengthBetween"
-            , todo "lazy"
-            , todo "shuffledList"
-            , todo "sequence"
-            , todo "traverse"
-            , todo "map2"
-            , todo "map3"
-            , todo "map4"
-            , todo "map5"
-            , todo "map6"
-            , todo "map7"
-            , todo "map8"
-            , todo "andMap"
-            , todo "fromGenerator"
+            , describe "uniformInt"
+                [ cannotGenerateSatisfying "any Infinity"
+                    (Fuzz.uniformInt 10)
+                    (isInfinite << toFloat)
+                , cannotGenerateSatisfying "NaN"
+                    (Fuzz.uniformInt 10)
+                    (isNaN << toFloat)
+                , simplifiesTowards "simplest" 0 (Fuzz.uniformInt 10) fullySimplify
+                , simplifiesTowards "non-zero" 1 (Fuzz.uniformInt 10) (\n -> n == 0)
+                , cannotGenerateSatisfying "negative" (Fuzz.uniformInt 10) (\n -> n < 0)
+                , cannotGenerateSatisfying "above limit" (Fuzz.uniformInt 10) (\n -> n > 10)
+                , canGenerate 0 (Fuzz.uniformInt 10)
+                , canGenerate 10 (Fuzz.uniformInt 10)
+                ]
+            , describe "stringOfLength"
+                [ passes "always length 3"
+                    (Fuzz.stringOfLength 3)
+                    (\string -> String.length string == 3)
+                , passes "negative length -> empty string"
+                    (Fuzz.stringOfLength -3)
+                    String.isEmpty
+                , simplifiesTowards "simplest" "   " (Fuzz.stringOfLength 3) fullySimplify
+                , simplifiesTowards "next simplest" "  !" (Fuzz.stringOfLength 3) (\x -> x == "   ")
+                , canGenerateSatisfying "ASCII" (Fuzz.stringOfLength 3) (String.any isAsciiChar)
+                , canGenerateSatisfying "non-ASCII" (Fuzz.stringOfLength 3) (String.any (not << isAsciiChar))
+                ]
+            , describe "stringOfLengthBetween"
+                [ passes "always in range"
+                    (Fuzz.stringOfLengthBetween 2 5)
+                    (\string ->
+                        let
+                            length =
+                                String.length string
+                        in
+                        length >= 2 && length <= 5
+                    )
+                , simplifiesTowards "simplest" "  " (Fuzz.stringOfLengthBetween 2 5) fullySimplify
+                , simplifiesTowards "next simplest" " !" (Fuzz.stringOfLengthBetween 2 5) (\x -> x == "  ")
+                , doesNotReject "swapped arguments" (Fuzz.stringOfLengthBetween 5 -5)
+                , canGenerateSatisfying "ASCII" (Fuzz.stringOfLengthBetween 2 5) (String.any isAsciiChar)
+                , canGenerateSatisfying "non-ASCII" (Fuzz.stringOfLengthBetween 2 5) (String.any (not << isAsciiChar))
+                ]
+            , describe "asciiStringOfLength"
+                [ passes "always length 3"
+                    (Fuzz.asciiStringOfLength 3)
+                    (\string -> String.length string == 3)
+                , passes "negative length -> empty string"
+                    (Fuzz.asciiStringOfLength -3)
+                    String.isEmpty
+                , simplifiesTowards "simplest" "   " (Fuzz.asciiStringOfLength 3) fullySimplify
+                , simplifiesTowards "next simplest" "  !" (Fuzz.asciiStringOfLength 3) (\x -> x == "   ")
+                , canGenerateSatisfying "ASCII" (Fuzz.asciiStringOfLength 3) (String.all isAsciiChar)
+                , cannotGenerateSatisfying "non-ASCII" (Fuzz.asciiStringOfLength 3) (String.any (not << isAsciiChar))
+                ]
+            , describe "asciiStringOfLengthBetween"
+                [ passes "always in range"
+                    (Fuzz.asciiStringOfLengthBetween 2 5)
+                    (\string ->
+                        let
+                            length =
+                                String.length string
+                        in
+                        length >= 2 && length <= 5
+                    )
+                , simplifiesTowards "simplest" "  " (Fuzz.asciiStringOfLengthBetween 2 5) fullySimplify
+                , simplifiesTowards "next simplest" " !" (Fuzz.asciiStringOfLengthBetween 2 5) (\x -> x == "  ")
+                , doesNotReject "swapped arguments" (Fuzz.asciiStringOfLengthBetween 5 -5)
+                , canGenerateSatisfying "ASCII" (Fuzz.asciiStringOfLengthBetween 2 5) (String.all isAsciiChar)
+                , cannotGenerateSatisfying "non-ASCII" (Fuzz.asciiStringOfLengthBetween 2 5) (String.any (not << isAsciiChar))
+                ]
+            , describe "lazy"
+                [ canGenerate () (Fuzz.lazy (\() -> Fuzz.unit))
+                , canGenerate 1 (Fuzz.lazy (\() -> Fuzz.constant 1))
+                ]
+            , describe "shuffledList"
+                [ passes
+                    "contains the exact same values as in original list"
+                    (Fuzz.list Fuzz.int
+                        |> Fuzz.andThen
+                            (\ints ->
+                                Fuzz.pair
+                                    (Fuzz.constant ints)
+                                    (Fuzz.shuffledList ints)
+                            )
+                    )
+                    (\( originalList, shuffledList ) ->
+                        List.sort originalList == List.sort shuffledList
+                    )
+                ]
+            , describe "sequence"
+                [ passes "keeps the list length"
+                    (Fuzz.sequence
+                        [ Fuzz.constant 1
+                        , Fuzz.constant 3
+                        , Fuzz.constant 5
+                        ]
+                    )
+                    (\list -> list == [ 1, 3, 5 ])
+                ]
+            , describe "traverse"
+                [ passes "keeps the list length"
+                    (Fuzz.traverse Fuzz.constant [ 1, 3, 5 ])
+                    (\list -> list == [ 1, 3, 5 ])
+                ]
+            , describe "map2"
+                [ passes "behaves like andMap"
+                    (Fuzz.pair Fuzz.int Fuzz.int
+                        |> Fuzz.andThen
+                            (\( m, n ) ->
+                                Fuzz.pair
+                                    (Fuzz.map2 (+)
+                                        (Fuzz.constant m)
+                                        (Fuzz.constant n)
+                                    )
+                                    (Fuzz.constant (+)
+                                        |> Fuzz.andMap (Fuzz.constant m)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "map3"
+                [ passes "behaves like andMap"
+                    (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int
+                        |> Fuzz.andThen
+                            (\( m, n, o ) ->
+                                Fuzz.pair
+                                    (Fuzz.map3 (\a b c -> a + b + c)
+                                        (Fuzz.constant m)
+                                        (Fuzz.constant n)
+                                        (Fuzz.constant o)
+                                    )
+                                    (Fuzz.constant (\a b c -> a + b + c)
+                                        |> Fuzz.andMap (Fuzz.constant m)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                        |> Fuzz.andMap (Fuzz.constant o)
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "map4"
+                [ passes "behaves like andMap"
+                    (Fuzz.pair
+                        (Fuzz.pair Fuzz.int Fuzz.int)
+                        (Fuzz.pair Fuzz.int Fuzz.int)
+                        |> Fuzz.andThen
+                            (\( ( m, n ), ( o, p ) ) ->
+                                Fuzz.pair
+                                    (Fuzz.map4 (\a b c d -> a + b + c + d)
+                                        (Fuzz.constant m)
+                                        (Fuzz.constant n)
+                                        (Fuzz.constant o)
+                                        (Fuzz.constant p)
+                                    )
+                                    (Fuzz.constant (\a b c d -> a + b + c + d)
+                                        |> Fuzz.andMap (Fuzz.constant m)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                        |> Fuzz.andMap (Fuzz.constant o)
+                                        |> Fuzz.andMap (Fuzz.constant p)
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "map5"
+                [ passes "behaves like andMap"
+                    (Fuzz.pair
+                        (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
+                        (Fuzz.pair Fuzz.int Fuzz.int)
+                        |> Fuzz.andThen
+                            (\( ( m, n, o ), ( p, q ) ) ->
+                                Fuzz.pair
+                                    (Fuzz.map5 (\a b c d e -> a + b + c + d + e)
+                                        (Fuzz.constant m)
+                                        (Fuzz.constant n)
+                                        (Fuzz.constant o)
+                                        (Fuzz.constant p)
+                                        (Fuzz.constant q)
+                                    )
+                                    (Fuzz.constant (\a b c d e -> a + b + c + d + e)
+                                        |> Fuzz.andMap (Fuzz.constant m)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                        |> Fuzz.andMap (Fuzz.constant o)
+                                        |> Fuzz.andMap (Fuzz.constant p)
+                                        |> Fuzz.andMap (Fuzz.constant q)
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "map6"
+                [ passes "behaves like andMap"
+                    (Fuzz.pair
+                        (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
+                        (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
+                        |> Fuzz.andThen
+                            (\( ( m, n, o ), ( p, q, r ) ) ->
+                                Fuzz.pair
+                                    (Fuzz.map6 (\a b c d e f -> a + b + c + d + e + f)
+                                        (Fuzz.constant m)
+                                        (Fuzz.constant n)
+                                        (Fuzz.constant o)
+                                        (Fuzz.constant p)
+                                        (Fuzz.constant q)
+                                        (Fuzz.constant r)
+                                    )
+                                    (Fuzz.constant (\a b c d e f -> a + b + c + d + e + f)
+                                        |> Fuzz.andMap (Fuzz.constant m)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                        |> Fuzz.andMap (Fuzz.constant o)
+                                        |> Fuzz.andMap (Fuzz.constant p)
+                                        |> Fuzz.andMap (Fuzz.constant q)
+                                        |> Fuzz.andMap (Fuzz.constant r)
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "map7"
+                [ passes "behaves like andMap"
+                    (Fuzz.triple
+                        (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
+                        (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
+                        Fuzz.int
+                        |> Fuzz.andThen
+                            (\( ( m, n, o ), ( p, q, r ), s ) ->
+                                Fuzz.pair
+                                    (Fuzz.map7 (\a b c d e f g -> a + b + c + d + e + f + g)
+                                        (Fuzz.constant m)
+                                        (Fuzz.constant n)
+                                        (Fuzz.constant o)
+                                        (Fuzz.constant p)
+                                        (Fuzz.constant q)
+                                        (Fuzz.constant r)
+                                        (Fuzz.constant s)
+                                    )
+                                    (Fuzz.constant (\a b c d e f g -> a + b + c + d + e + f + g)
+                                        |> Fuzz.andMap (Fuzz.constant m)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                        |> Fuzz.andMap (Fuzz.constant o)
+                                        |> Fuzz.andMap (Fuzz.constant p)
+                                        |> Fuzz.andMap (Fuzz.constant q)
+                                        |> Fuzz.andMap (Fuzz.constant r)
+                                        |> Fuzz.andMap (Fuzz.constant s)
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "map8"
+                [ passes "behaves like andMap"
+                    (Fuzz.triple
+                        (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
+                        (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
+                        (Fuzz.pair Fuzz.int Fuzz.int)
+                        |> Fuzz.andThen
+                            (\( ( m, n, o ), ( p, q, r ), ( s, t ) ) ->
+                                Fuzz.pair
+                                    (Fuzz.map8 (\a b c d e f g h -> a + b + c + d + e + f + g + h)
+                                        (Fuzz.constant m)
+                                        (Fuzz.constant n)
+                                        (Fuzz.constant o)
+                                        (Fuzz.constant p)
+                                        (Fuzz.constant q)
+                                        (Fuzz.constant r)
+                                        (Fuzz.constant s)
+                                        (Fuzz.constant t)
+                                    )
+                                    (Fuzz.constant (\a b c d e f g h -> a + b + c + d + e + f + g + h)
+                                        |> Fuzz.andMap (Fuzz.constant m)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                        |> Fuzz.andMap (Fuzz.constant o)
+                                        |> Fuzz.andMap (Fuzz.constant p)
+                                        |> Fuzz.andMap (Fuzz.constant q)
+                                        |> Fuzz.andMap (Fuzz.constant r)
+                                        |> Fuzz.andMap (Fuzz.constant s)
+                                        |> Fuzz.andMap (Fuzz.constant t)
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "andMap"
+                -- applicative functor laws
+                [ passes "identity"
+                    -- pure id <*> v = v
+                    (Fuzz.int
+                        |> Fuzz.andThen
+                            (\n ->
+                                Fuzz.pair
+                                    (Fuzz.constant identity
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                    )
+                                    (Fuzz.constant n)
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                , passes "homomorphism"
+                    -- pure f <*> pure x = pure (f x)
+                    (Fuzz.int
+                        |> Fuzz.andThen
+                            (\n ->
+                                Fuzz.pair
+                                    (Fuzz.constant ((+) 1)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                    )
+                                    (Fuzz.constant ((+) 1 n))
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                , passes "interchange"
+                    -- u <*> pure y = pure ($ y) <*> u
+                    (Fuzz.int
+                        |> Fuzz.andThen
+                            (\n ->
+                                Fuzz.pair
+                                    (Fuzz.constant ((+) 1)
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                    )
+                                    (Fuzz.constant (\f -> f n)
+                                        |> Fuzz.andMap (Fuzz.constant ((+) 1))
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                , passes "composition"
+                    -- pure (.) <*> u <*> v <*> w = u <*> (v <*> w)
+                    (Fuzz.int
+                        |> Fuzz.andThen
+                            (\n ->
+                                Fuzz.pair
+                                    (Fuzz.constant (<<)
+                                        |> Fuzz.andMap (Fuzz.constant ((+) 2))
+                                        |> Fuzz.andMap (Fuzz.constant ((*) 3))
+                                        |> Fuzz.andMap (Fuzz.constant n)
+                                    )
+                                    (Fuzz.constant ((+) 2)
+                                        |> Fuzz.andMap
+                                            (Fuzz.constant ((*) 3)
+                                                |> Fuzz.andMap (Fuzz.constant n)
+                                            )
+                                    )
+                            )
+                    )
+                    (\( left, right ) -> left == right)
+                ]
+            , describe "fromGenerator"
+                [ canGenerateSatisfying
+                    "does give expected values from the generator"
+                    (Fuzz.fromGenerator (Random.int -10 10))
+                    (\int -> int >= -10 && int <= 10)
+                ]
             , describe "andThen"
                 [ passes "integer defined by another integer"
                     (Fuzz.intRange 0 5
@@ -787,3 +1122,12 @@ fuzzerSpecificationTests =
 fullySimplify : a -> Bool
 fullySimplify _ =
     False
+
+
+isAsciiChar : Char -> Bool
+isAsciiChar char =
+    let
+        code =
+            Char.toCode char
+    in
+    code >= 32 && code <= 126

@@ -575,10 +575,52 @@ string =
     stringOfLengthBetween 0 10
 
 
+{-| Generates random unicode strings of a given length.
+
+Note that some unicode characters have String.length of 2. This fuzzer will make
+sure the String.length of the returned string is equal to the wanted length, even
+if it will mean there are less characters. If you instead want it to give N
+characters even if their String.length will be above N, you can use
+
+    Fuzz.listOfLength n Fuzz.char
+        |> Fuzz.map String.fromList
+
+-}
+stringOfLength : Int -> Fuzzer String
+stringOfLength n =
+    stringOfLengthBetween n n
+
+
+{-| Generates random unicode strings of length between the given limits.
+
+Note that some unicode characters have String.length of 2. This fuzzer will make
+sure the String.length of the returned string is equal to the wanted length, even
+if it will mean there are less characters. If you instead want it to give between
+MIN and MAX characters even if their String.length will be above MAX, you can use
+
+    Fuzz.listOfLengthBetween min max Fuzz.char
+        |> Fuzz.map String.fromList
+
+-}
 stringOfLengthBetween : Int -> Int -> Fuzzer String
 stringOfLengthBetween min max =
-    listOfLengthBetween min max char
-        |> map String.fromList
+    if min > max then
+        stringOfLengthBetween max min
+
+    else if max <= 0 then
+        constant ""
+
+    else
+        listOfLengthBetween min max char
+            |> map String.fromList
+            |> filter
+                (\str ->
+                    let
+                        length =
+                            String.length str
+                    in
+                    length >= min && length <= max
+                )
 
 
 {-| Generates random ASCII strings of up to 10 characters.
@@ -588,6 +630,15 @@ asciiString =
     asciiStringOfLengthBetween 0 10
 
 
+{-| Generates random ASCII strings of a given length.
+-}
+asciiStringOfLength : Int -> Fuzzer String
+asciiStringOfLength n =
+    asciiStringOfLengthBetween n n
+
+
+{-| Generates random ASCII strings of length between the given limits.
+-}
 asciiStringOfLengthBetween : Int -> Int -> Fuzzer String
 asciiStringOfLengthBetween min max =
     listOfLengthBetween min max asciiChar
