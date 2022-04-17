@@ -549,14 +549,14 @@ char =
 
         {- Note: This can produce garbage values as Unicode doesn't use all valid values.
 
-           0xD800..0xDBFF are surrogate code units and would break tests like
+           0xD800..0xDFFF are surrogate code units and would break tests like
            `(str |> reverse |> reverse) == str` because of being converted to
            0xFFFD REPLACEMENT CHARACTER.
         -}
         arbitraryUnicodeChar : Fuzzer Char
         arbitraryUnicodeChar =
             intRange 0 0x0010FFFF
-                |> filter (\n -> not (n >= 0xD800 && n <= 0xDBFF))
+                |> filter (\n -> not (n >= 0xD800 && n <= 0xDFFF))
                 |> map Char.fromCode
     in
     intFrequency
