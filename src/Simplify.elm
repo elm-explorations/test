@@ -542,8 +542,13 @@ binarySearchLoop old ({ low, high, state, updateRun } as options) =
     if low + 1 < high then
         let
             mid =
-                -- `(low + high) // 2` would cause integer overflow
-                (low + (high - low) // 2)
+                {- `(low + high) // 2` would cause integer overflow
+
+                   `(low + (high - low) // 2)` would use `truncate` which
+                   converts to 32bit and has caused this binaryShrinkLoop inside
+                   MinimizeFloat to loop infinitely in the past.
+                -}
+                (low + round ((toFloat high - toFloat low) / 2))
                     |> Bitwise.signedToUnsigned
 
             newRun =
