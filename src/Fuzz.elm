@@ -1664,10 +1664,12 @@ examples n fuzzer =
 
 Convert a Random.Generator into a Fuzzer.
 
-Works internally by generating a random seed and running Random.step.
+Works internally by generating a random seed and running `Random.step`.
 
-Note this will not shrink well, as Generators are black boxes from the
-perspective of Fuzzers.
+Note this will not shrink well (in fact it will shrink randomly, to smaller
+_seeds_), as Generators are black boxes from the perspective of Fuzzers. If you
+want meaningful shrinking, define fuzzers using the other functions in this
+module!
 
 -}
 fromGenerator : Random.Generator a -> Fuzzer a
