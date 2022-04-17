@@ -1320,6 +1320,20 @@ don't run the risk of rejecting too may values and slowing down your tests, for
 example using `Fuzz.int 0 5 |> Fuzz.map (\x -> x * 2)` instead of
 `Fuzz.int 0 9 |> Fuzz.filter (\x -> modBy 2 x == 0)`.
 
+If you want to generate indefinitely until you find a satisfactory value (with
+a risk of infinite loop depending on the predicate), you can use this pattern:
+
+    goodItemFuzzer =
+        itemFuzzer
+            |> Fuzz.andThen
+                (\item ->
+                    if isGood item then
+                        Fuzz.constant item
+
+                    else
+                        goodItemFuzzer
+                )
+
 -}
 filter : (a -> Bool) -> Fuzzer a -> Fuzzer a
 filter predicate fuzzer =
