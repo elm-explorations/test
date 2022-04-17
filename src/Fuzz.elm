@@ -2,11 +2,17 @@ module Fuzz exposing
     ( Fuzzer, examples
     , int, intRange, uniformInt, intAtLeast, intAtMost
     , float, niceFloat, percentage, floatRange, floatAtLeast, floatAtMost
-    , char, asciiChar, string, stringOfLengthBetween, asciiString, asciiStringOfLengthBetween
-    , pair, triple, list, listOfLength, listOfLengthBetween, array, maybe, result
+    , char, asciiChar
+    , string, stringOfLength, stringOfLengthBetween, asciiString, asciiStringOfLength, asciiStringOfLengthBetween
+    , pair, triple
+    , list, listOfLength, listOfLengthBetween, shuffledList
+    , array, maybe, result
     , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
-    , constant, map, map2, map3, map4, map5, andMap, andThen, filter, reject
+    , constant, reject, filter
+    , map, map2, map3, map4, map5, map6, map7, map8, andMap
+    , andThen, lazy, sequence, traverse
+    , fromGenerator
     )
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
@@ -25,26 +31,23 @@ can usually find the simplest input that reproduces a bug.
 @docs Fuzzer, examples
 
 
-## Integer fuzzers
+## Number fuzzers
 
 @docs int, intRange, uniformInt, intAtLeast, intAtMost
-
-
-## Float fuzzers
-
 @docs float, niceFloat, percentage, floatRange, floatAtLeast, floatAtMost
 
 
 ## String-related fuzzers
 
-@docs char, asciiChar, string, stringOfLengthBetween, asciiString, asciiStringOfLengthBetween
+@docs char, asciiChar
+@docs string, stringOfLength, stringOfLengthBetween, asciiString, asciiStringOfLength, asciiStringOfLengthBetween
 
 
 ## Collection fuzzers
 
-Note that `pair` and `triple` fuzzers are equivalent to using [`fuzz2`][fuzz2] or [`fuzz3`][fuzz3].
-
-@docs pair, triple, list, listOfLength, listOfLengthBetween, array, maybe, result
+@docs pair, triple
+@docs list, listOfLength, listOfLengthBetween, shuffledList
+@docs array, maybe, result
 
 
 ## Other fuzzers
@@ -59,10 +62,14 @@ Note that `pair` and `triple` fuzzers are equivalent to using [`fuzz2`][fuzz2] o
 
 ## Working with Fuzzers
 
-@docs constant, map, map2, map3, map4, map5, andMap, andThen, filter, reject
+@docs constant, reject, filter
+@docs map, map2, map3, map4, map5, map6, map7, map8, andMap
+@docs andThen, lazy, sequence, traverse
 
-[fuzz2]: /packages/elm-explorations/test/latest/Test#fuzz2
-[fuzz3]: /packages/elm-explorations/test/latest/Test#fuzz3
+
+## Misc helpers
+
+@docs fromGenerator
 
 -}
 
@@ -857,12 +864,154 @@ map5 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
                     Rejected r
 
 
-{-| Map over many fuzzers. This can act as `mapN` for `N > 5`.
+{-| Map over six fuzzers.
+-}
+map6 : (a -> b -> c -> d -> e -> f -> g) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g
+map6 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuzzer fuzzerE) (Fuzzer fuzzerF) =
+    Fuzzer <|
+        \prng ->
+            case fuzzerA prng of
+                Generated a ->
+                    case fuzzerB a.prng of
+                        Generated b ->
+                            case fuzzerC b.prng of
+                                Generated c ->
+                                    case fuzzerD c.prng of
+                                        Generated d ->
+                                            case fuzzerE d.prng of
+                                                Generated e ->
+                                                    case fuzzerF e.prng of
+                                                        Generated f ->
+                                                            Generated
+                                                                { value = fn a.value b.value c.value d.value e.value f.value
+                                                                , prng = f.prng
+                                                                }
+
+                                                        Rejected r ->
+                                                            Rejected r
+
+                                                Rejected r ->
+                                                    Rejected r
+
+                                        Rejected r ->
+                                            Rejected r
+
+                                Rejected r ->
+                                    Rejected r
+
+                        Rejected r ->
+                            Rejected r
+
+                Rejected r ->
+                    Rejected r
+
+
+{-| Map over seven fuzzers.
+-}
+map7 : (a -> b -> c -> d -> e -> f -> g -> h) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g -> Fuzzer h
+map7 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuzzer fuzzerE) (Fuzzer fuzzerF) (Fuzzer fuzzerG) =
+    Fuzzer <|
+        \prng ->
+            case fuzzerA prng of
+                Generated a ->
+                    case fuzzerB a.prng of
+                        Generated b ->
+                            case fuzzerC b.prng of
+                                Generated c ->
+                                    case fuzzerD c.prng of
+                                        Generated d ->
+                                            case fuzzerE d.prng of
+                                                Generated e ->
+                                                    case fuzzerF e.prng of
+                                                        Generated f ->
+                                                            case fuzzerG f.prng of
+                                                                Generated g ->
+                                                                    Generated
+                                                                        { value = fn a.value b.value c.value d.value e.value f.value g.value
+                                                                        , prng = g.prng
+                                                                        }
+
+                                                                Rejected r ->
+                                                                    Rejected r
+
+                                                        Rejected r ->
+                                                            Rejected r
+
+                                                Rejected r ->
+                                                    Rejected r
+
+                                        Rejected r ->
+                                            Rejected r
+
+                                Rejected r ->
+                                    Rejected r
+
+                        Rejected r ->
+                            Rejected r
+
+                Rejected r ->
+                    Rejected r
+
+
+{-| Map over eight fuzzers.
+-}
+map8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g -> Fuzzer h -> Fuzzer i
+map8 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuzzer fuzzerE) (Fuzzer fuzzerF) (Fuzzer fuzzerG) (Fuzzer fuzzerH) =
+    Fuzzer <|
+        \prng ->
+            case fuzzerA prng of
+                Generated a ->
+                    case fuzzerB a.prng of
+                        Generated b ->
+                            case fuzzerC b.prng of
+                                Generated c ->
+                                    case fuzzerD c.prng of
+                                        Generated d ->
+                                            case fuzzerE d.prng of
+                                                Generated e ->
+                                                    case fuzzerF e.prng of
+                                                        Generated f ->
+                                                            case fuzzerG f.prng of
+                                                                Generated g ->
+                                                                    case fuzzerH g.prng of
+                                                                        Generated h ->
+                                                                            Generated
+                                                                                { value = fn a.value b.value c.value d.value e.value f.value g.value h.value
+                                                                                , prng = h.prng
+                                                                                }
+
+                                                                        Rejected r ->
+                                                                            Rejected r
+
+                                                                Rejected r ->
+                                                                    Rejected r
+
+                                                        Rejected r ->
+                                                            Rejected r
+
+                                                Rejected r ->
+                                                    Rejected r
+
+                                        Rejected r ->
+                                            Rejected r
+
+                                Rejected r ->
+                                    Rejected r
+
+                        Rejected r ->
+                            Rejected r
+
+                Rejected r ->
+                    Rejected r
+
+
+{-| Map over many fuzzers. This can act as `mapN` for `N > 8`.
 The argument order is meant to accommodate chaining:
 
-    map f aFuzzer
-        |> andMap anotherFuzzer
-        |> andMap aThirdFuzzer
+    constant fn
+        |> andMap fuzzerA
+        |> andMap fuzzerB
+        |> andMap fuzzerC
 
 -}
 andMap : Fuzzer a -> Fuzzer (a -> b) -> Fuzzer b
@@ -1189,6 +1338,56 @@ andThen fn (Fuzzer fuzzer) =
                     Rejected r
 
 
+{-| A fuzzer that delays its execution. Handy for recursive types and preventing
+infinite recursion.
+-}
+lazy : (() -> Fuzzer a) -> Fuzzer a
+lazy thunk =
+    Fuzzer <|
+        \prng ->
+            let
+                (Fuzzer fuzzer) =
+                    thunk ()
+            in
+            fuzzer prng
+
+
+{-| A fuzzer that shuffles the given list.
+-}
+shuffledList : List a -> Fuzzer (List a)
+shuffledList items =
+    items
+        |> traverse (\item -> int |> map (\index -> ( index, item )))
+        |> map
+            (\listWithIndexes ->
+                listWithIndexes
+                    |> List.sortBy Tuple.first
+                    |> List.map Tuple.second
+            )
+
+
+{-| Executes every fuzzer in the list and collects their values into the returned
+list.
+
+Rejections (eg. from `filter` or `reject`) bubble up instead of being discarded.
+
+-}
+sequence : List (Fuzzer a) -> Fuzzer (List a)
+sequence fuzzers =
+    List.foldr (map2 (::)) (constant []) fuzzers
+
+
+{-| Runs the Fuzzer-returning function on every item in the list, executes them=
+and collects their values into the returned list.
+
+Rejections (eg. from `filter` or `reject`) bubble up instead of being discarded.
+
+-}
+traverse : (a -> Fuzzer b) -> List a -> Fuzzer (List b)
+traverse toFuzzer items =
+    sequence (List.map toFuzzer items)
+
+
 {-| Draw an integer between 0 and n inclusive.
 
 Will simplify towards 0, but draws uniformly over the whole range.
@@ -1408,3 +1607,23 @@ examples n fuzzer =
 
         Rejected { reason } ->
             Internal.crash ("Couldn't generate: " ++ reason)
+
+
+{-| (Avoid this function if you can! It is only provided as an escape hatch.)
+
+Convert a Random.Generator into a Fuzzer.
+
+Works internally by generating a random seed and running Random.step.
+
+Note this will not shrink well, as Generators are black boxes from the
+perspective of Fuzzers.
+
+-}
+fromGenerator : Random.Generator a -> Fuzzer a
+fromGenerator generator =
+    int32
+        |> map
+            (\seed ->
+                Random.step generator (Random.initialSeed seed)
+                    |> Tuple.first
+            )

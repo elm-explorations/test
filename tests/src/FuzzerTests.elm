@@ -564,6 +564,24 @@ fuzzerSpecificationTests =
                 , simplifiesTowards "simplest" Array.empty (Fuzz.array Fuzz.int) fullySimplify
                 , simplifiesTowards "next simplest" (Array.fromList [ 0 ]) (Fuzz.array Fuzz.int) (\x -> Array.isEmpty x)
                 ]
+            , todo "uniformInt"
+            , todo "stringOfLength"
+            , todo "stringOfLengthBetween"
+            , todo "asciiStringOfLength"
+            , todo "asciiStringOfLengthBetween"
+            , todo "lazy"
+            , todo "shuffledList"
+            , todo "sequence"
+            , todo "traverse"
+            , todo "map2"
+            , todo "map3"
+            , todo "map4"
+            , todo "map5"
+            , todo "map6"
+            , todo "map7"
+            , todo "map8"
+            , todo "andMap"
+            , todo "fromGenerator"
             , describe "andThen"
                 [ passes "integer defined by another integer"
                     (Fuzz.intRange 0 5
