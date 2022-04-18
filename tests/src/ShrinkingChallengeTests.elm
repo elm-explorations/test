@@ -153,18 +153,21 @@ lengthList =
         )
 
 
-{-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/difference.md>
+{-| <https://github.com/jlink/shrinking-challenge/blob/7f8f46f192fbbd25bfe003db1cefdbadf8b0a8ad/challenges/difference.md>
 -}
 difference1 : Test
 difference1 =
     simplifiesTowardsWith { runs = 10000 }
         "difference1"
         ( 10, 10 )
-        (Fuzz.pair Fuzz.int Fuzz.int)
+        (Fuzz.pair
+            (Fuzz.intAtLeast 0)
+            (Fuzz.intAtLeast 0)
+        )
         (\( x, y ) -> x < 10 || x /= y)
 
 
-{-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/difference.md>
+{-| <https://github.com/jlink/shrinking-challenge/blob/7f8f46f192fbbd25bfe003db1cefdbadf8b0a8ad/challenges/difference.md>
 -}
 difference2 : Test
 difference2 =
@@ -172,8 +175,8 @@ difference2 =
         "difference2"
         ( 10, 6 )
         (Fuzz.pair
-            (Fuzz.intRange 0 Random.maxInt)
-            (Fuzz.intRange 0 Random.maxInt)
+            (Fuzz.intAtLeast 0)
+            (Fuzz.intAtLeast 0)
         )
         (\( x, y ) ->
             let
@@ -184,7 +187,7 @@ difference2 =
         )
 
 
-{-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/difference.md>
+{-| <https://github.com/jlink/shrinking-challenge/blob/7f8f46f192fbbd25bfe003db1cefdbadf8b0a8ad/challenges/difference.md>
 -}
 difference3 : Test
 difference3 =
@@ -192,8 +195,8 @@ difference3 =
         "difference3"
         ( 10, 9 )
         (Fuzz.pair
-            (Fuzz.intRange 0 Random.maxInt)
-            (Fuzz.intRange 0 Random.maxInt)
+            (Fuzz.intAtLeast 0)
+            (Fuzz.intAtLeast 0)
         )
         (\( x, y ) -> x < 10 || abs (x - y) /= 1)
 
