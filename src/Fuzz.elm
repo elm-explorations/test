@@ -507,6 +507,7 @@ For more serious char fuzzing look at `char` which generates the whole Unicode r
 -}
 asciiChar : Fuzzer Char
 asciiChar =
+    -- TODO: what about preferring nasty chars like \, /, $, @ (interpolation, SQL injections, ...)?
     intRange 32 126
         |> map Char.fromCode
 

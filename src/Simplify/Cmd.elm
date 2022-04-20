@@ -58,7 +58,13 @@ type SimplifyCmdType
       -}
       MinimizeFloat { leftIndex : Int }
     | MinimizeChoice { index : Int }
-    | RedistributeChoicesAndMaybeIncrement { leftIndex : Int, rightIndex : Int }
+    | {- For notes about why the increment, see a comment in
+         Simplify.redistributeChoicesAndMaybeIncrement.
+
+         TL;DR: we're trying to increase the success rate of Fuzz.intFrequency
+         by incrementing the "bucket index" of the right number.
+      -}
+      RedistributeChoicesAndMaybeIncrement { leftIndex : Int, rightIndex : Int }
     | {- DecrementTogether is tailored to how we generate ints:
          each Fuzz.int contributes two numbers into the RandomRun:
 
