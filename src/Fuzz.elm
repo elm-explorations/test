@@ -9,7 +9,7 @@ module Fuzz exposing
     , array, maybe, result
     , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
-    , constant, reject, filter
+    , constant, reject, invalid, filter
     , map, map2, map3, map4, map5, map6, map7, map8, andMap
     , andThen, lazy, sequence, traverse
     , fromGenerator
@@ -62,7 +62,7 @@ can usually find the simplest input that reproduces a bug.
 
 ## Working with Fuzzers
 
-@docs constant, reject, filter
+@docs constant, reject, invalid, filter
 @docs map, map2, map3, map4, map5, map6, map7, map8, andMap
 @docs andThen, lazy, sequence, traverse
 
@@ -1302,8 +1302,11 @@ invalid reason =
                 }
 
 
-{-| A fuzzer that rejects generating values for the provided reason. Any tests
-using a `reject` fuzzer will fail.
+{-| An alias for `invalid`.
+
+A fuzzer that rejects generating values for the provided reason. Any tests using
+a `reject` fuzzer will fail.
+
 -}
 reject : String -> Fuzzer a
 reject reason =
