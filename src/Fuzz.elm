@@ -1492,8 +1492,8 @@ weightedBool p =
 And only Int ones at that!
 
 This is because our underlying implementation is a sequence of Ints (RandomRun).
-All other generated values (Floats, Bools, ...) have to be somehow mapped one or
-more Ints.
+All other generated values (Floats, Bools, ...) have to be somehow mapped to
+one or more Ints.
 
 Based on the PRNG value, this function:
 
