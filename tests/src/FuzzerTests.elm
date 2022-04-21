@@ -1085,8 +1085,8 @@ fuzzerSpecificationTests =
                     (Fuzz.floatRange 5 -5)
                     (\n -> n >= -5 && n <= 5)
                 ]
-            , describe "reject"
-                [ rejects "with user's message" (Fuzz.reject "boo") "boo"
+            , describe "invalid"
+                [ rejects "with user's message" (Fuzz.invalid "boo") "boo"
                 ]
             , describe "filter" <|
                 let
