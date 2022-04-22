@@ -164,7 +164,6 @@ maxExponent =
 
 exponentMapping : Array Int
 exponentMapping =
-    -- TODO PERF `Dict Int Int` or `IntDict Int` instead? Benchmark?
     List.range 0 maxExponent
         |> List.sortBy exponentKey
         |> Array.fromList
