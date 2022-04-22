@@ -29,7 +29,9 @@ import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 type Selector
     = Id String
     | ClassName String
+    | ClassNameNS String
     | ClassList (List String)
+    | ClassListNS (List String)
     | Tag String
     | Attribute String String
     | BoolAttribute String Bool
@@ -242,9 +244,19 @@ hasClass queryString facts =
     List.member queryString (classnames facts)
 
 
+hasClassNS : String -> Facts msg -> Bool
+hasClassNS queryString facts =
+    List.member queryString (classnamesNS facts)
+
+
 hasClasses : List String -> Facts msg -> Bool
 hasClasses classList facts =
     containsAll classList (classnames facts)
+
+
+hasClassesNS : List String -> Facts msg -> Bool
+hasClassesNS classList facts =
+    containsAll classList (classnamesNS facts)
 
 
 hasStyle : { key : String, value : String } -> Facts msg -> Bool
@@ -255,6 +267,13 @@ hasStyle style facts =
 classnames : Facts msg -> List String
 classnames facts =
     Dict.get "className" facts.stringAttributes
+        |> Maybe.withDefault ""
+        |> String.split " "
+
+
+classnamesNS : Facts msg -> List String
+classnamesNS facts =
+    Dict.get "class" facts.stringAttributes
         |> Maybe.withDefault ""
         |> String.split " "
 
@@ -277,9 +296,17 @@ nodeRecordPredicate selector =
             .facts
                 >> hasClass classname
 
+        ClassNameNS classname ->
+            .facts
+                >> hasClassNS classname
+
         ClassList classList ->
             .facts
                 >> hasClasses classList
+
+        ClassListNS classList ->
+            .facts
+                >> hasClassesNS classList
 
         Tag tag ->
             .tag
@@ -316,9 +343,17 @@ markdownPredicate selector =
             .facts
                 >> hasClass classname
 
+        ClassNameNS classname ->
+            .facts
+                >> hasClassNS classname
+
         ClassList classList ->
             .facts
                 >> hasClasses classList
+
+        ClassListNS classList ->
+            .facts
+                >> hasClassesNS classList
 
         Tag tag ->
             always False

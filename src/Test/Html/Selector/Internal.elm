@@ -7,7 +7,9 @@ import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
 type Selector
     = All (List Selector)
     | Classes (List String)
+    | ClassesNS (List String)
     | Class String
+    | ClassNS String
     | Attribute { name : String, value : String }
     | BoolAttribute { name : String, value : Bool }
     | Style { key : String, value : String }
@@ -40,8 +42,14 @@ selectorToString criteria =
         Classes list ->
             "classes " ++ quoteString (String.join " " list)
 
+        ClassesNS list ->
+            "classesNS " ++ quoteString (String.join " " list)
+
         Class class ->
             "class " ++ quoteString class
+
+        ClassNS class ->
+            "classNS " ++ quoteString class
 
         Attribute { name, value } ->
             "attribute "
@@ -137,8 +145,14 @@ query fn fnAll selector list =
                 Classes classes ->
                     List.concatMap (fn (ElmHtmlQuery.ClassList classes)) elems
 
+                ClassesNS classes ->
+                    List.concatMap (fn (ElmHtmlQuery.ClassListNS classes)) elems
+
                 Class class ->
                     List.concatMap (fn (ElmHtmlQuery.ClassList [ class ])) elems
+
+                ClassNS class ->
+                    List.concatMap (fn (ElmHtmlQuery.ClassListNS [ class ])) elems
 
                 Attribute { name, value } ->
                     List.concatMap (fn (ElmHtmlQuery.Attribute name value)) elems
