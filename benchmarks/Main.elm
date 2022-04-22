@@ -3,7 +3,7 @@ module Main exposing (main)
 import Benchmark exposing (..)
 import Benchmark.Runner as Runner
 import Expect exposing (Expectation)
-import Random.Pcg
+import Random
 import Snippets
 import Test.Internal exposing (Test(..))
 
@@ -64,25 +64,17 @@ suite =
             [ benchmark "generating" (benchTest Snippets.map5Pass)
             , benchmark "simplifying" (benchTest Snippets.map5Fail)
             ]
-        , describe "andThen"
-            [ benchmark "generating" (benchTest Snippets.andThenPass)
-            , benchmark "simplifying" (benchTest Snippets.andThenFail)
-            ]
-        , describe "conditional"
-            [ benchmark "generating" (benchTest Snippets.conditionalPass)
-            , benchmark "simplifying" (benchTest Snippets.conditionalFail)
-            ]
         ]
 
 
 benchTest : Test -> (() -> List Expectation)
 benchTest test =
     case test of
-        Test fn ->
-            \_ -> fn (Random.Pcg.initialSeed 0) 10
+        ElmTestVariant__FuzzTest fn ->
+            \_ -> fn (Random.initialSeed 0) 10
 
-        Labeled _ test ->
-            benchTest test
+        ElmTestVariant__Labeled _ test_ ->
+            benchTest test_
 
-        test ->
-            Debug.crash <| "No support for benchmarking this type of test: " ++ toString test
+        test_ ->
+            Debug.todo <| "No support for benchmarking this type of test: " ++ Debug.toString test_
