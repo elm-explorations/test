@@ -39,9 +39,12 @@ import Char
 import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
-import Lazy.List as LazyList exposing (LazyList)
+import Fuzz.Internal
+import GenResult exposing (GenResult(..))
+import PRNG
 import Random
-import RoseTree exposing (RoseTree(..))
+import RandomRun exposing (RandomRun)
+import Simplify
 import String
 import Test exposing (Test)
 import Test.Expectation
@@ -74,7 +77,6 @@ type alias Runner =
 type RunnableTree
     = Runnable Runnable
     | Labeled String RunnableTree
-    | Batch (List RunnableTree)
 
 
 {-| Convert a `Test` into `SeededRunners`.
@@ -127,15 +129,12 @@ countRunnables runnable =
         Labeled _ runner ->
             countRunnables runner
 
-        Batch runners ->
-            countAllRunnables runners
-
 
 run : Runnable -> List Expectation
 run (Thunk fn) =
     case runThunk fn of
-        Ok tests ->
-            tests
+        Ok test ->
+            test
 
         Err message ->
             [ Expect.fail ("This test failed because it threw an exception: \"" ++ message ++ "\"") ]
@@ -162,9 +161,6 @@ fromRunnableTreeHelp labels runner =
 
         Labeled label subRunner ->
             fromRunnableTreeHelp (label :: labels) subRunner
-
-        Batch runners ->
-            List.concatMap (fromRunnableTreeHelp labels) runners
 
 
 type alias Distribution =
@@ -217,8 +213,8 @@ Some design notes:
     failure when not using `only`, but it magically disappeared as soon as you
     tried to isolate it. The same logic applies to `skip`.
 
-2.  Theoretically this could become tail-recursive. However, the Labeled and Batch
-    cases would presumably become very gnarly, and it's unclear whether there would
+2.  Theoretically this could become tail-recursive. However, the Labeled
+    case would presumably become very gnarly, and it's unclear whether there would
     be a performance benefit or penalty in the end. If some brave soul wants to
     attempt it for kicks, beware that this is not a performance optimization for
     the faint of heart. Practically speaking, it seems unlikely to be worthwhile
@@ -454,57 +450,68 @@ formatLabels formatDescription formatTest labels =
                 |> List.reverse
 
 
-type alias Shrunken a =
-    { down : LazyList (RoseTree a)
-    , over : LazyList (RoseTree a)
-    }
-
-
 {-| A `Simplifiable a` is an opaque type that allows you to obtain a value of type
 `a` that is simpler than the one you've previously obtained.
 -}
 type Simplifiable a
-    = Simplifiable (Shrunken a)
+    = Simplifiable
+        { randomRun : RandomRun
+        , fuzzer : Fuzzer a
+        }
 
 
 {-| Given a fuzzer, return a random generator to produce a value and a
 Simplifiable. The value is what a fuzz test would have received as input.
+
+Note that fuzzers aren't generated to succeed, which is why this function returns
+a Result. The String inside the Err case will contain a failure reason.
+
 -}
-fuzz : Fuzzer a -> Result String (Random.Generator ( a, Simplifiable a ))
+fuzz : Fuzzer a -> Random.Generator (Result String ( a, Simplifiable a ))
 fuzz fuzzer =
-    case fuzzer of
-        Ok validFuzzer ->
-            validFuzzer
-                |> Random.map
-                    (\(Rose root children) ->
-                        ( root, Simplifiable { down = children, over = LazyList.empty } )
-                    )
-                |> Ok
+    Random.independentSeed
+        |> Random.map
+            (\seed ->
+                case Fuzz.Internal.generate (PRNG.random seed) fuzzer of
+                    Generated { value, prng } ->
+                        Ok
+                            ( value
+                            , Simplifiable
+                                { randomRun = PRNG.getRun prng
+                                , fuzzer = fuzzer
+                                }
+                            )
 
-        Err reason ->
-            Err <| "Cannot call `fuzz` with an invalid fuzzer: " ++ reason
+                    Rejected { reason } ->
+                        Err reason
+            )
 
 
-{-| Given a Simplifiable, attempt to simplify the value further. Pass `False` to
-indicate that the last value you've seen (from either `fuzz` or this function)
-caused the test to **fail**. This will attempt to find a simpler value. Pass
-`True` if the test passed. If you have already seen a failure, this will attempt
-to simplify that failure in another way. In both cases, it may be impossible to
-simplify the value, represented by `Nothing`.
+{-| Given a Simplifiable, simplify the value further. Pass your test function to
+drive the simplification process: if a simplified value passes the test, it will
+be discarded. In this sense, you will get the simplest value that still fails
+your test.
 -}
-simplify : Bool -> Simplifiable a -> Maybe ( a, Simplifiable a )
-simplify causedPass (Simplifiable { down, over }) =
+simplify : (a -> Expectation) -> ( a, Simplifiable a ) -> Maybe ( a, Simplifiable a )
+simplify getExpectation ( value, Simplifiable { randomRun, fuzzer } ) =
     let
-        tryNext =
-            if causedPass then
-                over
-
-            else
-                down
+        ( newValue, newRandomRun, _ ) =
+            Simplify.simplify
+                { getExpectation = getExpectation
+                , fuzzer = fuzzer
+                , randomRun = randomRun
+                , value = value
+                , expectation = getExpectation value
+                }
     in
-    case LazyList.headAndTail tryNext of
-        Just ( Rose root children, tl ) ->
-            Just ( root, Simplifiable { down = children, over = tl } )
+    if RandomRun.equal newRandomRun randomRun then
+        Nothing
 
-        Nothing ->
-            Nothing
+    else
+        Just
+            ( newValue
+            , Simplifiable
+                { randomRun = newRandomRun
+                , fuzzer = fuzzer
+                }
+            )

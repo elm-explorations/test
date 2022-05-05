@@ -10,7 +10,7 @@ floatWithinTests : Test
 floatWithinTests =
     describe "Expect.within"
         [ describe "use-cases"
-            [ fuzz float "pythagorean identity" <|
+            [ fuzz niceFloat "pythagorean identity" <|
                 \x ->
                     sin x ^ 2 + cos x ^ 2 |> Expect.within (AbsoluteOrRelative 0.000001 0.00001) 1.0
             , test "floats known to not add exactly" <|
@@ -70,7 +70,7 @@ floatWithinTests =
                         |> expectToFail
             ]
         , describe "edge-cases"
-            [ fuzz2 float float "self equality" <|
+            [ fuzz2 niceFloat niceFloat "self equality" <|
                 \epsilon value ->
                     let
                         eps =
@@ -81,35 +81,35 @@ floatWithinTests =
                                 1
                     in
                     value |> Expect.within (Relative (abs eps)) value
-            , fuzz float "NaN inequality" <|
+            , fuzz niceFloat "NaN inequality" <|
                 \epsilon ->
                     let
                         nan =
                             0.0 / 0.0
                     in
                     nan |> Expect.notWithin (Relative (abs epsilon)) nan
-            , fuzz2 float float "NaN does not equal anything" <|
+            , fuzz2 niceFloat niceFloat "NaN does not equal anything" <|
                 \epsilon a ->
                     let
                         nan =
                             0.0 / 0.0
                     in
                     nan |> Expect.notWithin (Relative (abs epsilon)) a
-            , fuzz float "Infinity equality" <|
+            , fuzz niceFloat "Infinity equality" <|
                 \epsilon ->
                     let
                         infinity =
                             1.0 / 0.0
                     in
                     infinity |> Expect.within (Relative (abs epsilon)) infinity
-            , fuzz float "Negative infinity equality" <|
+            , fuzz niceFloat "Negative infinity equality" <|
                 \epsilon ->
                     let
                         negativeInfinity =
                             -1.0 / 0.0
                     in
                     negativeInfinity |> Expect.within (Relative (abs epsilon)) negativeInfinity
-            , fuzz3 float float float "within and notWithin should never agree on relative tolerance" <|
+            , fuzz3 niceFloat niceFloat niceFloat "within and notWithin should never agree on relative tolerance" <|
                 \epsilon a b ->
                     let
                         withinTest =
@@ -119,7 +119,7 @@ floatWithinTests =
                             a |> Expect.notWithin (Relative (abs epsilon)) b
                     in
                     different withinTest notWithinTest
-            , fuzz3 float float float "within and notWithin should never agree on absolute tolerance" <|
+            , fuzz3 niceFloat niceFloat niceFloat "within and notWithin should never agree on absolute tolerance" <|
                 \epsilon a b ->
                     let
                         withinTest =
@@ -129,7 +129,7 @@ floatWithinTests =
                             a |> Expect.notWithin (Absolute (abs epsilon)) b
                     in
                     different withinTest notWithinTest
-            , fuzz2 (pair float float) (pair float float) "within and notWithin should never agree on absolute or relative tolerance" <|
+            , fuzz2 (pair niceFloat niceFloat) (pair niceFloat niceFloat) "within and notWithin should never agree on absolute or relative tolerance" <|
                 \( absoluteEpsilon, relativeEpsilon ) ( a, b ) ->
                     let
                         withinTest =
@@ -139,24 +139,24 @@ floatWithinTests =
                             a |> Expect.notWithin (AbsoluteOrRelative (abs absoluteEpsilon) (abs relativeEpsilon)) b
                     in
                     different withinTest notWithinTest
-            , fuzz float "Zero equality" <|
+            , fuzz niceFloat "Zero equality" <|
                 \epsilon -> 0.0 |> Expect.within (Relative (abs epsilon)) 0.0
-            , fuzz3 float float float "within absolute commutativity" <|
+            , fuzz3 niceFloat niceFloat niceFloat "within absolute commutativity" <|
                 \epsilon a b ->
                     same (Expect.within (Absolute (abs epsilon)) a b) (Expect.within (Absolute (abs epsilon)) b a)
-            , fuzz3 float float float "notWithin absolute commutativity" <|
+            , fuzz3 niceFloat niceFloat niceFloat "notWithin absolute commutativity" <|
                 \epsilon a b ->
                     same (Expect.notWithin (Absolute (abs epsilon)) a b) (Expect.notWithin (Absolute (abs epsilon)) b a)
-            , fuzz2 float float "within absolute reflexive" <|
+            , fuzz2 niceFloat niceFloat "within absolute reflexive" <|
                 \epsilon a ->
                     Expect.within (Absolute (abs epsilon)) a a
-            , fuzz3 float float float "within relative commutativity" <|
+            , fuzz3 niceFloat niceFloat niceFloat "within relative commutativity" <|
                 \epsilon a b ->
                     same (Expect.within (Relative (abs epsilon)) a b) (Expect.within (Relative (abs epsilon)) b a)
-            , fuzz3 float float float "notWithin relative commutativity" <|
+            , fuzz3 niceFloat niceFloat niceFloat "notWithin relative commutativity" <|
                 \epsilon a b ->
                     same (Expect.notWithin (Relative (abs epsilon)) a b) (Expect.notWithin (Relative (abs epsilon)) b a)
-            , fuzz2 float float "within relative reflexive" <|
+            , fuzz2 niceFloat niceFloat "within relative reflexive" <|
                 \epsilon a ->
                     Expect.within (Relative (abs epsilon)) a a
             ]

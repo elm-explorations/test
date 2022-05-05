@@ -1,6 +1,5 @@
 module Test.Html.Query.MarkdownTests exposing (all)
 
-import Expect
 import Markdown
 import Test exposing (..)
 import Test.Html.Query as Query

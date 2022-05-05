@@ -22,7 +22,11 @@ import Test.Runner exposing (Runner, SeededRunners(..))
 and the number of failed tests.
 -}
 type alias Summary =
-    { output : String, passed : Int, failed : Int, autoFail : Maybe String }
+    { output : String
+    , passed : Int
+    , failed : Int
+    , autoFail : Maybe String
+    }
 
 
 toOutput : Summary -> SeededRunners -> Summary
@@ -47,6 +51,16 @@ toOutput summary seededRunners =
 
 toOutputHelp : Runner -> Summary -> Summary
 toOutputHelp runner summary =
+    {-
+       let
+           _ =
+               Debug.log "==================" ()
+       in
+       let
+           _ =
+               Debug.log "TEST" runner.labels
+       in
+    -}
     runner.run ()
         |> List.foldl (fromExpectation runner.labels) summary
 

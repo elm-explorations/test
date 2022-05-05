@@ -18,9 +18,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
 -}
 
 import Dict exposing (Dict)
-import Html.Events
 import Json.Decode exposing (field)
-import Json.Encode
 import Test.Html.Internal.ElmHtml.Constants as Constants exposing (..)
 import Test.Html.Internal.ElmHtml.Helpers exposing (..)
 import Test.Html.Internal.ElmHtml.Markdown exposing (..)
@@ -41,7 +39,6 @@ type ElmHtml msg
     | NodeEntry (NodeRecord msg)
     | CustomNode (CustomNodeRecord msg)
     | MarkdownNode (MarkdownNodeRecord msg)
-    | NoOp
 
 
 {-| Text tags just contain text
@@ -432,33 +429,6 @@ decodeAttribute =
 
                 else
                     Json.Decode.fail ("Unexpected Html.Attribute tag: " ++ tag)
-            )
-
-
-elmListDecoder : Json.Decode.Decoder a -> Json.Decode.Decoder (List a)
-elmListDecoder itemDecoder =
-    elmListDecoderHelp itemDecoder []
-        |> Json.Decode.map List.reverse
-
-
-elmListDecoderHelp : Json.Decode.Decoder a -> List a -> Json.Decode.Decoder (List a)
-elmListDecoderHelp itemDecoder items =
-    Json.Decode.field "ctor" Json.Decode.string
-        |> Json.Decode.andThen
-            (\ctor ->
-                case ctor of
-                    "[]" ->
-                        Json.Decode.succeed items
-
-                    "::" ->
-                        Json.Decode.field "_0" itemDecoder
-                            |> Json.Decode.andThen
-                                (\value ->
-                                    Json.Decode.field "_1" (elmListDecoderHelp itemDecoder (value :: items))
-                                )
-
-                    _ ->
-                        Json.Decode.fail <| "Unrecognized constructor for an Elm List: " ++ ctor
             )
 
 

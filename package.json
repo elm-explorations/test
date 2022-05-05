@@ -4,7 +4,9 @@
   "description": "tests for elm-test, so you can elm-test while you elm-test",
   "scripts": {
     "test": "bash tests/run-tests.sh",
-    "format": "elm-format --validate src tests/src benchmarks"
+    "test:random": "RANDOMIZED=1 bash tests/run-tests.sh",
+    "format": "elm-format --validate src tests/src benchmarks",
+    "install-local": "rm -rf ~/.elm/0.19.1/packages/elm-explorations/test/1.2.2/ && mkdir -p ~/.elm/0.19.1/packages/elm-explorations/test/1.2.2/ && cp -r ./{src,elm.json,LICENSE,README.md} ~/.elm/0.19.1/packages/elm-explorations/test/1.2.2/"
   },
   "author": "Richard Feldman",
   "license": "BSD-3-Clause"

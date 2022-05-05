@@ -1,13 +1,10 @@
 module Test.Html.Query.CustomNodeTests exposing (all)
 
-import Expect
 import Html exposing (Html, div)
-import Math.Matrix4 as Mat4 exposing (Mat4)
-import Math.Vector3 as Vec3 exposing (Vec3, vec3)
 import Test exposing (..)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (..)
-import WebGL exposing (Mesh, Shader)
+import WebGL exposing (Shader)
 
 
 all : Test

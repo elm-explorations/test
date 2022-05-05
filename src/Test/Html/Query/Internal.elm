@@ -4,7 +4,7 @@ import Expect exposing (Expectation)
 import Test.Html.Descendant as Descendant
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..))
 import Test.Html.Internal.ElmHtml.ToString exposing (nodeToStringWithOptions)
-import Test.Html.Internal.Inert as Inert exposing (Node)
+import Test.Html.Internal.Inert as Inert
 import Test.Html.Selector.Internal as InternalSelector exposing (Selector, selectorToString)
 import Test.Runner
 
@@ -390,7 +390,7 @@ expectAll check query =
             expectAllHelp 0 check list
 
         Err error ->
-            Expect.fail (queryErrorToString query error)
+            Expect.fail (queryErrorToString error)
 
 
 expectAllHelp : Int -> (Single msg -> Expectation) -> List (ElmHtml msg) -> Expectation
@@ -407,7 +407,7 @@ expectAllHelp successes check list =
                         |> check
             in
             case Test.Runner.getFailureReason expectation of
-                Just { given, description } ->
+                Just { description } ->
                     let
                         prefix =
                             if successes > 0 then
@@ -431,11 +431,11 @@ multipleToExpectation (Multiple _ query) check =
             check list
 
         Err error ->
-            Expect.fail (queryErrorToString query error)
+            Expect.fail (queryErrorToString error)
 
 
-queryErrorToString : Query msg -> QueryError -> String
-queryErrorToString query error =
+queryErrorToString : QueryError -> String
+queryErrorToString error =
     case error of
         NoResultsForSingle queryName ->
             queryName ++ " always expects to find 1 element, but it found 0 instead."
@@ -483,7 +483,7 @@ contains expectedDescendants query =
                     )
 
         Err error ->
-            Expect.fail (queryErrorToString query error)
+            Expect.fail (queryErrorToString error)
 
 
 missingDescendants : List (ElmHtml msg) -> List (ElmHtml msg) -> List (ElmHtml msg)
@@ -510,7 +510,7 @@ has selectors query =
                     |> Expect.fail
 
         Err error ->
-            Expect.fail (queryErrorToString query error)
+            Expect.fail (queryErrorToString error)
 
 
 hasNot : List Selector -> Query msg -> Expectation
@@ -530,7 +530,7 @@ hasNot selectors query =
                         |> String.join "\n"
                         |> Expect.fail
 
-        Err error ->
+        Err _ ->
             Expect.pass
 
 
@@ -569,7 +569,7 @@ showSelectorOutcomeInverse elmHtmlList selector =
 failWithQuery : Bool -> String -> Query msg -> Expectation -> Expectation
 failWithQuery showTrace queryName query expectation =
     case Test.Runner.getFailureReason expectation of
-        Just { given, description } ->
+        Just { description } ->
             let
                 lines =
                     toLines description query queryName

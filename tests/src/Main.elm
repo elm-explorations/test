@@ -8,8 +8,6 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 
 -}
 
-import Browser
-import Html
 import Platform
 import Runner.Log
 import Runner.String exposing (Summary)

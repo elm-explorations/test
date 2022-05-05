@@ -9,7 +9,7 @@ module Test.Html.Internal.Inert exposing (Node, fromElmHtml, fromHtml, parseAttr
 import Elm.Kernel.HtmlAsJson
 import Html exposing (Html)
 import Json.Decode
-import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml(..), EventHandler, Facts, Tagger, decodeAttribute, decodeElmHtml)
+import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml, EventHandler, Tagger, decodeAttribute, decodeElmHtml)
 import VirtualDom
 
 
@@ -42,11 +42,6 @@ toJson node =
 toElmHtml : Node msg -> ElmHtml msg
 toElmHtml (Node elmHtml) =
     elmHtml
-
-
-impossibleMessage : String
-impossibleMessage =
-    "An Inert Node fired an event handler. This should never happen! Please report this bug."
 
 
 attributeToJson : Html.Attribute a -> Json.Decode.Value

@@ -4,10 +4,10 @@ module Test.Html.SelectorTests exposing (all)
 -}
 
 import Fuzz exposing (..)
-import Html exposing (Html, a, div, footer, header, li, section, span, ul)
+import Html
 import Html.Attributes as Attr
 import Test exposing (..)
-import Test.Html.Query as Query exposing (Single)
+import Test.Html.Query as Query
 import Test.Html.Selector exposing (..)
 
 

@@ -1,8 +1,6 @@
 module Test.Html.Descendant exposing (isDescendant)
 
-import Html exposing (Html)
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..))
-import Test.Html.Internal.Inert exposing (fromHtml, toElmHtml)
 
 
 isDescendant : List (ElmHtml msg) -> ElmHtml msg -> Bool

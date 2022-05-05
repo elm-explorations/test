@@ -18,6 +18,7 @@ all =
     describe "Test.Html.Query"
         [ htmlTests
         , lazyTests
+        , testHas
         , test "lazy nodes inside of keyed nodes are instantiated" <|
             \() ->
                 Keyed.node "div"

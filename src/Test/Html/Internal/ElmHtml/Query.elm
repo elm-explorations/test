@@ -164,7 +164,7 @@ queryInNodeHelp maxDescendantDepth selector node =
                 _ ->
                     []
 
-        MarkdownNode { facts, model } ->
+        MarkdownNode _ ->
             if predicateFromSelector selector node then
                 [ node ]
 
@@ -297,7 +297,7 @@ nodeRecordPredicate selector =
             .facts
                 >> hasStyle style
 
-        ContainsText text ->
+        ContainsText _ ->
             always False
 
         Multiple selectors ->
@@ -320,7 +320,7 @@ markdownPredicate selector =
             .facts
                 >> hasClasses classList
 
-        Tag tag ->
+        Tag _ ->
             always False
 
         Attribute key value ->

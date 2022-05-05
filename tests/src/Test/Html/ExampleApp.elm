@@ -22,7 +22,7 @@ type Msg
 
 
 view : Model -> Html Msg
-view model =
+view _ =
     div [ class "container" ]
         [ header [ class "funky themed", id "heading" ]
             [ a [ href "http://elm-lang.org", onClick GoToHome ] [ text "home" ]
