@@ -1652,6 +1652,8 @@ Useful in REPL:
 
 Uses seed 0.
 
+Will return an empty list in case of rejection.
+
 -}
 examples : Int -> Fuzzer a -> List a
 examples n fuzzer =
@@ -1664,7 +1666,7 @@ examples n fuzzer =
             value
 
         Rejected { reason } ->
-            Internal.crash ("Couldn't generate: " ++ reason)
+            []
 
 
 {-| (Avoid this function if you can! It is only provided as an escape hatch.)
