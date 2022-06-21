@@ -1647,10 +1647,10 @@ Useful in REPL:
 
     > import Fuzz
     > Fuzz.examples 20 (Fuzz.intRange 20 50)
-    [27,25,21,24,29,40,31,23,34,28,28,47,22,36,35,38,33,32,34,29]
+    [42,45,32,26,33,29,41,45,23,45,34,23,22,42,29,27,41,43,30,50]
         : List Int
 
-Uses seed 0.
+Uses the first argument as the seed as well as the count of examples to generate.
 
 Will return an empty list in case of rejection.
 
@@ -1659,7 +1659,7 @@ examples : Int -> Fuzzer a -> List a
 examples n fuzzer =
     case
         Fuzz.Internal.generate
-            (PRNG.random (Random.initialSeed 0))
+            (PRNG.random (Random.initialSeed n))
             (listOfLength n fuzzer)
     of
         Generated { value } ->
