@@ -1659,7 +1659,7 @@ examples : Int -> Fuzzer a -> List a
 examples n fuzzer =
     case
         Fuzz.Internal.generate
-            (PRNG.random (Random.initialSeed 0))
+            (PRNG.random (Random.initialSeed n))
             (listOfLength n fuzzer)
     of
         Generated { value } ->
