@@ -1650,7 +1650,7 @@ Useful in REPL:
     [27,25,21,24,29,40,31,23,34,28,28,47,22,36,35,38,33,32,34,29]
         : List Int
 
-Uses seed 0.
+Uses the first argument as the seed as well as the count of examples to generate.
 
 Will return an empty list in case of rejection.
 
