@@ -124,7 +124,7 @@ in and returns the final state. This generic combinator extracts the "run n time
 -}
 foldUntil : Int -> (a -> Bool) -> a -> (a -> a) -> a
 foldUntil remainingRuns endingCondition initialState f =
-    if remainingRuns <= 1 || endingCondition initialState then
+    if remainingRuns <= 0 || endingCondition initialState then
         initialState
 
     else

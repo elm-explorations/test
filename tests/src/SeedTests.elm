@@ -7,17 +7,20 @@ import Test exposing (..)
 
 
 
--- NOTE: These tests are only here so that we can watch out for regressions. All constants in this file are what the implementation happened to output, not what we expected the implementation to output.
+{- NOTE: These tests are only here so that we can watch out for regressions.
+   All constants in this file are what the implementation happened to output,
+   not what we expected the implementation to output.
+-}
 
 
 expectedNum : Int
 expectedNum =
-    20
+    2
 
 
 oneSeedAlreadyDistributed : Int
 oneSeedAlreadyDistributed =
-    590423180
+    70
 
 
 fixedSeed : Random.Seed
@@ -35,15 +38,13 @@ exactly the string "Seed test".
 fuzzTest : Test
 fuzzTest =
     fuzz int "It receives the expected number" <|
-        \num ->
-            Expect.equal num expectedNum
+        \num -> Expect.equal num expectedNum
 
 
 fuzzTestAfterOneDistributed : Test
 fuzzTestAfterOneDistributed =
     fuzz int "This should be different than expectedNum, because there is a fuzz test before it." <|
-        \num ->
-            Expect.equal num oneSeedAlreadyDistributed
+        \num -> Expect.equal num oneSeedAlreadyDistributed
 
 
 tests : List Test
@@ -73,7 +74,7 @@ tests =
         [ describe "Seed test"
             [ fuzzTest ]
         ]
-    , -- Wrapping in a Test.concat wth unit tests shouldn't change anything
+    , -- Wrapping in a Test.concat with unit tests shouldn't change anything
       Test.concat
         [ describe "Seed test"
             [ test "Unit tests before should not affect seed distribution" <|
@@ -95,19 +96,18 @@ tests =
     , Test.concat
         [ fuzz int "top-level fuzz tests don't affect subsequent top-level fuzz tests, since they use their labels to get different seeds" <|
             \num ->
-                Expect.equal num -8
+                Expect.equal num 110
         , describe "Seed test"
             [ fuzzTest ]
         , describe "another top-level fuzz test"
             [ fuzz int "it still gets different values, due to computing the seed as a hash of the label, and these labels must be unique" <|
-                \num ->
-                    Expect.equal num -1079557009
+                \num -> Expect.equal num 8759
             ]
         ]
     , describe "Fuzz tests with different outer describe texts get different seeds"
         [ fuzz int "It receives the expected number" <|
             \num ->
-                Expect.equal num 3556635839
+                Expect.equal num -31327
         ]
     ]
 
