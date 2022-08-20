@@ -11,8 +11,10 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 
 -}
 
+import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import Random
+import Runner.String.Coverage
 import Runner.String.Format
 import Test exposing (Test)
 import Test.Runner exposing (Runner, SeededRunners(..))
@@ -67,9 +69,31 @@ toOutputHelp runner summary =
 
 fromExpectation : List String -> Expectation -> Summary -> Summary
 fromExpectation labels expectation summary =
+    let
+        coverageReport : Maybe String
+        coverageReport =
+            expectation
+                |> Test.Runner.getCoverageReport
+                |> Runner.String.Coverage.report labels
+
+        summaryWithCoverage : Summary
+        summaryWithCoverage =
+            case coverageReport of
+                Nothing ->
+                    summary
+
+                Just coverage ->
+                    { summary
+                        | output =
+                            summary.output
+                                ++ "\n\n"
+                                ++ coverage
+                                ++ "\n"
+                    }
+    in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { summary | passed = summary.passed + 1 }
+            { summaryWithCoverage | passed = summaryWithCoverage.passed + 1 }
 
         Just { given, description, reason } ->
             let
@@ -85,12 +109,16 @@ fromExpectation labels expectation summary =
                             "Given " ++ g ++ "\n\n"
 
                 newOutput =
-                    "\n\n" ++ outputLabels labels ++ "\n" ++ (prefix ++ indentLines message) ++ "\n"
+                    "\n\n"
+                        ++ outputLabels labels
+                        ++ "\n"
+                        ++ (prefix ++ indentLines message)
+                        ++ "\n"
             in
-            { summary
-                | output = summary.output ++ newOutput
-                , failed = summary.failed + 1
-                , passed = summary.passed
+            { summaryWithCoverage
+                | output = summaryWithCoverage.output ++ newOutput
+                , failed = summaryWithCoverage.failed + 1
+                , passed = summaryWithCoverage.passed
             }
 
 
@@ -109,6 +137,11 @@ defaultSeed =
 defaultRuns : Int
 defaultRuns =
     100
+
+
+wrap : String -> String -> String
+wrap delimiter string =
+    delimiter ++ string ++ delimiter
 
 
 indentLines : String -> String

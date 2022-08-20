@@ -216,7 +216,7 @@ keepIfBetter newRandomRun state =
         case Fuzz.Internal.generate (PRNG.hardcoded newRandomRun) state.fuzzer of
             Generated { value } ->
                 case state.getExpectation value of
-                    Pass ->
+                    Pass _ ->
                         noImprovement state
 
                     Fail fail ->

@@ -6,6 +6,7 @@ import Fuzz exposing (..)
 import Helpers exposing (..)
 import Random exposing (Generator)
 import Test exposing (..)
+import Test.Coverage
 import Test.Runner exposing (Simplifiable)
 
 
@@ -22,6 +23,7 @@ fuzzerTests =
             ]
         , testRunnerModuleTests
         , fuzzerSpecificationTests
+        , coverageTests
         ]
 
 
@@ -1114,6 +1116,63 @@ fuzzerSpecificationTests =
                 , cannotGenerateSatisfyingWith { runs = 5000 } "divisible by 5" intsNotDivBy5 isDivBy5
                 ]
             ]
+        ]
+
+
+coverageTests : Test
+coverageTests =
+    Test.describe "coverage"
+        [ Test.fuzzWith
+            { runs = 10000
+            , coverage =
+                Test.reportCoverage
+                    [ ( "low", \n -> n == 1 )
+                    , ( "high", \n -> n == 20 )
+                    , ( "in between", \n -> n > 1 && n < 20 )
+                    , ( "outside", \n -> n < 1 || n > 20 )
+                    ]
+            }
+            (Fuzz.intRange 1 20)
+            "Int range boundaries"
+            (\n -> Expect.pass)
+        , Test.fuzzWith
+            { runs = 10000
+            , coverage =
+                Test.reportCoverage
+                    [ ( "fizz", \n -> (n |> modBy 3) == 0 )
+                    , ( "buzz", \n -> (n |> modBy 5) == 0 )
+                    ]
+            }
+            (Fuzz.intRange 1 20)
+            "Fizz buzz"
+            (\n -> Expect.pass)
+        , Test.fuzzWith
+            { runs = 10000
+            , coverage =
+                Test.reportCoverage
+                    [ ( "fizz", \n -> (n |> modBy 3) == 0 )
+                    , ( "buzz", \n -> (n |> modBy 5) == 0 )
+                    , ( "even", \n -> (n |> modBy 2) == 0 )
+                    , ( "odd", \n -> (n |> modBy 2) == 1 )
+                    ]
+            }
+            (Fuzz.intRange 1 20)
+            "Fizz buzz even odd"
+            (\n -> Expect.pass)
+        , Test.fuzzWith
+            { runs = 10000
+            , coverage =
+                Test.expectCoverage
+                    [ ( Test.Coverage.atLeast 4, "low", \n -> n == 1 )
+                    , ( Test.Coverage.atLeast 4, "high", \n -> n == 20 )
+                    , ( Test.Coverage.atLeast 80, "in between", \n -> n > 1 && n < 20 )
+                    , ( Test.Coverage.zero, "outside", \n -> n < 1 || n > 20 )
+                    , ( Test.Coverage.moreThanZero, "one", \n -> n == 1 )
+                    ]
+            }
+            (Fuzz.intRange 1 20)
+            "Int range boundaries - mandatory"
+            (\n -> Expect.pass)
         ]
 
 

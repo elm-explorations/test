@@ -259,8 +259,14 @@ passes label fuzzer fn =
 
 
 passesWith : { runs : Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
-passesWith runs label fuzzer fn =
-    Test.fuzzWith runs fuzzer label (fn >> Expect.equal True)
+passesWith { runs } label fuzzer fn =
+    Test.fuzzWith
+        { runs = runs
+        , coverage = Test.noCoverage
+        }
+        fuzzer
+        label
+        (fn >> Expect.equal True)
 
 
 canGenerateSatisfying : String -> Fuzzer a -> (a -> Bool) -> Test
