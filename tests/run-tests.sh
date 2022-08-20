@@ -37,7 +37,7 @@ fi
 
 if [ ! -z ${SEED+x} ]; then
   echo "Setting all Random.initialSeed calls to ${SEED}"
-  grep -ERiIl 'initialSeed [0-9]+' src | while read -r FILE; do
+  grep -ERiIl 'initialSeed [0-9]+' src | grep -v SeedTest | while read -r FILE; do
     sed -i.bak "s/initialSeed [0-9]\+/initialSeed ${SEED}/g" "${FILE}"
   done
 fi

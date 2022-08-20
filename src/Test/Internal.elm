@@ -1,4 +1,4 @@
-module Test.Internal exposing (Test(..), blankDescriptionFailure, crash, duplicatedName, failNow, toString)
+module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
 
 import Random
 import Set exposing (Set)
@@ -84,8 +84,3 @@ duplicatedName tests =
 toString : a -> String
 toString =
     Elm.Kernel.Debug.toString
-
-
-crash : String -> a
-crash =
-    Elm.Kernel.Debug.todo

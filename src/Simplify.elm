@@ -26,7 +26,6 @@ those cases you can do `andThen`:
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
-import MicroBitwiseExtra as Bitwise
 import PRNG
 import RandomRun exposing (Chunk, RandomRun)
 import Simplify.Cmd exposing (SimplifyCmd, SimplifyCmdType(..))

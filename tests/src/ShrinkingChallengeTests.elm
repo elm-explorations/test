@@ -266,8 +266,9 @@ binHeap =
         , Heap 0 Nothing (Just (Heap -1 Nothing Nothing))
         , Heap 0 (Just (Heap -1 Nothing Nothing)) Nothing
 
-        -- TODO check why this didn't get shrunk further. Seed 3215002169
-        , Heap 0 Nothing (Just (Heap 0 (Just (Heap 1 Nothing Nothing)) (Just (Heap 0 Nothing Nothing))))
+        -- TODO check why these didn't get shrunk further:
+        , {- Seed 3215002169 -} Heap 0 Nothing (Just (Heap 0 (Just (Heap 1 Nothing Nothing)) (Just (Heap 0 Nothing Nothing))))
+        , {- Seed 3620287673 -} Heap 0 (Just (Heap 0 (Just (Heap 1 Nothing Nothing)) (Just (Heap 0 Nothing Nothing)))) Nothing
         ]
         (heapFuzzer 4)
         (\heap ->
