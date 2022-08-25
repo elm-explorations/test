@@ -653,6 +653,22 @@ fuzzerSpecificationTests =
                     (\( originalList, shuffledList ) ->
                         List.sort originalList == List.sort shuffledList
                     )
+                , canGenerate [ 30, 80, 50 ] (Fuzz.shuffledList [ 50, 30, 80 ])
+                , simplifiesTowards "simplest = original ordering"
+                    [ 50, 30, 80 ]
+                    (Fuzz.shuffledList [ 50, 30, 80 ])
+                    fullySimplify
+                , passes "list sort is stable"
+                    (Fuzz.listOfLength 5 Fuzz.int)
+                    (\list ->
+                        let
+                            sortBy indexes xs =
+                                List.map2 Tuple.pair indexes xs
+                                    |> List.sortBy Tuple.first
+                                    |> List.map Tuple.second
+                        in
+                        sortBy [ 0, 0, 0, 0, 0 ] list == sortBy [ 0, 1, 2, 3, 4 ] list
+                    )
                 ]
             , describe "sequence"
                 [ passes "keeps the list length"
