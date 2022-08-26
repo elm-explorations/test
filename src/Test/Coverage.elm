@@ -83,7 +83,13 @@ type CoverageReport
         , runsElapsed : Int
         , badLabel : String
         , badLabelPercentage : Float
-        , expectedCoverage : ExpectedCoverage
+        , {- Would be great to return ExpectedCoverage here but it's defined (and
+             used) in an internal module. The only way from this dependency cycle
+             I can see involves exposing the constructors and having a duplicate
+             definition of this type + conversion functions between them.
+             ~janiczek
+          -}
+          expectedCoverage : String
         }
 
 

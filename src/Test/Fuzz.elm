@@ -397,7 +397,7 @@ coverageFailRunResult normalizedCoverageCount failedLabel =
                     , runsElapsed = failedLabel.runsElapsed
                     , badLabel = failedLabel.label
                     , badLabelPercentage = failedLabel.actualPercentage
-                    , expectedCoverage = failedLabel.expectedCoverage
+                    , expectedCoverage = Test.Coverage.Internal.expectedCoverageToString failedLabel.expectedCoverage
                     }
             , failure = Just <| coverageInsufficientFailure failedLabel
             }
@@ -434,7 +434,7 @@ Coverage of label "{LABEL}" was insufficient:
                     |> String.replace "{TABLE}" (Test.Runner.Coverage.formatTable failure)
                     |> String.replace "{LABEL}" failure.label
                     |> String.replace "{EXPECTED_PERCENTAGE}" (formatExpectedCoverage failure.expectedCoverage)
-                    |> String.replace "{ACTUAL_PERCENTAGE}" (formatPct failure.actualPercentage)
+                    |> String.replace "{ACTUAL_PERCENTAGE}" (Test.Coverage.Internal.formatPct failure.actualPercentage)
                     |> String.replace "{RUNS}" (String.fromInt failure.runsElapsed)
             , reason = Invalid CoverageInsufficient
             }
@@ -568,24 +568,7 @@ formatExpectedCoverage expected =
             "more than 0%"
 
         AtLeast n ->
-            formatPct n
-
-
-formatPct : Float -> String
-formatPct n =
-    let
-        intPart : Int
-        intPart =
-            floor n
-
-        thousandths : Int
-        thousandths =
-            round (n * 1000 - toFloat (intPart * 1000))
-    in
-    String.fromInt intPart
-        ++ "."
-        ++ String.padLeft 3 '0' (String.fromInt thousandths)
-        ++ "%"
+            Test.Coverage.Internal.formatPct n
 
 
 type alias RunResult =

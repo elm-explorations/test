@@ -1,6 +1,8 @@
 module Test.Coverage.Internal exposing
     ( Coverage(..)
     , ExpectedCoverage(..)
+    , expectedCoverageToString
+    , formatPct
     , getCoverageLabels
     , getExpectedCoverages
     , insufficientlyCovered
@@ -18,6 +20,19 @@ type ExpectedCoverage
     = Zero
     | MoreThanZero
     | AtLeast Float
+
+
+expectedCoverageToString : ExpectedCoverage -> String
+expectedCoverageToString expectedCoverage =
+    case expectedCoverage of
+        Zero ->
+            "0%"
+
+        MoreThanZero ->
+            "> 0%"
+
+        AtLeast pct ->
+            ">= " ++ formatPct pct
 
 
 getCoverageLabels : Coverage a -> Maybe (List ( String, a -> Bool ))
@@ -44,6 +59,23 @@ getExpectedCoverages coverage =
 
         ExpectCoverage list ->
             Just (List.map (\( e, l, _ ) -> ( l, e )) list)
+
+
+formatPct : Float -> String
+formatPct n =
+    let
+        intPart : Int
+        intPart =
+            floor n
+
+        thousandths : Int
+        thousandths =
+            round (n * 1000 - toFloat (intPart * 1000))
+    in
+    String.fromInt intPart
+        ++ "."
+        ++ String.padLeft 3 '0' (String.fromInt thousandths)
+        ++ "%"
 
 
 {-| Coverage checks will be allowed to give a false positive once in `certainty`
