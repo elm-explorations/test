@@ -509,6 +509,13 @@ fuzzWith
     }
 ```
 
+The `a` type variable in `Coverage a` is the same type as your fuzzed type.
+
+For example, if you're fuzzing a String with `Fuzzer String` and want to see
+coverage information for values produced by this fuzzer, you need to provide
+`String -> Bool` functions to your `reportCoverage` or `expectCoverage` calls,
+which will in turn produce a `Coverage String`.
+
 -}
 type alias Coverage a =
     Test.Coverage.Internal.Coverage a
