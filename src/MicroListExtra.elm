@@ -5,6 +5,7 @@ module MicroListExtra exposing
     , getAt
     , setAt
     , splitWhen
+    , transpose
     )
 
 
@@ -82,3 +83,18 @@ findIndexHelp index predicate list =
 splitAt : Int -> List a -> ( List a, List a )
 splitAt n xs =
     ( List.take n xs, List.drop n xs )
+
+
+transpose : List (List a) -> List (List a)
+transpose listOfLists =
+    List.foldr (List.map2 (::)) (List.repeat (rowsLength listOfLists) []) listOfLists
+
+
+rowsLength : List (List a) -> Int
+rowsLength listOfLists =
+    case listOfLists of
+        [] ->
+            0
+
+        x :: _ ->
+            List.length x

@@ -1,5 +1,7 @@
 module AsciiTable exposing (Align(..), Column, view)
 
+import MicroListExtra as List
+
 
 type Align
     = AlignLeft
@@ -51,19 +53,4 @@ view columns items =
     in
     List.map2 (\item rowCells -> ( item, String.join "  " rowCells ))
         items
-        (transpose paddedColumnData)
-
-
-transpose : List (List a) -> List (List a)
-transpose listOfLists =
-    List.foldr (List.map2 (::)) (List.repeat (rowsLength listOfLists) []) listOfLists
-
-
-rowsLength : List (List a) -> Int
-rowsLength listOfLists =
-    case listOfLists of
-        [] ->
-            0
-
-        x :: _ ->
-            List.length x
+        (List.transpose paddedColumnData)
