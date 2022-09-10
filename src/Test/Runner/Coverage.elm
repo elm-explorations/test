@@ -59,16 +59,24 @@ formatTable { runsElapsed, coverageCount } =
         reorderedTable =
             baseRows ++ combinationsRows
 
+        rawTable : List { item : ( List String, Int, Float ), renderedRow : String }
         rawTable =
             formatAsciiTable runsElapsed_ reorderedTable
 
         ( base, combinations ) =
             rawTable
-                |> List.splitWhen (\( ( labels, _, _ ), _ ) -> List.length labels > 1)
+                |> List.splitWhen
+                    (\{ item } ->
+                        let
+                            ( labels, _, _ ) =
+                                item
+                        in
+                        List.length labels > 1
+                    )
                 |> Maybe.withDefault ( rawTable, [] )
 
         baseString =
-            String.join "\n" (List.map Tuple.second base)
+            String.join "\n" (List.map .renderedRow base)
 
         combinationsString_ =
             if List.isEmpty combinations then
@@ -79,7 +87,7 @@ formatTable { runsElapsed, coverageCount } =
 
 Combinations (included in the above base counts):
 {COMBINATIONS}"""
-                    |> String.replace "{COMBINATIONS}" (String.join "\n" (List.map Tuple.second combinations))
+                    |> String.replace "{COMBINATIONS}" (String.join "\n" (List.map .renderedRow combinations))
 
         table =
             baseString ++ combinationsString_
@@ -109,7 +117,10 @@ isStrictSubset all combination =
     List.any containsCombinationFully allSets
 
 
-formatAsciiTable : Float -> List ( List String, Int, Float ) -> List ( ( List String, Int, Float ), String )
+formatAsciiTable :
+    Float
+    -> List ( List String, Int, Float )
+    -> List { item : ( List String, Int, Float ), renderedRow : String }
 formatAsciiTable runsElapsed items =
     AsciiTable.view
         [ { toString = \( labels, _, _ ) -> "  " ++ viewLabels labels ++ ":"

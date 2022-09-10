@@ -16,8 +16,12 @@ type alias Column a =
 
 {-| This would normally return just the final String, but we need to postprocess
 the table rows a little (insert a divider row in between).
+
+So we return the original item next to the rendered row which makes the
+postprocessing possible!
+
 -}
-view : List (Column a) -> List a -> List ( a, String )
+view : List (Column a) -> List a -> List { item : a, renderedRow : String }
 view columns items =
     let
         columnData : List (List String)
@@ -51,6 +55,11 @@ view columns items =
                 columnLengths
                 columnData
     in
-    List.map2 (\item rowCells -> ( item, String.join "  " rowCells ))
+    List.map2
+        (\item rowCells ->
+            { item = item
+            , renderedRow = String.join "  " rowCells
+            }
+        )
         items
         (List.transpose paddedColumnData)
