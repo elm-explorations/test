@@ -26,7 +26,7 @@ import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Set
 import Test.Coverage exposing (ExpectedCoverage)
-import Test.Coverage.Internal exposing (Coverage)
+import Test.Coverage.Internal
 import Test.Fuzz
 import Test.Internal as Internal
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
