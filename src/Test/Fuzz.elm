@@ -424,14 +424,11 @@ coverageInsufficientFailure failure =
     , expectation =
         Test.Expectation.fail
             { description =
-                """{TABLE}
-
-Coverage of label "{LABEL}" was insufficient:
+                """Coverage of label "{LABEL}" was insufficient:
   expected:  {EXPECTED_PERCENTAGE}
   got:       {ACTUAL_PERCENTAGE}.
 
 (Generated {RUNS} values.)"""
-                    |> String.replace "{TABLE}" (Test.Runner.Coverage.formatTable failure)
                     |> String.replace "{LABEL}" failure.label
                     |> String.replace "{EXPECTED_PERCENTAGE}" (formatExpectedCoverage failure.expectedCoverage)
                     |> String.replace "{ACTUAL_PERCENTAGE}" (Test.Coverage.Internal.formatPct failure.actualPercentage)
