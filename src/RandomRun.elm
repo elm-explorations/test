@@ -49,7 +49,7 @@ a PRNG choice), like in:
 -}
 maxLength : Int
 maxLength =
-    32 * 1024
+    64 * 1024
 
 
 type alias Chunk =
