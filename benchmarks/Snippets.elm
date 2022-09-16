@@ -1,4 +1,4 @@
-module Snippets exposing (Person, andMapFail, andMapPass, andThenFail, andThenPass, boolFail, boolPass, charFail, charPass, conditionalFail, conditionalPass, even, evenWithConditional, floatFail, floatPass, intFail, intPass, intRangeFail, intRangePass, listIntFail, listIntPass, map5Fail, map5Pass, mapFail, mapPass, maybeIntFail, maybeIntPass, person, person2, resultFail, resultPass, sequence, stringFail, stringPass, variableList)
+module Snippets exposing (..)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
@@ -169,30 +169,6 @@ map5Fail =
         \_ -> Expect.fail "Failed"
 
 
-andThenPass : Test
-andThenPass =
-    fuzz (variableList 2 5 Fuzz.int) "(passes) andThen" <|
-        \_ -> Expect.pass
-
-
-andThenFail : Test
-andThenFail =
-    fuzz (variableList 2 5 Fuzz.int) "(fails) andThen" <|
-        \_ -> Expect.fail "Failed"
-
-
-conditionalPass : Test
-conditionalPass =
-    fuzz evenWithConditional "(passes) conditional" <|
-        \_ -> Expect.pass
-
-
-conditionalFail : Test
-conditionalFail =
-    fuzz evenWithConditional "(fails) conditional" <|
-        \_ -> Expect.fail "Failed"
-
-
 type alias Person =
     { firstName : String
     , lastName : String
@@ -226,25 +202,9 @@ even =
     Fuzz.map ((*) 2) Fuzz.int
 
 
-variableList : Int -> Int -> Fuzzer a -> Fuzzer (List a)
-variableList min max item =
-    Fuzz.intRange min max
-        |> Fuzz.andThen (\length -> List.repeat length item |> sequence)
-
-
 sequence : List (Fuzzer a) -> Fuzzer (List a)
 sequence fuzzers =
     List.foldl
         (Fuzz.map2 (::))
         (Fuzz.constant [])
         fuzzers
-
-
-evenWithConditional : Fuzzer Int
-evenWithConditional =
-    Fuzz.intRange 1 6
-        |> Fuzz.conditional
-            { retries = 3
-            , fallback = (+) 1
-            , condition = \n -> (n % 2) == 0
-            }
