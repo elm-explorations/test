@@ -19,9 +19,9 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
 
 import Dict exposing (Dict)
 import Json.Decode exposing (field)
-import Test.Html.Internal.ElmHtml.Constants as Constants exposing (..)
-import Test.Html.Internal.ElmHtml.Helpers exposing (..)
-import Test.Html.Internal.ElmHtml.Markdown exposing (..)
+import Test.Html.Internal.ElmHtml.Constants as Constants
+import Test.Html.Internal.ElmHtml.Helpers exposing (filterKnownKeys)
+import Test.Html.Internal.ElmHtml.Markdown exposing (MarkdownModel, decodeMarkdownModel)
 import Test.Internal.KernelConstants exposing (kernelConstants)
 import VirtualDom
 
@@ -312,7 +312,7 @@ decodeMarkdownNodeRecord context =
 decodeStyles : Json.Decode.Decoder (Dict String String)
 decodeStyles =
     Json.Decode.oneOf
-        [ field styleKey (Json.Decode.dict Json.Decode.string)
+        [ field Constants.styleKey (Json.Decode.dict Json.Decode.string)
         , Json.Decode.succeed Dict.empty
         ]
 
@@ -353,7 +353,7 @@ decodeDictFilterMap decoder =
 decodeAttributes : Json.Decode.Decoder a -> Json.Decode.Decoder (Dict String a)
 decodeAttributes decoder =
     Json.Decode.oneOf
-        [ Json.Decode.field attributeKey (decodeDictFilterMap decoder)
+        [ Json.Decode.field Constants.attributeKey (decodeDictFilterMap decoder)
         , Json.Decode.succeed Dict.empty
         ]
 
@@ -361,7 +361,7 @@ decodeAttributes decoder =
 decodeEvents : (EventHandler -> VirtualDom.Handler msg) -> Json.Decode.Decoder (Dict String (VirtualDom.Handler msg))
 decodeEvents taggedEventDecoder =
     Json.Decode.oneOf
-        [ Json.Decode.field eventKey (Json.Decode.dict (Json.Decode.map taggedEventDecoder Json.Decode.value))
+        [ Json.Decode.field Constants.eventKey (Json.Decode.dict (Json.Decode.map taggedEventDecoder Json.Decode.value))
         , Json.Decode.succeed Dict.empty
         ]
 
@@ -373,7 +373,7 @@ decodeFacts (HtmlContext taggers eventDecoder) =
     Json.Decode.map5 Facts
         decodeStyles
         (decodeEvents (eventDecoder taggers))
-        (Json.Decode.maybe (Json.Decode.field attributeNamespaceKey Json.Decode.value))
+        (Json.Decode.maybe (Json.Decode.field Constants.attributeNamespaceKey Json.Decode.value))
         (decodeOthers Json.Decode.string)
         (decodeOthers Json.Decode.bool)
 

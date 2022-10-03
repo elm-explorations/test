@@ -1,10 +1,14 @@
 module ShrinkingChallengeTests exposing (shrinkingChallenges)
 
-import Fuzz exposing (..)
-import Helpers exposing (..)
-import Random
+import Fuzz exposing (Fuzzer)
+import Helpers
+    exposing
+        ( simplifiesTowards
+        , simplifiesTowardsMany
+        , simplifiesTowardsWith
+        )
 import Set
-import Test exposing (..)
+import Test exposing (Test, describe)
 
 
 {-| <https://github.com/jlink/shrinking-challenge>

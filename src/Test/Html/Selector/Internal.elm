@@ -1,4 +1,12 @@
-module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString)
+module Test.Html.Selector.Internal exposing
+    ( Selector(..)
+    , hasAll
+    , namedAttr
+    , namedBoolAttr
+    , queryAll
+    , queryAllChildren
+    , selectorToString
+    )
 
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
 import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
@@ -24,12 +32,11 @@ selectorToString criteria =
             "\"" ++ s ++ "\""
 
         boolToString b =
-            case b of
-                True ->
-                    "True"
+            if b then
+                "True"
 
-                False ->
-                    "False"
+            else
+                "False"
     in
     case criteria of
         All list ->

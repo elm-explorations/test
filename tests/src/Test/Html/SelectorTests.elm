@@ -3,12 +3,12 @@ module Test.Html.SelectorTests exposing (all)
 {-| Tests for selectors
 -}
 
-import Fuzz exposing (..)
+import Fuzz
 import Html
 import Html.Attributes as Attr
-import Test exposing (..)
+import Test exposing (Test, describe, fuzz3, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
+import Test.Html.Selector exposing (attribute, class, text)
 
 
 all : Test
@@ -45,7 +45,12 @@ bug13 =
 textSelectors : Test
 textSelectors =
     describe "Selector.text"
-        [ fuzz3 (list string) string (list string) "Finds one result" <|
+        [ fuzz3
+            (Fuzz.list Fuzz.string)
+            Fuzz.string
+            (Fuzz.list Fuzz.string)
+            "Finds one result"
+          <|
             \before str after ->
                 let
                     textNodes =
@@ -56,7 +61,12 @@ textSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has [ text str ]
-        , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
+        , fuzz3
+            (Fuzz.list Fuzz.string)
+            (Fuzz.list Fuzz.string)
+            (Fuzz.list Fuzz.string)
+            "Finds multiple results"
+          <|
             \before strings after ->
                 let
                     textNodes =

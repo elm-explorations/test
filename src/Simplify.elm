@@ -138,14 +138,13 @@ logRun label run =
 logState : String -> State a -> State a
 logState label state =
     let
-        runString =
-            Debug.toString (RandomRun.toList state.randomRun)
-    in
-    let
         _ =
             case Fuzz.Internal.generate (PRNG.hardcoded state.randomRun) state.fuzzer of
                 Generated { value } ->
                     let
+                        runString =
+                            Debug.toString (RandomRun.toList state.randomRun)
+
                         _ =
                             Debug.log (label ++ " - " ++ runString ++ " --->") value
                     in

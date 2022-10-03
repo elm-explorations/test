@@ -1,10 +1,10 @@
 module RunnerTests exposing (all)
 
 import Expect
-import Fuzz exposing (..)
+import Fuzz
 import Helpers exposing (expectPass)
 import Random
-import Test exposing (..)
+import Test exposing (Test, describe, fuzz2, test)
 import Test.Runner exposing (SeededRunners(..))
 import Test.Runner.Failure
 
@@ -24,7 +24,7 @@ fromTest : Test
 fromTest =
     describe "TestRunner.fromTest"
         [ describe "test length"
-            [ fuzz2 int int "only positive tests runs are valid" <|
+            [ fuzz2 Fuzz.int Fuzz.int "only positive tests runs are valid" <|
                 \runs intSeed ->
                     case Test.Runner.fromTest runs (Random.initialSeed intSeed) passing of
                         Invalid str ->

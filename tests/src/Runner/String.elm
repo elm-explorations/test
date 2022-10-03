@@ -11,7 +11,6 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 
 -}
 
-import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import Random
 import Runner.String.Coverage
@@ -118,7 +117,6 @@ fromExpectation labels expectation summary =
             { summaryWithCoverage
                 | output = summaryWithCoverage.output ++ newOutput
                 , failed = summaryWithCoverage.failed + 1
-                , passed = summaryWithCoverage.passed
             }
 
 
@@ -137,11 +135,6 @@ defaultSeed =
 defaultRuns : Int
 defaultRuns =
     100
-
-
-wrap : String -> String -> String
-wrap delimiter string =
-    delimiter ++ string ++ delimiter
 
 
 indentLines : String -> String

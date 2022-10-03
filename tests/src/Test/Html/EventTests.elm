@@ -3,12 +3,12 @@ module Test.Html.EventTests exposing (all)
 import Expect
 import Html exposing (Html, button, div, input, text)
 import Html.Attributes as Attr
-import Html.Events exposing (..)
+import Html.Events
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
 import Json.Decode exposing (Value, succeed)
 import Json.Encode as Encode
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 import Test.Html.Event as Event exposing (Event)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (tag)
@@ -27,7 +27,11 @@ all =
         , test "return msg for stopPropagation event listener" <|
             \() ->
                 div [ Attr.class "container" ]
-                    [ button [ stopPropagationOn "click" (succeed ( SampleMsg, True )) ] [ text "click me" ]
+                    [ button
+                        [ Html.Events.stopPropagationOn "click"
+                            (succeed ( SampleMsg, True ))
+                        ]
+                        [ text "click me" ]
                     ]
                     |> Query.fromHtml
                     |> Query.findAll [ tag "button" ]
@@ -37,7 +41,11 @@ all =
         , test "return msg for preventDefault event listener" <|
             \() ->
                 div [ Attr.class "container" ]
-                    [ button [ preventDefaultOn "click" (succeed ( SampleMsg, True )) ] [ text "click me" ]
+                    [ button
+                        [ Html.Events.preventDefaultOn "click"
+                            (succeed ( SampleMsg, True ))
+                        ]
+                        [ text "click me" ]
                     ]
                     |> Query.fromHtml
                     |> Query.findAll [ tag "button" ]
@@ -91,31 +99,35 @@ all =
                     |> Event.expect (SampleInputMsg "foobar")
         , test "returns msg for input with transformation" <|
             \() ->
-                input [ onInput (String.toUpper >> SampleInputMsg) ] []
+                input [ Html.Events.onInput (String.toUpper >> SampleInputMsg) ] []
                     |> Query.fromHtml
                     |> Event.simulate (Event.input "cats")
                     |> Event.expect (SampleInputMsg "CATS")
         , test "returns msg for check event" <|
             \() ->
-                input [ onCheck SampleCheckedMsg ] []
+                input [ Html.Events.onCheck SampleCheckedMsg ] []
                     |> Query.fromHtml
                     |> Event.simulate (Event.check True)
                     |> Event.expect (SampleCheckedMsg True)
         , test "returns msg for custom event" <|
             \() ->
-                input [ on "keyup" (Json.Decode.map SampleKeyUpMsg keyCode) ] []
+                input
+                    [ Html.Events.on "keyup"
+                        (Json.Decode.map SampleKeyUpMsg Html.Events.keyCode)
+                    ]
+                    []
                     |> Query.fromHtml
                     |> Event.simulate ( "keyup", Encode.object [ ( "keyCode", Encode.int 5 ) ] )
                     |> Event.expect (SampleKeyUpMsg 5)
-        , testEvent onDoubleClick Event.doubleClick
-        , testEvent onMouseDown Event.mouseDown
-        , testEvent onMouseUp Event.mouseUp
-        , testEvent onMouseLeave Event.mouseLeave
-        , testEvent onMouseOver Event.mouseOver
-        , testEvent onMouseOut Event.mouseOut
-        , testEvent onSubmit Event.submit
-        , testEvent onBlur Event.blur
-        , testEvent onFocus Event.focus
+        , testEvent Html.Events.onDoubleClick Event.doubleClick
+        , testEvent Html.Events.onMouseDown Event.mouseDown
+        , testEvent Html.Events.onMouseUp Event.mouseUp
+        , testEvent Html.Events.onMouseLeave Event.mouseLeave
+        , testEvent Html.Events.onMouseOver Event.mouseOver
+        , testEvent Html.Events.onMouseOut Event.mouseOut
+        , testEvent Html.Events.onSubmit Event.submit
+        , testEvent Html.Events.onBlur Event.blur
+        , testEvent Html.Events.onFocus Event.focus
         , test "event result" <|
             \() ->
                 Query.fromHtml sampleHtml
@@ -192,7 +204,7 @@ type Msg
 sampleHtml : Html Msg
 sampleHtml =
     div [ Attr.class "container" ]
-        [ button [ onClick SampleMsg ] [ text "click me" ]
+        [ button [ Html.Events.onClick SampleMsg ] [ text "click me" ]
         ]
 
 
@@ -200,7 +212,7 @@ sampleLazyHtml : Html Msg
 sampleLazyHtml =
     div [ Attr.class "container" ]
         [ Lazy.lazy
-            (\str -> button [ onClick SampleMsg ] [ text str ])
+            (\str -> button [ Html.Events.onClick SampleMsg ] [ text str ])
             "click me"
         ]
 
@@ -208,7 +220,11 @@ sampleLazyHtml =
 sampleMappedHtml : Html Msg
 sampleMappedHtml =
     div [ Attr.class "container" ]
-        [ Html.map (always MappedSampleMsg) (button [ onClick SampleMsg ] [ text "click me" ])
+        [ Html.map (always MappedSampleMsg)
+            (button
+                [ Html.Events.onClick SampleMsg ]
+                [ text "click me" ]
+            )
         ]
 
 
@@ -217,7 +233,11 @@ sampleMappedLazyHtml =
     div [ Attr.class "container" ]
         [ Html.map (always MappedSampleMsg) <|
             Lazy.lazy
-                (\str -> button [ onClick SampleMsg ] [ text str ])
+                (\str ->
+                    button
+                        [ Html.Events.onClick SampleMsg ]
+                        [ text str ]
+                )
                 "click me"
         ]
 
@@ -227,7 +247,7 @@ sampleMappedKeyedHtml =
     div [ Attr.class "container" ]
         [ Html.map (always MappedSampleMsg) <|
             Keyed.node "button"
-                [ onClick SampleMsg ]
+                [ Html.Events.onClick SampleMsg ]
                 [ ( "key", text "click me" ) ]
         ]
 
@@ -239,7 +259,7 @@ deepMappedHtml =
             (div []
                 [ Html.map (\msg -> msg ++ "bar")
                     (div []
-                        [ input [ onInput identity ] []
+                        [ input [ Html.Events.onInput identity ] []
                         ]
                     )
                 ]

@@ -1,9 +1,9 @@
 module Test.Html.Query.MarkdownTests exposing (all)
 
 import Markdown
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
+import Test.Html.Selector exposing (text)
 
 
 all : Test

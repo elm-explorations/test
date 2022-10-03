@@ -2,13 +2,12 @@ module Tests exposing (all)
 
 import Expect
 import FloatWithinTests exposing (floatWithinTests)
-import Fuzz exposing (..)
+import Fuzz
 import FuzzerTests exposing (fuzzerTests)
-import Helpers exposing (..)
+import Helpers
 import RunnerTests
 import ShrinkingChallengeTests exposing (shrinkingChallenges)
-import Test exposing (..)
-import Test.Coverage
+import Test exposing (Test, describe, fuzz, fuzzWith, test, todo)
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
 import Test.Html.Query.CustomNodeTests
@@ -63,7 +62,7 @@ readmeExample =
                     "ABCDEFG"
                         |> String.reverse
                         |> Expect.equal "GFEDCBA"
-            , fuzz string "restores the original string if you run it again" <|
+            , fuzz Fuzz.string "restores the original string if you run it again" <|
                 \randomlyGeneratedString ->
                     randomlyGeneratedString
                         |> String.reverse
@@ -84,21 +83,21 @@ expectationTests =
                 \_ ->
                     Ok 12
                         |> Expect.err
-                        |> expectToFail
+                        |> Helpers.expectToFail
             ]
         , describe "Expect.all"
             [ test "fails with empty list" <|
                 \_ ->
                     "dummy subject"
                         |> Expect.all []
-                        |> expectToFail
+                        |> Helpers.expectToFail
             ]
         , describe "Expect.equal"
             [ test "fails when equating two floats (see #230)" <|
                 \_ ->
                     1.41
                         |> Expect.equal 1.41
-                        |> expectToFail
+                        |> Helpers.expectToFail
             , test "succeeds when equating two ints" <|
                 \_ -> 141 |> Expect.equal 141
             ]
@@ -121,7 +120,7 @@ expectationTests =
 regressions : Test
 regressions =
     describe "regression tests"
-        [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
+        [ fuzz (Fuzz.intRange 1 32) "for elm-community/elm-test #39" <|
             \positiveInt ->
                 positiveInt
                     |> Expect.greaterThan 0
@@ -133,10 +132,10 @@ regressions =
                (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
-                fuzz (intRange 1 8)
+                fuzz (Fuzz.intRange 1 8)
                     "fuzz tests run 100 times"
                     (Expect.notEqual 5)
-                    |> expectTestToFail
+                    |> Helpers.expectTestToFail
         , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
             -- if characters that span more than one utf-16 character work, this version of the unicode string fuzzer is good to go
             \() -> "🔥" |> String.reverse |> Expect.equal "🔥"
@@ -157,45 +156,45 @@ testTests =
             [ test "fails with empty list" <|
                 \() ->
                     describe "x" []
-                        |> expectTestToFail
+                        |> Helpers.expectTestToFail
             , test "fails with empty description" <|
                 \() ->
-                    describe "" [ test "x" expectPass ]
-                        |> expectTestToFail
+                    describe "" [ test "x" Helpers.expectPass ]
+                        |> Helpers.expectTestToFail
             ]
         , describe "test"
             [ test "fails with empty name" <|
                 \() ->
-                    test "" expectPass
-                        |> expectTestToFail
+                    test "" Helpers.expectPass
+                        |> Helpers.expectTestToFail
             ]
         , describe "fuzz"
             [ test "fails with empty name" <|
                 \() ->
-                    fuzz Fuzz.bool "" expectPass
-                        |> expectTestToFail
+                    fuzz Fuzz.bool "" Helpers.expectPass
+                        |> Helpers.expectTestToFail
             ]
         , describe "fuzzWith"
             [ test "fails with fewer than 1 run" <|
                 \() ->
-                    fuzzWith { runs = 0, coverage = noCoverage }
+                    fuzzWith { runs = 0, coverage = Test.noCoverage }
                         Fuzz.bool
                         "nonpositive"
-                        expectPass
-                        |> expectTestToFail
+                        Helpers.expectPass
+                        |> Helpers.expectTestToFail
             , test "fails with empty name" <|
                 \() ->
-                    fuzzWith { runs = 1, coverage = noCoverage }
+                    fuzzWith { runs = 1, coverage = Test.noCoverage }
                         Fuzz.bool
                         ""
-                        expectPass
-                        |> expectTestToFail
+                        Helpers.expectPass
+                        |> Helpers.expectTestToFail
             ]
         , describe "Test.todo"
             [ test "causes test failure" <|
                 \() ->
                     todo "a TODO test fails"
-                        |> expectTestToFail
+                        |> Helpers.expectTestToFail
             , test "Passes are not TODO"
                 (\_ -> Expect.pass |> Test.Runner.isTodo |> Expect.equal False)
             , test "Simple failures are not TODO" <|
@@ -212,47 +211,47 @@ identicalNamesAreRejectedTests =
         [ test "a describe with two identically named children" <|
             \() ->
                 describe "x"
-                    [ test "foo" expectPass
-                    , test "foo" expectPass
+                    [ test "foo" Helpers.expectPass
+                    , test "foo" Helpers.expectPass
                     ]
-                    |> expectTestToFail
+                    |> Helpers.expectTestToFail
         , test "a describe with the same name as a child test" <|
             \() ->
                 describe "A"
-                    [ test "A" expectPass ]
-                    |> expectTestToFail
+                    [ test "A" Helpers.expectPass ]
+                    |> Helpers.expectTestToFail
         , test "a describe with the same name as a child describe fails" <|
             \() ->
                 describe "A"
                     [ describe "A"
-                        [ test "x" expectPass ]
+                        [ test "x" Helpers.expectPass ]
                     ]
-                    |> expectTestToFail
+                    |> Helpers.expectTestToFail
         , test "a describe with the same name as a sibling describe fails" <|
             \() ->
                 Test.concat
-                    [ describe "A" [ test "x" expectPass ]
-                    , describe "A" [ test "y" expectPass ]
+                    [ describe "A" [ test "x" Helpers.expectPass ]
+                    , describe "A" [ test "y" Helpers.expectPass ]
                     ]
-                    |> expectTestToFail
+                    |> Helpers.expectTestToFail
         , test "a describe with the same name as a de facto sibling describe fails" <|
             \() ->
                 Test.concat
                     [ Test.concat
-                        [ describe "A" [ test "x" expectPass ]
+                        [ describe "A" [ test "x" Helpers.expectPass ]
                         ]
-                    , describe "A" [ test "y" expectPass ]
+                    , describe "A" [ test "y" Helpers.expectPass ]
                     ]
-                    |> expectTestToFail
+                    |> Helpers.expectTestToFail
         , test "a describe with the same name as a de facto sibling describe fails (2)" <|
             \() ->
                 Test.concat
                     [ Test.concat
-                        [ describe "A" [ test "x" expectPass ]
+                        [ describe "A" [ test "x" Helpers.expectPass ]
                         ]
                     , Test.concat
-                        [ describe "A" [ test "y" expectPass ]
+                        [ describe "A" [ test "y" Helpers.expectPass ]
                         ]
                     ]
-                    |> expectTestToFail
+                    |> Helpers.expectTestToFail
         ]

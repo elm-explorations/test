@@ -90,7 +90,7 @@ cmdsForRun run =
     List.fastConcat
         [ deletionCmds length
         , zeroCmds length
-        , minimizeChoiceCmds run length
+        , minimizeChoiceCmds run
         , minimizeFloatCmds run length
         , sortCmds length
         , redistributeCmds length
@@ -126,8 +126,8 @@ sortCmds length =
         }
 
 
-minimizeChoiceCmds : RandomRun -> Int -> List SimplifyCmd
-minimizeChoiceCmds run length =
+minimizeChoiceCmds : RandomRun -> List SimplifyCmd
+minimizeChoiceCmds run =
     run
         |> RandomRun.toList
         |> List.indexedMap Tuple.pair

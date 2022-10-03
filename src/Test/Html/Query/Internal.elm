@@ -1,4 +1,22 @@
-module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError(..), SelectorQuery(..), Single(..), addQueryFromHtmlLine, baseIndentation, contains, expectAll, expectAllHelp, failWithQuery, getChildren, getElementAt, getElementAtHelp, getHtmlContext, has, hasNot, isElement, joinAsList, missingDescendants, multipleToExpectation, prefixOutputLine, prependSelector, prettyPrint, printIndented, queryErrorToString, showSelectorOutcome, showSelectorOutcomeInverse, toLines, toLinesHelp, toOutputLine, traverse, traverseSelector, traverseSelectors, verifySingle, withHtmlContext)
+module Test.Html.Query.Internal exposing
+    ( Multiple(..)
+    , Query(..)
+    , QueryError(..)
+    , SelectorQuery(..)
+    , Single(..)
+    , contains
+    , expectAll
+    , failWithQuery
+    , has
+    , hasNot
+    , joinAsList
+    , multipleToExpectation
+    , prependSelector
+    , prettyPrint
+    , queryErrorToString
+    , traverse
+    , verifySingle
+    )
 
 import Expect exposing (Expectation)
 import Test.Html.Descendant as Descendant
@@ -209,20 +227,20 @@ joinAsList toStr list =
 
 printIndented : Int -> Int -> ElmHtml msg -> String
 printIndented maxDigits index elmHtml =
-    let
-        caption =
-            (String.fromInt (index + 1) ++ ")")
-                |> String.padRight (maxDigits + 3) ' '
-                |> String.append baseIndentation
-
-        indentation =
-            String.repeat (String.length caption) " "
-    in
     case String.split "\n" (prettyPrint elmHtml) of
         [] ->
             ""
 
         first :: rest ->
+            let
+                caption =
+                    (String.fromInt (index + 1) ++ ")")
+                        |> String.padRight (maxDigits + 3) ' '
+                        |> String.append baseIndentation
+
+                indentation =
+                    String.repeat (String.length caption) " "
+            in
             rest
                 |> List.map (String.append indentation)
                 |> (::) (caption ++ first)
@@ -360,16 +378,6 @@ getChildren elmHtml =
             []
 
 
-isElement : ElmHtml msg -> Bool
-isElement elmHtml =
-    case elmHtml of
-        NodeEntry _ ->
-            True
-
-        _ ->
-            False
-
-
 verifySingle : String -> List a -> Result QueryError a
 verifySingle queryName list =
     case list of
@@ -474,7 +482,7 @@ contains expectedDescendants query =
 
             else
                 Expect.fail
-                    (String.join ""
+                    (String.concat
                         [ "\t✗ /"
                         , String.fromInt <| List.length missing
                         , "\\ missing descendants: \n\n"

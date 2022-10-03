@@ -24,7 +24,7 @@ import Html exposing (Attribute)
 import Json.Decode
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes
 import Test.Html.Internal.Inert as Inert
-import Test.Html.Selector.Internal as Internal exposing (..)
+import Test.Html.Selector.Internal as Internal exposing (Selector(..))
 
 
 {-| A selector used to filter sets of elements.
@@ -132,7 +132,7 @@ to matching the entire class attribute exactly.
 -}
 exactClassName : String -> Selector
 exactClassName =
-    namedAttr "className"
+    Internal.namedAttr "className"
 
 
 {-| Matches elements that have the given `id` attribute.
@@ -155,7 +155,7 @@ exactClassName =
 -}
 id : String -> Selector
 id =
-    namedAttr "id"
+    Internal.namedAttr "id"
 
 
 {-| Matches elements that have the given tag.
@@ -194,7 +194,7 @@ attribute attr =
                     |> Classes
 
             else
-                namedAttr key value
+                Internal.namedAttr key value
 
         Ok (InternalTypes.Property { key, value }) ->
             if key == "className" then
@@ -207,12 +207,12 @@ attribute attr =
             else
                 value
                     |> Json.Decode.decodeValue Json.Decode.string
-                    |> Result.map (namedAttr key)
+                    |> Result.map (Internal.namedAttr key)
                     |> orElseLazy
                         (\() ->
                             value
                                 |> Json.Decode.decodeValue Json.Decode.bool
-                                |> Result.map (namedBoolAttr key)
+                                |> Result.map (Internal.namedBoolAttr key)
                         )
                     |> Result.withDefault Invalid
 
@@ -297,7 +297,7 @@ attribute with the given value.
 -}
 selected : Bool -> Selector
 selected =
-    namedBoolAttr "selected"
+    Internal.namedBoolAttr "selected"
 
 
 {-| Matches elements that have a
@@ -306,7 +306,7 @@ attribute with the given value.
 -}
 disabled : Bool -> Selector
 disabled =
-    namedBoolAttr "disabled"
+    Internal.namedBoolAttr "disabled"
 
 
 {-| Matches elements that have a
@@ -315,7 +315,7 @@ attribute with the given value.
 -}
 checked : Bool -> Selector
 checked =
-    namedBoolAttr "checked"
+    Internal.namedBoolAttr "checked"
 
 
 

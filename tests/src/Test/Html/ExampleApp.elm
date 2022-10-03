@@ -1,7 +1,7 @@
-module Test.Html.ExampleApp exposing (exampleModel, view)
+module Test.Html.ExampleApp exposing (Model, Msg, exampleModel, view)
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html exposing (Html, a, div, footer, header, li, section, text)
+import Html.Attributes exposing (class, href, id)
 import Html.Events exposing (onClick)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
