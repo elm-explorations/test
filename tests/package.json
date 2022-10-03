@@ -1,0 +1,9 @@
+{
+  "license": "BSD-3-Clause",
+  "scripts": {
+    "review": "elm-review src/"
+  },
+  "devDependencies": {
+    "elm-review": "^2.7.5"
+  }
+}
