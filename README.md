@@ -59,7 +59,11 @@ This package lets you define tests ([Test](https://package.elm-lang.org/packages
 
 To execute your tests and see if they pass you need a program that can consume your tests, run them and report the results.
 
-The most popular test runner is [rtfeldman/node-test-runner](https://github.com/rtfeldman/node-test-runner). It’s a CLI tool that lets you run tests in the terminal. Head over to that project for instructions on how to get started!
+Two most popular test runners are:
+- [rtfeldman/node-test-runner](https://github.com/rtfeldman/node-test-runner)
+- [mpizenberg/elm-test-rs](https://github.com/mpizenberg/elm-test-rs)
+
+Both are CLI tools that let you run tests in the terminal. Head over to those projects for instructions on how to get started!
 
 ### Not running tests
 

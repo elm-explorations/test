@@ -6,7 +6,7 @@ These are some benchmarks of the elm-test library built using the excellent [elm
 
 ```sh
 cd ./benchmarks
-elm-make Main.elm
+elm make Main.elm
 open index.html
 ```
 
