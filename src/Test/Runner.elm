@@ -1,6 +1,7 @@
 module Test.Runner exposing
     ( Runner, SeededRunners(..), fromTest
     , getFailureReason, isTodo
+    , getCoverageReport
     , formatLabels
     , Simplifiable, fuzz, simplify
     )
@@ -19,6 +20,11 @@ can be found in the `README`.
 ## Expectations
 
 @docs getFailureReason, isTodo
+
+
+## Coverage
+
+@docs getCoverageReport
 
 
 ## Formatting
@@ -47,6 +53,7 @@ import RandomRun exposing (RandomRun)
 import Simplify
 import String
 import Test exposing (Test)
+import Test.Coverage exposing (CoverageReport)
 import Test.Expectation
 import Test.Internal as Internal
 import Test.Runner.Failure exposing (Reason(..))
@@ -386,11 +393,27 @@ getFailureReason :
             }
 getFailureReason expectation =
     case expectation of
-        Test.Expectation.Pass ->
+        Test.Expectation.Pass _ ->
             Nothing
 
         Test.Expectation.Fail record ->
-            Just record
+            Just
+                { given = record.given
+                , description = record.description
+                , reason = record.reason
+                }
+
+
+{-| Returns a `CoverageReport` computed for a given test.
+-}
+getCoverageReport : Expectation -> CoverageReport
+getCoverageReport expectation =
+    case expectation of
+        Test.Expectation.Pass { coverageReport } ->
+            coverageReport
+
+        Test.Expectation.Fail { coverageReport } ->
+            coverageReport
 
 
 {-| Determine if an expectation was created by a call to `Test.todo`. Runners
@@ -399,7 +422,7 @@ may treat these tests differently in their output.
 isTodo : Expectation -> Bool
 isTodo expectation =
     case expectation of
-        Test.Expectation.Pass ->
+        Test.Expectation.Pass _ ->
             False
 
         Test.Expectation.Fail { reason } ->

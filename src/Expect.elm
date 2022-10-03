@@ -104,6 +104,7 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 
 import Dict exposing (Dict)
 import Set exposing (Set)
+import Test.Coverage
 import Test.Expectation
 import Test.Internal as Internal
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
@@ -594,7 +595,7 @@ equalSets expected actual =
 -}
 pass : Expectation
 pass =
-    Test.Expectation.Pass
+    Test.Expectation.Pass { coverageReport = Test.Coverage.NoCoverage }
 
 
 {-| Fails with the given message.
@@ -629,7 +630,7 @@ fail str =
 onFail : String -> Expectation -> Expectation
 onFail str expectation =
     case expectation of
-        Test.Expectation.Pass ->
+        Test.Expectation.Pass _ ->
             expectation
 
         Test.Expectation.Fail failure ->
@@ -687,7 +688,7 @@ allHelp list query =
 
         check :: rest ->
             case check query of
-                Test.Expectation.Pass ->
+                Test.Expectation.Pass _ ->
                     allHelp rest query
 
                 outcome ->

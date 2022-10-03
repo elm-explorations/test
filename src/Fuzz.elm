@@ -1,5 +1,5 @@
 module Fuzz exposing
-    ( Fuzzer, examples
+    ( Fuzzer, examples, labelExamples
     , int, intRange, uniformInt, intAtLeast, intAtMost
     , float, niceFloat, percentage, floatRange, floatAtLeast, floatAtMost
     , char, asciiChar
@@ -28,7 +28,7 @@ can usually find the simplest input that reproduces a bug.
 
 ## Fuzzers
 
-@docs Fuzzer, examples
+@docs Fuzzer, examples, labelExamples
 
 
 ## Number fuzzers
@@ -76,14 +76,15 @@ can usually find the simplest input that reproduces a bug.
 import Array exposing (Array)
 import Bitwise
 import Char
+import Dict exposing (Dict)
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer(..))
 import GenResult exposing (GenResult(..))
+import MicroDictExtra as Dict
 import MicroListExtra as List
 import PRNG exposing (PRNG(..))
 import Random
 import RandomRun
-import Test.Internal as Internal
 
 
 {-| The representation of fuzzers is opaque. Conceptually, a `Fuzzer a` consists
@@ -1665,7 +1666,121 @@ examples n fuzzer =
         Generated { value } ->
             value
 
-        Rejected { reason } ->
+        Rejected _ ->
+            []
+
+
+{-| Show examples of values satisfying given classification predicates (see
+also `Test.reportCoverage` and `Test.expectCoverage`).
+
+Generates a given number of values and classifies them based on the predicates.
+
+Uses the first argument as the seed as well as the count of examples to
+generate.
+
+This function will always return all the given "base" labels, even if no
+examples of them could be found:
+
+    Fuzz.labelExamples 100
+        [ ( "Lower boundary (1)", \n -> n == 1 )
+        , ( "Upper boundary (20)", \n -> n == 20 )
+        , ( "In the middle (2..19)", \n -> n > 1 && n < 20 )
+        , ( "Outside boundaries??", \n -> n < 1 || n > 20 )
+        ]
+        (Fuzz.intRange 1 20)
+
+    -->
+    [ ( [ "Lower boundary (1)" ], Just 1 )
+    , ( [ "Upper boundary (20)" ], Just 20 )
+    , ( [ "In the middle (2..19)" ], Just 5 )
+    , ( [ "Outside boundaries??" ], Nothing )
+    ]
+
+In case of predicate overlap (eg. something is both green and big) this
+function will also return all the found combinations:
+
+    Fuzz.labelExamples 100
+        [ ( "fizz", \n -> (n |> modBy 3) == 0 )
+        , ( "buzz", \n -> (n |> modBy 5) == 0 )
+        ]
+        (Fuzz.intRange 1 20)
+
+    -->
+    [ ( [ "fizz" ], Just 3 )
+    , ( [ "buzz" ], Just 10 )
+    , ( [ "fizz, buzz" ], Just 15 )
+    ]
+
+-}
+labelExamples : Int -> List ( String, a -> Bool ) -> Fuzzer a -> List ( List String, Maybe a )
+labelExamples n labels fuzzer =
+    case
+        Fuzz.Internal.generate
+            (PRNG.random (Random.initialSeed n))
+            (listOfLength n fuzzer)
+    of
+        Generated { value } ->
+            let
+                foundExamples : Dict (List String) a
+                foundExamples =
+                    value
+                        |> List.foldl
+                            (\item acc ->
+                                let
+                                    categories : List String
+                                    categories =
+                                        labels
+                                            |> List.filterMap
+                                                (\( label, predicate ) ->
+                                                    if predicate item then
+                                                        Just label
+
+                                                    else
+                                                        Nothing
+                                                )
+                                in
+                                if List.isEmpty categories then
+                                    acc
+
+                                else
+                                    acc
+                                        |> Dict.update categories
+                                            (\maybeExample ->
+                                                case maybeExample of
+                                                    Nothing ->
+                                                        Just item
+
+                                                    Just original ->
+                                                        Just original
+                                            )
+                            )
+                            Dict.empty
+
+                combinations : List ( List String, a )
+                combinations =
+                    foundExamples
+                        |> Dict.filter (\k _ -> List.length k > 1)
+                        |> Dict.toList
+            in
+            List.filterMap
+                (\( label, _ ) ->
+                    case Dict.get [ label ] foundExamples of
+                        Nothing ->
+                            if Dict.any (\k _ -> List.member label k) foundExamples then
+                                -- don't show this example: all its occurences were included in combination with some other label
+                                Nothing
+
+                            else
+                                -- show that we didn't find it (in any combination nor alone)
+                                Just ( [ label ], Nothing )
+
+                        Just example ->
+                            Just ( [ label ], Just example )
+                )
+                labels
+                ++ List.map (\( label, example ) -> ( label, Just example )) combinations
+
+        Rejected _ ->
             []
 
 
