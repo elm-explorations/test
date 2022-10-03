@@ -26,7 +26,6 @@ import NoPrematureLetComputation
 import NoSimpleLetBody
 import NoUnused.CustomTypeConstructorArgs
 import NoUnused.CustomTypeConstructors
-import NoUnused.Dependencies
 import NoUnused.Exports
 import NoUnused.Modules
 import NoUnused.Parameters
@@ -54,7 +53,6 @@ config =
         |> Rule.ignoreErrorsForFiles [ "src/Test/Html/Internal/ElmHtml/InternalTypes.elm" ]
     , NoUnused.CustomTypeConstructorArgs.rule
         |> Rule.ignoreErrorsForFiles [ "src/Test/Html/Internal/ElmHtml/InternalTypes.elm" ]
-    , NoUnused.Dependencies.rule
     , NoUnused.Exports.rule
         |> Rule.ignoreErrorsForFiles
             [ "src/Test/Html/Internal/ElmHtml/ToString.elm"

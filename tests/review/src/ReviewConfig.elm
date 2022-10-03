@@ -26,7 +26,6 @@ import NoPrematureLetComputation
 import NoSimpleLetBody
 import NoUnused.CustomTypeConstructorArgs
 import NoUnused.CustomTypeConstructors
-import NoUnused.Dependencies
 import NoUnused.Exports
 import NoUnused.Modules
 import NoUnused.Parameters
@@ -47,7 +46,6 @@ config =
     , NoUnused.CustomTypeConstructors.rule []
     , NoUnused.CustomTypeConstructorArgs.rule
         |> Rule.ignoreErrorsForFiles [ "src/Test/Html/EventTests.elm" ]
-    , NoUnused.Dependencies.rule
     , NoUnused.Exports.rule
         |> Rule.ignoreErrorsForFiles [ "src/Runner/Log.elm" ]
     , NoUnused.Modules.rule
