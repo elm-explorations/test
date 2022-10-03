@@ -15,7 +15,10 @@
             "elm-explorations/webgl": "1.1.2",
             "jinjor/elm-diff": "1.0.6"
         },
-        "indirect": {}
+        "indirect": {
+            "elm/time": "1.0.0",
+            "elm/virtual-dom": "1.0.3"
+        }
     },
     "test-dependencies": {
         "direct": {},
