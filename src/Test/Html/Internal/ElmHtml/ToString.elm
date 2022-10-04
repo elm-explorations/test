@@ -95,14 +95,6 @@ nodeRecordToString options { tag, children, facts } =
             in
             "<" ++ tag ++ filling ++ ">"
 
-        closeTag =
-            "</" ++ tag ++ ">"
-
-        childrenStrings =
-            List.map (nodeToLines options) children
-                |> List.concat
-                |> List.map ((++) (String.repeat options.indent " "))
-
         styles =
             case Dict.toList facts.styles of
                 [] ->
@@ -111,7 +103,7 @@ nodeRecordToString options { tag, children, facts } =
                 styleValues ->
                     styleValues
                         |> List.map (\( key, value ) -> key ++ ":" ++ value ++ ";")
-                        |> String.join ""
+                        |> String.concat
                         |> (\styleString -> "style=\"" ++ styleString ++ "\"")
                         |> Just
 
@@ -127,12 +119,11 @@ nodeRecordToString options { tag, children, facts } =
                 |> Just
 
         boolToString b =
-            case b of
-                True ->
-                    "True"
+            if b then
+                "True"
 
-                False ->
-                    "False"
+            else
+                "False"
 
         boolAttributes =
             Dict.toList facts.boolAttributes
@@ -153,6 +144,15 @@ nodeRecordToString options { tag, children, facts } =
            element kinds.
         -}
         _ ->
-            [ openTag [ classes, styles, stringAttributes, boolAttributes ] ]
-                ++ childrenStrings
+            let
+                closeTag =
+                    "</" ++ tag ++ ">"
+
+                childrenStrings =
+                    children
+                        |> List.concatMap (nodeToLines options)
+                        |> List.map ((++) (String.repeat options.indent " "))
+            in
+            openTag [ classes, styles, stringAttributes, boolAttributes ]
+                :: childrenStrings
                 ++ [ closeTag ]

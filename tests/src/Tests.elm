@@ -2,13 +2,17 @@ module Tests exposing (all)
 
 import Expect
 import FloatWithinTests exposing (floatWithinTests)
-import Fuzz exposing (..)
+import Fuzz
 import FuzzerTests exposing (fuzzerTests)
-import Helpers exposing (..)
+import Helpers
+    exposing
+        ( expectPass
+        , expectTestToFail
+        , expectToFail
+        )
 import RunnerTests
 import ShrinkingChallengeTests exposing (shrinkingChallenges)
-import Test exposing (..)
-import Test.Coverage
+import Test exposing (Test, describe, fuzz, fuzzWith, test, todo)
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
 import Test.Html.Query.CustomNodeTests
@@ -63,7 +67,7 @@ readmeExample =
                     "ABCDEFG"
                         |> String.reverse
                         |> Expect.equal "GFEDCBA"
-            , fuzz string "restores the original string if you run it again" <|
+            , fuzz Fuzz.string "restores the original string if you run it again" <|
                 \randomlyGeneratedString ->
                     randomlyGeneratedString
                         |> String.reverse
@@ -121,7 +125,7 @@ expectationTests =
 regressions : Test
 regressions =
     describe "regression tests"
-        [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
+        [ fuzz (Fuzz.intRange 1 32) "for elm-community/elm-test #39" <|
             \positiveInt ->
                 positiveInt
                     |> Expect.greaterThan 0
@@ -133,7 +137,7 @@ regressions =
                (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
-                fuzz (intRange 1 8)
+                fuzz (Fuzz.intRange 1 8)
                     "fuzz tests run 100 times"
                     (Expect.notEqual 5)
                     |> expectTestToFail
@@ -178,14 +182,14 @@ testTests =
         , describe "fuzzWith"
             [ test "fails with fewer than 1 run" <|
                 \() ->
-                    fuzzWith { runs = 0, coverage = noCoverage }
+                    fuzzWith { runs = 0, coverage = Test.noCoverage }
                         Fuzz.bool
                         "nonpositive"
                         expectPass
                         |> expectTestToFail
             , test "fails with empty name" <|
                 \() ->
-                    fuzzWith { runs = 1, coverage = noCoverage }
+                    fuzzWith { runs = 1, coverage = Test.noCoverage }
                         Fuzz.bool
                         ""
                         expectPass

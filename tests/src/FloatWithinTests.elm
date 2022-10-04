@@ -1,9 +1,15 @@
 module FloatWithinTests exposing (floatWithinTests)
 
 import Expect exposing (FloatingPointTolerance(..))
-import Fuzz exposing (..)
-import Helpers exposing (..)
-import Test exposing (..)
+import Fuzz exposing (niceFloat)
+import Helpers
+    exposing
+        ( different
+        , expectTestToFail
+        , expectToFail
+        , same
+        )
+import Test exposing (Test, describe, fuzz, fuzz2, fuzz3, test)
 
 
 floatWithinTests : Test
@@ -17,7 +23,7 @@ floatWithinTests =
                 \_ -> 0.1 + 0.2 |> Expect.within (Absolute 0.000000001) 0.3
             , test "approximation of pi" <|
                 \_ -> 3.14 |> Expect.within (Absolute 0.01) pi
-            , fuzz (floatRange 0.000001 100000) "relative tolerance of circle circumference using pi approximation" <|
+            , fuzz (Fuzz.floatRange 0.000001 100000) "relative tolerance of circle circumference using pi approximation" <|
                 \radius ->
                     (radius * pi)
                         |> Expect.within (Relative 0.001) (radius * 3.14)
@@ -29,14 +35,14 @@ floatWithinTests =
             , test "too high absolute tolerance of circle circumference using pi approximation" <|
                 \() ->
                     expectTestToFail <|
-                        fuzz (floatRange 0.000001 100000) "x" <|
+                        fuzz (Fuzz.floatRange 0.000001 100000) "x" <|
                             \radius ->
                                 (radius * pi)
                                     |> Expect.within (Absolute 0.001) (radius * 3.14)
             , test "too high relative tolerance of circle circumference using pi approximation" <|
                 \() ->
                     expectTestToFail <|
-                        fuzz (floatRange 0.000001 100000) "x" <|
+                        fuzz (Fuzz.floatRange 0.000001 100000) "x" <|
                             \radius ->
                                 (radius * pi)
                                     |> Expect.within (Relative 0.0001) (radius * 3.14)
@@ -129,7 +135,7 @@ floatWithinTests =
                             a |> Expect.notWithin (Absolute (abs epsilon)) b
                     in
                     different withinTest notWithinTest
-            , fuzz2 (pair niceFloat niceFloat) (pair niceFloat niceFloat) "within and notWithin should never agree on absolute or relative tolerance" <|
+            , fuzz2 (Fuzz.pair niceFloat niceFloat) (Fuzz.pair niceFloat niceFloat) "within and notWithin should never agree on absolute or relative tolerance" <|
                 \( absoluteEpsilon, relativeEpsilon ) ( a, b ) ->
                     let
                         withinTest =

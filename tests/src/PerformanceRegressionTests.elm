@@ -1,7 +1,7 @@
 module PerformanceRegressionTests exposing (all)
 
 import Expect
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 
 
 all : Test
@@ -12,6 +12,7 @@ all =
         ]
 
 
+mediumListTest : Test
 mediumListTest =
     -- this list should be large but still small enough to get a char-by-char diff
     let
@@ -58,6 +59,7 @@ mediumListTest =
         \_ -> input |> Expect.equal expected
 
 
+hugeListTest : Test
 hugeListTest =
     -- this list should be too large to get a char-by-char diff
     let

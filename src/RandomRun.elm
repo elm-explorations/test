@@ -128,18 +128,15 @@ deleteChunk chunk run =
         let
             list =
                 Queue.toList run.data
-
-            result =
-                { run
-                    | length = run.length - chunk.size
-                    , data =
-                        (List.take chunk.startIndex list
-                            ++ List.drop (chunk.startIndex + chunk.size) list
-                        )
-                            |> Queue.fromList
-                }
         in
-        result
+        { run
+            | length = run.length - chunk.size
+            , data =
+                (List.take chunk.startIndex list
+                    ++ List.drop (chunk.startIndex + chunk.size) list
+                )
+                    |> Queue.fromList
+        }
 
     else
         run
@@ -219,10 +216,6 @@ swapChunks :
     -> RandomRun
     -> Maybe RandomRun
 swapChunks { leftChunk, rightChunk } run =
-    let
-        list =
-            Queue.toList run.data
-    in
     Maybe.map2
         (\lefts rights ->
             replaceInList
@@ -232,7 +225,7 @@ swapChunks { leftChunk, rightChunk } run =
                     ]
                 )
                 run.length
-                list
+                (Queue.toList run.data)
         )
         {- TODO PERF: both of these are doing the Queue.toList etc. operations
            while we already have that factored out in the `list` var.

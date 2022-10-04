@@ -1,10 +1,6 @@
 module Runner.String.Coverage exposing (report)
 
-import Dict exposing (Dict)
-import Expect exposing (Expectation)
-import Set exposing (Set)
 import Test.Coverage exposing (CoverageReport(..))
-import Test.Runner
 
 
 report : List String -> CoverageReport -> Maybe String

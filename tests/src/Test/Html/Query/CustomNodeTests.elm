@@ -1,9 +1,9 @@
 module Test.Html.Query.CustomNodeTests exposing (all)
 
 import Html exposing (Html, div)
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
+import Test.Html.Selector exposing (text)
 import WebGL exposing (Shader)
 
 

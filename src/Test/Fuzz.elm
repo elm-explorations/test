@@ -13,7 +13,6 @@ import Test.Coverage exposing (CoverageReport(..))
 import Test.Coverage.Internal exposing (Coverage(..), ExpectedCoverage(..))
 import Test.Expectation exposing (Expectation(..))
 import Test.Internal exposing (Test(..), blankDescriptionFailure)
-import Test.Runner.Coverage
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 

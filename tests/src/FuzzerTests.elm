@@ -2,10 +2,25 @@ module FuzzerTests exposing (fuzzerTests)
 
 import Array
 import Expect exposing (Expectation)
-import Fuzz exposing (..)
-import Helpers exposing (..)
-import Random exposing (Generator)
-import Test exposing (..)
+import Fuzz exposing (Fuzzer)
+import Helpers
+    exposing
+        ( canGenerate
+        , canGenerateSatisfying
+        , canGenerateSatisfyingWith
+        , canGenerateWith
+        , cannotGenerate
+        , cannotGenerateSatisfying
+        , cannotGenerateSatisfyingWith
+        , doesNotReject
+        , passes
+        , rejects
+        , simplifiesTowards
+        , simplifiesTowardsMany
+        , simplifiesTowardsWith
+        )
+import Random
+import Test exposing (Test, describe, fuzz, fuzz2, fuzz3)
 import Test.Coverage
 import Test.Runner exposing (Simplifiable)
 
@@ -14,12 +29,12 @@ fuzzerTests : Test
 fuzzerTests =
     describe "Fuzzer tests"
         [ describe "FuzzN (uses use pair or triple) testing string length properties"
-            [ fuzz2 string string "fuzz2" <|
+            [ fuzz2 Fuzz.string Fuzz.string "fuzz2" <|
                 \a b ->
-                    testStringLengthIsPreserved [ a, b ]
-            , fuzz3 string string string "fuzz3" <|
+                    Helpers.testStringLengthIsPreserved [ a, b ]
+            , fuzz3 Fuzz.string Fuzz.string Fuzz.string "fuzz3" <|
                 \a b c ->
-                    testStringLengthIsPreserved [ a, b, c ]
+                    Helpers.testStringLengthIsPreserved [ a, b, c ]
             ]
         , testRunnerModuleTests
         , fuzzerSpecificationTests
@@ -30,7 +45,7 @@ fuzzerTests =
 testRunnerModuleTests : Test
 testRunnerModuleTests =
     describe "Test.Runner.{fuzz,simplify}"
-        [ fuzz randomSeedFuzzer "Claim there are no even numbers" <|
+        [ fuzz Helpers.randomSeedFuzzer "Claim there are no even numbers" <|
             \seed ->
                 let
                     -- fuzzer is guaranteed to produce an even number
@@ -64,13 +79,15 @@ testRunnerModuleTests =
                 in
                 finalValue
                     |> Expect.equal (Just 2)
-        , fuzz randomSeedFuzzer "No strings contain the letter e" <|
+        , fuzz Helpers.randomSeedFuzzer "No strings contain the letter e" <|
             \seed ->
                 let
                     -- fuzzer is guaranteed to produce a string with the letter e
                     fuzzer : Fuzzer String
                     fuzzer =
-                        map2 (\pre suf -> pre ++ "e" ++ suf) string string
+                        Fuzz.map2 (\pre suf -> pre ++ "e" ++ suf)
+                            Fuzz.string
+                            Fuzz.string
 
                     getExpectation : String -> Expectation
                     getExpectation string =
@@ -1149,8 +1166,8 @@ coverageTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Int range boundaries"
-            (\n -> Expect.pass)
+            "reportCoverage: pass, example 1"
+            (\_ -> Expect.pass)
         , Test.fuzzWith
             { runs = 10000
             , coverage =
@@ -1160,8 +1177,8 @@ coverageTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Fizz buzz"
-            (\n -> Expect.pass)
+            "reportCoverage: pass, example 2"
+            (\_ -> Expect.pass)
         , Test.fuzzWith
             { runs = 10000
             , coverage =
@@ -1173,8 +1190,8 @@ coverageTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Fizz buzz even odd"
-            (\n -> Expect.pass)
+            "reportCoverage: pass, example 3"
+            (\_ -> Expect.pass)
         , Test.fuzzWith
             { runs = 10000
             , coverage =
@@ -1187,8 +1204,8 @@ coverageTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Int range boundaries - mandatory"
-            (\n -> Expect.pass)
+            "expectCoverage: pass"
+            (\_ -> Expect.pass)
         ]
 
 

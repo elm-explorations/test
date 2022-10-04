@@ -7,9 +7,9 @@ import Html.Attributes as Attr exposing (href)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
 import Json.Encode as Encode
-import Test exposing (..)
+import Test exposing (Test, describe, fuzz, test)
 import Test.Html.Query as Query exposing (Single)
-import Test.Html.Selector exposing (..)
+import Test.Html.Selector exposing (attribute, class, classes, containing, exactClassName, style, tag, text)
 import Test.Runner
 
 

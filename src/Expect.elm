@@ -731,16 +731,14 @@ equateWith reason comparison b a =
 
         usesFloats =
             isFloat (Internal.toString a) || isFloat (Internal.toString b)
-
-        floatError =
+    in
+    if usesFloats then
+        fail <|
             if String.contains reason "not" then
                 "Do not use Expect.notEqual with floats. Use Expect.notWithin instead."
 
             else
                 "Do not use Expect.equal with floats. Use Expect.within instead."
-    in
-    if usesFloats then
-        fail floatError
 
     else
         testWith Equality reason comparison b a
