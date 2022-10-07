@@ -7,13 +7,6 @@ import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 import Elm.Kernel.Test
 
 
-{-| All variants of this type has the `` prefix so that
-node-test-runner can recognize them in the compiled JavaScript. This lets us
-add more variants here without having to update the runner.
-
-For more information, see <https://github.com/elm-explorations/test/pull/152>
-
--}
 type TestData
     = UnitTest (() -> List Expectation)
     | FuzzTest (Random.Seed -> Int -> List Expectation)
@@ -23,9 +16,10 @@ type TestData
     | Batch (List TestData)
 
 
-{-| Newtype wrapper around TestData.
+{-| Newtype wrapper around TestData so that
+node-test-runner can recognize them in the compiled JavaScript. 
 
-**MUST only be constructed by the kernel
+**MUST** only be constructed by the kernel
 -}
 type Test
     = Wrapped TestData
