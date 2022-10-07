@@ -235,3 +235,4 @@ helperTests =
                 Test.Runner.downcastTest 67
                     |> Expect.equal Nothing
         ]
+

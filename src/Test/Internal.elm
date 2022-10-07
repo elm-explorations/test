@@ -99,3 +99,4 @@ wrapTest td =
 unwrapTest : Test -> TestData
 unwrapTest (Wrapped t) =
     t
+
