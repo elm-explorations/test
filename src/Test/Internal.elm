@@ -1,36 +1,45 @@
-module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
+module Test.Internal exposing (Test, TestData(..), blankDescriptionFailure, duplicatedName, failNow, toString, wrapTest, unwrapTest)
 
 import Random
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
+import Elm.Kernel.Test
 
 
-{-| All variants of this type has the `ElmTestVariant__` prefix so that
+{-| All variants of this type has the `` prefix so that
 node-test-runner can recognize them in the compiled JavaScript. This lets us
 add more variants here without having to update the runner.
 
-For more information, see <https://github.com/elm-explorations/test/pull/153>
+For more information, see <https://github.com/elm-explorations/test/pull/152>
 
 -}
+type TestData
+    = UnitTest (() -> List Expectation)
+    | FuzzTest (Random.Seed -> Int -> List Expectation)
+    | Labeled String TestData
+    | Skipped TestData
+    | Only TestData
+    | Batch (List TestData)
+
+
+{-| Newtype wrapper around TestData.
+
+**MUST only be constructed by the kernel
+-}
 type Test
-    = ElmTestVariant__UnitTest (() -> List Expectation)
-    | ElmTestVariant__FuzzTest (Random.Seed -> Int -> List Expectation)
-    | ElmTestVariant__Labeled String Test
-    | ElmTestVariant__Skipped Test
-    | ElmTestVariant__Only Test
-    | ElmTestVariant__Batch (List Test)
+    = Wrapped TestData
 
 
 {-| Create a test that always fails for the given reason and description.
 -}
-failNow : { description : String, reason : Reason } -> Test
+failNow : { description : String, reason : Reason } -> TestData
 failNow record =
-    ElmTestVariant__UnitTest
+    UnitTest
         (\() -> [ Test.Expectation.fail record ])
 
 
-blankDescriptionFailure : Test
+blankDescriptionFailure : TestData
 blankDescriptionFailure =
     failNow
         { description = "This test has a blank description. Let's give it a useful one!"
@@ -41,25 +50,25 @@ blankDescriptionFailure =
 duplicatedName : List Test -> Result (Set String) (Set String)
 duplicatedName tests =
     let
-        names : Test -> List String
+        names : TestData -> List String
         names test =
             case test of
-                ElmTestVariant__Labeled str _ ->
+                Labeled str _ ->
                     [ str ]
 
-                ElmTestVariant__Batch subtests ->
+                Batch subtests ->
                     List.concatMap names subtests
 
-                ElmTestVariant__UnitTest _ ->
+                UnitTest _ ->
                     []
 
-                ElmTestVariant__FuzzTest _ ->
+                FuzzTest _ ->
                     []
 
-                ElmTestVariant__Skipped subTest ->
+                Skipped subTest ->
                     names subTest
 
-                ElmTestVariant__Only subTest ->
+                Only subTest ->
                     names subTest
 
         accumDuplicates : String -> ( Set String, Set String ) -> ( Set String, Set String )
@@ -71,7 +80,9 @@ duplicatedName tests =
                 ( dups, Set.insert newName uniques )
 
         ( dupsAccum, uniquesAccum ) =
-            List.concatMap names tests
+            tests
+                |> List.map (\(Wrapped td) -> td)
+                |> List.concatMap names
                 |> List.foldl accumDuplicates ( Set.empty, Set.empty )
     in
     if Set.isEmpty dupsAccum then
@@ -84,3 +95,13 @@ duplicatedName tests =
 toString : a -> String
 toString =
     Elm.Kernel.Debug.toString
+
+
+wrapTest : TestData -> Test
+wrapTest td =
+    Elm.Kernel.Test.tagTest (Wrapped td)
+
+
+unwrapTest : Test -> TestData
+unwrapTest (Wrapped t) =
+    t

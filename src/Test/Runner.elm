@@ -4,6 +4,7 @@ module Test.Runner exposing
     , getDistributionReport
     , formatLabels
     , Simplifiable, fuzz, simplify
+    , downcastTest
     )
 
 {-| This is an "experts only" module that exposes functions needed to run and
@@ -37,6 +38,10 @@ can be found in the `README`.
 These functions give you the ability to run fuzzers separate of running fuzz tests.
 
 @docs Simplifiable, fuzz, simplify
+
+## Test collection helper functions
+
+@docs DowncastTest
 
 -}
 
@@ -229,21 +234,21 @@ Some design notes:
 
 -}
 distributeSeeds : Int -> Random.Seed -> Test -> Distribution
-distributeSeeds =
-    distributeSeedsHelp False
+distributeSeeds runs seed test =
+    distributeSeedsHelp False runs seed (Internal.unwrapTest test)
 
 
-distributeSeedsHelp : Bool -> Int -> Random.Seed -> Test -> Distribution
+distributeSeedsHelp : Bool -> Int -> Random.Seed -> Internal.TestData -> Distribution
 distributeSeedsHelp hashed runs seed test =
     case test of
-        Internal.ElmTestVariant__UnitTest aRun ->
+        Internal.UnitTest aRun ->
             { seed = seed
             , all = [ Runnable (Thunk (\_ -> aRun ())) ]
             , only = []
             , skipped = []
             }
 
-        Internal.ElmTestVariant__FuzzTest aRun ->
+        Internal.FuzzTest aRun ->
             let
                 ( firstSeed, nextSeed ) =
                     Random.step Random.independentSeed seed
@@ -254,7 +259,7 @@ distributeSeedsHelp hashed runs seed test =
             , skipped = []
             }
 
-        Internal.ElmTestVariant__Labeled description subTest ->
+        Internal.Labeled description subTest ->
             -- This fixes https://github.com/elm-community/elm-test/issues/192
             -- The first time we hit a Labeled, we want to use the hash of
             -- that label, along with the original seed, as our starting
@@ -307,7 +312,7 @@ distributeSeedsHelp hashed runs seed test =
                 , skipped = List.map (Labeled description) next.skipped
                 }
 
-        Internal.ElmTestVariant__Skipped subTest ->
+        Internal.Skipped subTest ->
             let
                 -- Go through the motions in order to obtain the seed, but then
                 -- move everything to skipped.
@@ -320,7 +325,7 @@ distributeSeedsHelp hashed runs seed test =
             , skipped = next.all
             }
 
-        Internal.ElmTestVariant__Only subTest ->
+        Internal.Only subTest ->
             let
                 next =
                     distributeSeedsHelp hashed runs seed subTest
@@ -328,11 +333,11 @@ distributeSeedsHelp hashed runs seed test =
             -- `only` all the things!
             { next | only = next.all }
 
-        Internal.ElmTestVariant__Batch tests ->
+        Internal.Batch tests ->
             List.foldl (batchDistribute hashed runs) (emptyDistribution seed) tests
 
 
-batchDistribute : Bool -> Int -> Test -> Distribution -> Distribution
+batchDistribute : Bool -> Int -> Internal.TestData -> Distribution -> Distribution
 batchDistribute hashed runs test prev =
     let
         next =
@@ -537,3 +542,8 @@ simplify getExpectation ( value, Simplifiable { randomRun, fuzzer } ) =
                 , fuzzer = fuzzer
                 }
             )
+
+
+downcastTest: a -> Maybe Test
+downcastTest =
+    Elm.Kernel.Test.downcastTest

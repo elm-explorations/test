@@ -12,7 +12,7 @@ import Simplify
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
 import Test.Expectation exposing (Expectation(..))
-import Test.Internal exposing (Test(..), blankDescriptionFailure)
+import Test.Internal exposing (Test(..), TestData(..), blankDescriptionFailure)
 import Test.Runner.Distribution
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
@@ -27,16 +27,18 @@ fuzzTest distribution fuzzer untrimmedDesc getExpectation =
     in
     if String.isEmpty desc then
         blankDescriptionFailure
+            |> Test.Internal.wrapTest
 
     else
-        ElmTestVariant__Labeled desc <| validatedFuzzTest fuzzer getExpectation distribution
-
+        validatedFuzzTest fuzzer getExpectation distribution
+            |> Labeled desc
+            |> Test.Internal.wrapTest
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
+validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Distribution a -> TestData
 validatedFuzzTest fuzzer getExpectation distribution =
-    ElmTestVariant__FuzzTest
+    FuzzTest
         (\seed runs ->
             let
                 runResult : RunResult
