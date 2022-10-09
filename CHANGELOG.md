@@ -2,7 +2,7 @@
 
 | Version                                                                              | Notes                                                                                                                                                     |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**2.0.0**](https://github.com/elm-explorations/test/tree/2.0.0)                     | Reimplements fuzzing+shrinking, adds fuzzer coverage reporting. Most notably readds `Fuzz.andThen`. See ["Migrating to 2.0.0"](#migrating-to-2-0-0) |
+| [**2.0.0**](https://github.com/elm-explorations/test/tree/2.0.0)                     | Reimplements fuzzing+shrinking, adds fuzzer coverage reporting. Most notably readds `Fuzz.andThen`. See ["Changes in 2.0.0"](#changes-in-200) |
 | [**1.2.2**](https://github.com/elm-explorations/test/tree/1.2.2)                     | Fixes a crash in `Test.Html` when the HTML contains nested `Html.Lazy` nodes. [#78](https://github.com/elm-explorations/test/issues/78)                   |
 | [**1.2.1**](https://github.com/elm-explorations/test/tree/1.2.1)                     | Many small documentation fixes.  Improve error messages when failing to simulate an event.                                                                |
 | [**1.2.0**](https://github.com/elm-explorations/test/tree/1.2.0)                     | Add HTML tests. [#41](https://github.com/elm-explorations/test/pull/41)                                                                                   |
@@ -14,15 +14,15 @@
 | [**2.1.0**](https://github.com/elm-community/elm-test/tree/2.1.0)                    | Switch to rose trees for `Fuzz.andThen`, other API additions.                                                                                             |
 | [**2.0.0**](https://github.com/elm-community/elm-test/tree/2.0.0)                    | Scratch-rewrite to project-fuzzball                                                                                                                       |
 | [**1.0.0**](https://github.com/elm-community/elm-test/tree/1.0.0)                    | ElmTest initial release                                                                                                                                   |
-## Migrating to 2.0.0
+## Changes in 2.0.0
 
 The changes can be grouped into these categories:
 
-1. Fuzzing and shrinking reimplementation (re-adding `Fuzz.andThen` etc.)
-2. `Test.Coverage`: fuzzer coverage reporting
-3. `Test.Html.Event` additions
-4. `Expect.true` and `Expect.false` removal
-5. `Test.Runner.Failure.format` removal
+1. [Fuzzing and shrinking reimplementation](#1-fuzzing-and-shrinking-reimplementation) (re-adding `Fuzz.andThen` etc.)
+2. [`Test.Coverage`](#2-testcoverage): fuzzer coverage reporting
+3. [`Test.Html.Event`](#3-testhtmlevent-additions) additions
+4. [`Expect.true` and `Expect.false` removal](#4-expecttrue-and-expectfalse-removal)
+5. [`Test.Runner.Failure.format` removal](#5-testrunnerfailureformat-removal)
 
 ### 1. Fuzzing and shrinking reimplementation
 
@@ -56,51 +56,57 @@ simple human-readable fractions like `0.5` instead of small floats like
 
 Full list of changes:
 
-- :heavy_plus_sign: `andThen : (a -> Fuzzer b) -> Fuzzer a -> Fuzzer b`
-- :heavy_plus_sign: `filter : (a -> Bool) -> Fuzzer a -> Fuzzer a`
-- :heavy_plus_sign: `lazy : (() -> Fuzzer a) -> Fuzzer a`
-- :heavy_plus_sign: `map6`
-- :heavy_plus_sign: `map7`
-- :heavy_plus_sign: `map8`
+- Generic helpers
+  - :heavy_plus_sign: `andThen : (a -> Fuzzer b) -> Fuzzer a -> Fuzzer b`
+  - :heavy_plus_sign: `filter : (a -> Bool) -> Fuzzer a -> Fuzzer a`
+  - :heavy_plus_sign: `lazy : (() -> Fuzzer a) -> Fuzzer a`
+  - :heavy_plus_sign: `map6`
+  - :heavy_plus_sign: `map7`
+  - :heavy_plus_sign: `map8`
+  - :heavy_plus_sign: `sequence : List (Fuzzer a) -> Fuzzer (List a)`
+  - :heavy_plus_sign: `traverse : (a -> Fuzzer b) -> List a -> Fuzzer (List b)`
+  - :heavy_plus_sign: `shuffledList : List a -> Fuzzer (List a)`
 
-- :heavy_plus_sign: `oneOfValues : List a -> Fuzzer a`
-- :heavy_plus_sign: `frequencyValues : List ( Float, a ) -> Fuzzer a`
+- `oneOf` helpers
+  - :heavy_plus_sign: `oneOfValues : List a -> Fuzzer a`
+  - :heavy_plus_sign: `frequencyValues : List ( Float, a ) -> Fuzzer a`
 
-- :heavy_plus_sign: `shuffledList : List a -> Fuzzer (List a)`
+- REPL helpers
+  - :heavy_plus_sign: `examples : Int -> Fuzzer a -> List a`
+  - :heavy_plus_sign: `labelExamples : Int -> List ( String, a -> Bool ) -> Fuzzer a -> List ( List String, Maybe a )`
 
-- :heavy_plus_sign: `sequence : List (Fuzzer a) -> Fuzzer (List a)`
-- :heavy_plus_sign: `traverse : (a -> Fuzzer b) -> List a -> Fuzzer (List b)`
+- Tuples
+  - :pencil: `tuple` changed into `pair : Fuzzer a -> Fuzzer b -> Fuzzer ( a, b )`
+  - :pencil: `tuple3` changed into `triple : Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer ( a, b, c )`
 
-- :heavy_plus_sign: `examples : Int -> Fuzzer a -> List a`
-- :heavy_plus_sign: `labelExamples : Int -> List ( String, a -> Bool ) -> Fuzzer a -> List ( List String, Maybe a )`
+- Bools
+  - :heavy_plus_sign: `weightedBool : Float -> Fuzzer Bool`
 
-- :heavy_plus_sign: `weightedBool : Float -> Fuzzer Bool`
+- Ints
+  - :heavy_plus_sign: `intAtLeast : Int -> Fuzzer Int`
+  - :heavy_plus_sign: `intAtMost : Int -> Fuzzer Int`
+  - :heavy_plus_sign: `uniformInt : Int -> Fuzzer Int`
 
-- :heavy_plus_sign: `intAtLeast : Int -> Fuzzer Int`
-- :heavy_plus_sign: `intAtMost : Int -> Fuzzer Int`
-- :heavy_plus_sign: `uniformInt : Int -> Fuzzer Int`
+- Floats
+  - :heavy_plus_sign: `floatAtLeast : Float -> Fuzzer Float`
+  - :heavy_plus_sign: `floatAtMost : Float -> Fuzzer Float`
+  - :heavy_plus_sign: `niceFloat : Fuzzer Float`
 
-- :heavy_plus_sign: `floatAtLeast : Float -> Fuzzer Float`
-- :heavy_plus_sign: `floatAtMost : Float -> Fuzzer Float`
-- :heavy_plus_sign: `niceFloat : Fuzzer Float`
+- ASCII
+  - :heavy_plus_sign: `asciiChar : Fuzzer Char`
+  - :heavy_plus_sign: `asciiString : Fuzzer String`
 
-- :heavy_plus_sign: `asciiChar : Fuzzer Char`
-- :heavy_plus_sign: `asciiString : Fuzzer String`
+- Collections of a given length
+  - :heavy_plus_sign: `listOfLength : Int -> Fuzzer a -> Fuzzer (List a)`
+  - :heavy_plus_sign: `listOfLengthBetween : Int -> Int -> Fuzzer a -> Fuzzer (List a)`
+  - :heavy_plus_sign: `stringOfLength : Int -> Fuzzer String`
+  - :heavy_plus_sign: `stringOfLengthBetween : Int -> Int -> Fuzzer String`
+  - :heavy_plus_sign: `asciiStringOfLength : Int -> Fuzzer String`
+  - :heavy_plus_sign: `asciiStringOfLengthBetween : Int -> Int -> Fuzzer String`
 
-- :heavy_plus_sign: `listOfLength : Int -> Fuzzer a -> Fuzzer (List a)`
-- :heavy_plus_sign: `listOfLengthBetween : Int -> Int -> Fuzzer a -> Fuzzer (List a)`
-
-- :heavy_plus_sign: `stringOfLength : Int -> Fuzzer String`
-- :heavy_plus_sign: `stringOfLengthBetween : Int -> Int -> Fuzzer String`
-
-- :heavy_plus_sign: `asciiStringOfLength : Int -> Fuzzer String`
-- :heavy_plus_sign: `asciiStringOfLengthBetween : Int -> Int -> Fuzzer String`
-
-- :heavy_minus_sign: `custom : Generator a -> Shrinker a -> Fuzzer a`
-- :heavy_plus_sign: (discouraged escape hatch) `fromGenerator : Generator a -> Fuzzer a`
-
-- :pencil: `tuple` changed into `pair : Fuzzer a -> Fuzzer b -> Fuzzer ( a, b )`
-- :pencil: `tuple3` changed into `triple : Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer ( a, b, c )`
+- Escape hatches
+  - :heavy_minus_sign: `custom : Generator a -> Shrinker a -> Fuzzer a`
+  - :heavy_plus_sign: (discouraged escape hatch) `fromGenerator : Generator a -> Fuzzer a`
 
 ### 2. `Test.Coverage`
 
