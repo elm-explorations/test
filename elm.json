@@ -8,7 +8,7 @@
         "Test",
         "Test.Runner",
         "Test.Runner.Failure",
-        "Test.Coverage",
+        "Test.Distribution",
         "Expect",
         "Fuzz",
         "Test.Html.Event",

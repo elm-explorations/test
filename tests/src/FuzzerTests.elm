@@ -6,7 +6,7 @@ import Fuzz exposing (..)
 import Helpers exposing (..)
 import Random exposing (Generator)
 import Test exposing (..)
-import Test.Coverage
+import Test.Distribution
 import Test.Runner exposing (Simplifiable)
 
 
@@ -23,7 +23,7 @@ fuzzerTests =
             ]
         , testRunnerModuleTests
         , fuzzerSpecificationTests
-        , coverageTests
+        , distributionTests
         ]
 
 
@@ -1135,13 +1135,13 @@ fuzzerSpecificationTests =
         ]
 
 
-coverageTests : Test
-coverageTests =
-    Test.describe "coverage"
+distributionTests : Test
+distributionTests =
+    Test.describe "distribution"
         [ Test.fuzzWith
             { runs = 10000
-            , coverage =
-                Test.reportCoverage
+            , distribution =
+                Test.reportDistribution
                     [ ( "low", \n -> n == 1 )
                     , ( "high", \n -> n == 20 )
                     , ( "in between", \n -> n > 1 && n < 20 )
@@ -1153,8 +1153,8 @@ coverageTests =
             (\n -> Expect.pass)
         , Test.fuzzWith
             { runs = 10000
-            , coverage =
-                Test.reportCoverage
+            , distribution =
+                Test.reportDistribution
                     [ ( "fizz", \n -> (n |> modBy 3) == 0 )
                     , ( "buzz", \n -> (n |> modBy 5) == 0 )
                     ]
@@ -1164,8 +1164,8 @@ coverageTests =
             (\n -> Expect.pass)
         , Test.fuzzWith
             { runs = 10000
-            , coverage =
-                Test.reportCoverage
+            , distribution =
+                Test.reportDistribution
                     [ ( "fizz", \n -> (n |> modBy 3) == 0 )
                     , ( "buzz", \n -> (n |> modBy 5) == 0 )
                     , ( "even", \n -> (n |> modBy 2) == 0 )
@@ -1177,13 +1177,13 @@ coverageTests =
             (\n -> Expect.pass)
         , Test.fuzzWith
             { runs = 10000
-            , coverage =
-                Test.expectCoverage
-                    [ ( Test.Coverage.atLeast 4, "low", \n -> n == 1 )
-                    , ( Test.Coverage.atLeast 4, "high", \n -> n == 20 )
-                    , ( Test.Coverage.atLeast 80, "in between", \n -> n > 1 && n < 20 )
-                    , ( Test.Coverage.zero, "outside", \n -> n < 1 || n > 20 )
-                    , ( Test.Coverage.moreThanZero, "one", \n -> n == 1 )
+            , distribution =
+                Test.expectDistribution
+                    [ ( Test.Distribution.atLeast 4, "low", \n -> n == 1 )
+                    , ( Test.Distribution.atLeast 4, "high", \n -> n == 20 )
+                    , ( Test.Distribution.atLeast 80, "in between", \n -> n > 1 && n < 20 )
+                    , ( Test.Distribution.zero, "outside", \n -> n < 1 || n > 20 )
+                    , ( Test.Distribution.moreThanZero, "one", \n -> n == 1 )
                     ]
             }
             (Fuzz.intRange 1 20)

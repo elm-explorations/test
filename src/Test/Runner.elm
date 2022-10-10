@@ -1,7 +1,7 @@
 module Test.Runner exposing
     ( Runner, SeededRunners(..), fromTest
     , getFailureReason, isTodo
-    , getCoverageReport
+    , getDistributionReport
     , formatLabels
     , Simplifiable, fuzz, simplify
     )
@@ -22,9 +22,9 @@ can be found in the `README`.
 @docs getFailureReason, isTodo
 
 
-## Coverage
+## Distribution
 
-@docs getCoverageReport
+@docs getDistributionReport
 
 
 ## Formatting
@@ -53,7 +53,7 @@ import RandomRun exposing (RandomRun)
 import Simplify
 import String
 import Test exposing (Test)
-import Test.Coverage exposing (CoverageReport)
+import Test.Distribution exposing (DistributionReport)
 import Test.Expectation
 import Test.Internal as Internal
 import Test.Runner.Failure exposing (Reason(..))
@@ -404,16 +404,16 @@ getFailureReason expectation =
                 }
 
 
-{-| Returns a `CoverageReport` computed for a given test.
+{-| Returns a `DistributionReport` computed for a given test.
 -}
-getCoverageReport : Expectation -> CoverageReport
-getCoverageReport expectation =
+getDistributionReport : Expectation -> DistributionReport
+getDistributionReport expectation =
     case expectation of
-        Test.Expectation.Pass { coverageReport } ->
-            coverageReport
+        Test.Expectation.Pass { distributionReport } ->
+            distributionReport
 
-        Test.Expectation.Fail { coverageReport } ->
-            coverageReport
+        Test.Expectation.Fail { distributionReport } ->
+            distributionReport
 
 
 {-| Determine if an expectation was created by a call to `Test.todo`. Runners

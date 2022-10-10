@@ -14,7 +14,7 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import Random
-import Runner.String.Coverage
+import Runner.String.Distribution
 import Runner.String.Format
 import Test exposing (Test)
 import Test.Runner exposing (Runner, SeededRunners(..))
@@ -70,30 +70,30 @@ toOutputHelp runner summary =
 fromExpectation : List String -> Expectation -> Summary -> Summary
 fromExpectation labels expectation summary =
     let
-        coverageReport : Maybe String
-        coverageReport =
+        distributionReport : Maybe String
+        distributionReport =
             expectation
-                |> Test.Runner.getCoverageReport
-                |> Runner.String.Coverage.report labels
+                |> Test.Runner.getDistributionReport
+                |> Runner.String.Distribution.report labels
 
-        summaryWithCoverage : Summary
-        summaryWithCoverage =
-            case coverageReport of
+        summaryWithDistribution : Summary
+        summaryWithDistribution =
+            case distributionReport of
                 Nothing ->
                     summary
 
-                Just coverage ->
+                Just distribution ->
                     { summary
                         | output =
                             summary.output
                                 ++ "\n\n"
-                                ++ coverage
+                                ++ distribution
                                 ++ "\n"
                     }
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { summaryWithCoverage | passed = summaryWithCoverage.passed + 1 }
+            { summaryWithDistribution | passed = summaryWithDistribution.passed + 1 }
 
         Just { given, description, reason } ->
             let
@@ -115,10 +115,10 @@ fromExpectation labels expectation summary =
                         ++ (prefix ++ indentLines message)
                         ++ "\n"
             in
-            { summaryWithCoverage
-                | output = summaryWithCoverage.output ++ newOutput
-                , failed = summaryWithCoverage.failed + 1
-                , passed = summaryWithCoverage.passed
+            { summaryWithDistribution
+                | output = summaryWithDistribution.output ++ newOutput
+                , failed = summaryWithDistribution.failed + 1
+                , passed = summaryWithDistribution.passed
             }
 
 
