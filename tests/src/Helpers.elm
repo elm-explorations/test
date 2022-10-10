@@ -262,7 +262,7 @@ passesWith : { runs : Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
 passesWith { runs } label fuzzer fn =
     Test.fuzzWith
         { runs = runs
-        , coverage = Test.noCoverage
+        , distribution = Test.noDistribution
         }
         fuzzer
         label

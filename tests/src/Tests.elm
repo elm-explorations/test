@@ -8,7 +8,7 @@ import Helpers exposing (..)
 import RunnerTests
 import ShrinkingChallengeTests exposing (shrinkingChallenges)
 import Test exposing (..)
-import Test.Coverage
+import Test.Distribution
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
 import Test.Html.Query.CustomNodeTests
@@ -178,14 +178,14 @@ testTests =
         , describe "fuzzWith"
             [ test "fails with fewer than 1 run" <|
                 \() ->
-                    fuzzWith { runs = 0, coverage = noCoverage }
+                    fuzzWith { runs = 0, distribution = noDistribution }
                         Fuzz.bool
                         "nonpositive"
                         expectPass
                         |> expectTestToFail
             , test "fails with empty name" <|
                 \() ->
-                    fuzzWith { runs = 1, coverage = noCoverage }
+                    fuzzWith { runs = 1, distribution = noDistribution }
                         Fuzz.bool
                         ""
                         expectPass

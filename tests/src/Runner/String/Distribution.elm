@@ -1,31 +1,31 @@
-module Runner.String.Coverage exposing (report)
+module Runner.String.Distribution exposing (report)
 
 import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import Set exposing (Set)
-import Test.Coverage exposing (CoverageReport(..))
+import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner
 
 
-report : List String -> CoverageReport -> Maybe String
-report testBreadcrumbs coverageReport =
-    case coverageReport of
-        NoCoverage ->
+report : List String -> DistributionReport -> Maybe String
+report testBreadcrumbs distributionReport =
+    case distributionReport of
+        NoDistribution ->
             Nothing
 
-        CoverageToReport r ->
+        DistributionToReport r ->
             let
                 breadcrumbsPath =
                     testBreadcrumbs
                         |> List.reverse
                         |> String.join " > "
             in
-            Just <| breadcrumbsPath ++ "\n" ++ Test.Coverage.coverageReportTable r
+            Just <| breadcrumbsPath ++ "\n" ++ Test.Distribution.distributionReportTable r
 
-        CoverageCheckSucceeded _ ->
+        DistributionCheckSucceeded _ ->
             Nothing
 
-        CoverageCheckFailed _ ->
+        DistributionCheckFailed _ ->
             {- Don't show it here: it's already included in the failure message.
                That way the Node runner will show it too.
             -}

@@ -43,5 +43,5 @@ type InvalidReason
     | InvalidFuzzer
     | BadDescription
     | DuplicatedName
-    | CoverageInsufficient
-    | CoverageBug
+    | DistributionInsufficient
+    | DistributionBug

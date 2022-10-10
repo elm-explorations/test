@@ -1,4 +1,4 @@
-module Test.Runner.Coverage exposing (formatTable)
+module Test.Runner.Distribution exposing (formatTable)
 
 import AsciiTable
 import Dict exposing (Dict)
@@ -14,28 +14,28 @@ bars =
 formatTable :
     { a
         | runsElapsed : Int
-        , coverageCount : Dict (List String) Int
+        , distributionCount : Dict (List String) Int
     }
     -> String
-formatTable { runsElapsed, coverageCount } =
+formatTable { runsElapsed, distributionCount } =
     let
         runsElapsed_ : Float
         runsElapsed_ =
             toFloat runsElapsed
 
-        coverageList : List ( List String, Int )
-        coverageList =
-            Dict.toList coverageCount
+        distributionList : List ( List String, Int )
+        distributionList =
+            Dict.toList distributionCount
 
-        coverage : List ( List String, Int, Float )
-        coverage =
-            coverageList
+        distribution : List ( List String, Int, Float )
+        distribution =
+            distributionList
                 |> List.filter
                     (\( labels, count ) ->
                         not
                             ((List.length labels == 1)
                                 && (count == 0)
-                                && isStrictSubset coverageList labels
+                                && isStrictSubset distributionList labels
                             )
                     )
                 |> List.map
@@ -52,7 +52,7 @@ formatTable { runsElapsed, coverageCount } =
                     )
 
         ( baseRows, combinationsRows ) =
-            coverage
+            distribution
                 |> List.sortBy (\( _, count, _ ) -> negate count)
                 |> List.partition (\( labels, _, _ ) -> List.length labels <= 1)
 
@@ -92,8 +92,8 @@ Combinations (included in the above base counts):
         table =
             baseString ++ combinationsString_
     in
-    """Coverage report:
-================
+    """Distribution report:
+====================
 {CATEGORIES}"""
         |> String.replace "{CATEGORIES}" table
 

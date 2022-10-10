@@ -1,21 +1,21 @@
 module Test.Expectation exposing
     ( Expectation(..)
     , fail
-    , withCoverageReport
+    , withDistributionReport
     , withGiven
     )
 
-import Test.Coverage exposing (CoverageReport(..))
+import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner.Failure exposing (Reason)
 
 
 type Expectation
-    = Pass { coverageReport : CoverageReport }
+    = Pass { distributionReport : DistributionReport }
     | Fail
         { given : Maybe String
         , description : String
         , reason : Reason
-        , coverageReport : CoverageReport
+        , distributionReport : DistributionReport
         }
 
 
@@ -27,7 +27,7 @@ fail { description, reason } =
         { given = Nothing
         , description = description
         , reason = reason
-        , coverageReport = NoCoverage
+        , distributionReport = NoDistribution
         }
 
 
@@ -43,13 +43,13 @@ withGiven newGiven expectation =
             expectation
 
 
-{-| Set the coverage report of an expectation.
+{-| Set the distribution report of an expectation.
 -}
-withCoverageReport : CoverageReport -> Expectation -> Expectation
-withCoverageReport newCoverageReport expectation =
+withDistributionReport : DistributionReport -> Expectation -> Expectation
+withDistributionReport newDistributionReport expectation =
     case expectation of
         Fail failure ->
-            Fail { failure | coverageReport = newCoverageReport }
+            Fail { failure | distributionReport = newDistributionReport }
 
         Pass pass ->
-            Pass { pass | coverageReport = newCoverageReport }
+            Pass { pass | distributionReport = newDistributionReport }

@@ -9,18 +9,18 @@ import MicroMaybeExtra as Maybe
 import PRNG
 import Random
 import Simplify
-import Test.Coverage exposing (CoverageReport(..))
-import Test.Coverage.Internal exposing (Coverage(..), ExpectedCoverage(..))
+import Test.Distribution exposing (DistributionReport(..))
+import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
 import Test.Expectation exposing (Expectation(..))
 import Test.Internal exposing (Test(..), blankDescriptionFailure)
-import Test.Runner.Coverage
+import Test.Runner.Distribution
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
 {-| Reject always-failing tests because of bad names or invalid fuzzers.
 -}
-fuzzTest : Coverage a -> Fuzzer a -> String -> (a -> Expectation) -> Test
-fuzzTest coverage fuzzer untrimmedDesc getExpectation =
+fuzzTest : Distribution a -> Fuzzer a -> String -> (a -> Expectation) -> Test
+fuzzTest distribution fuzzer untrimmedDesc getExpectation =
     let
         desc =
             String.trim untrimmedDesc
@@ -29,13 +29,13 @@ fuzzTest coverage fuzzer untrimmedDesc getExpectation =
         blankDescriptionFailure
 
     else
-        ElmTestVariant__Labeled desc <| validatedFuzzTest fuzzer getExpectation coverage
+        ElmTestVariant__Labeled desc <| validatedFuzzTest fuzzer getExpectation distribution
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Coverage a -> Test
-validatedFuzzTest fuzzer getExpectation coverage =
+validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
+validatedFuzzTest fuzzer getExpectation distribution =
     ElmTestVariant__FuzzTest
         (\seed runs ->
             let
@@ -46,19 +46,19 @@ validatedFuzzTest fuzzer getExpectation coverage =
                         , testFn = getExpectation
                         , initialSeed = seed
                         , runsNeeded = runs
-                        , coverage = coverage
+                        , distribution = distribution
                         }
-                        (initLoopState seed coverage)
+                        (initLoopState seed distribution)
             in
             case runResult.failure of
                 Nothing ->
-                    [ Pass { coverageReport = runResult.coverageReport } ]
+                    [ Pass { distributionReport = runResult.distributionReport } ]
 
                 Just failure ->
                     [ { failure
                         | expectation =
                             failure.expectation
-                                |> Test.Expectation.withCoverageReport runResult.coverageReport
+                                |> Test.Expectation.withDistributionReport runResult.distributionReport
                       }
                         |> formatExpectation
                     ]
@@ -76,25 +76,25 @@ type alias LoopConstants a =
     , testFn : a -> Expectation
     , initialSeed : Random.Seed
     , runsNeeded : Int
-    , coverage : Coverage a
+    , distribution : Distribution a
     }
 
 
 type alias LoopState =
     { runsElapsed : Int
-    , coverageCount : Maybe (Dict (List String) Int)
+    , distributionCount : Maybe (Dict (List String) Int)
     , nextPowerOfTwo : Int
     , failure : Maybe Failure
     , currentSeed : Random.Seed
     }
 
 
-initLoopState : Random.Seed -> Coverage a -> LoopState
-initLoopState initialSeed coverage =
+initLoopState : Random.Seed -> Distribution a -> LoopState
+initLoopState initialSeed distribution =
     let
-        initialCoverageCount : Maybe (Dict (List String) Int)
-        initialCoverageCount =
-            Test.Coverage.Internal.getCoverageLabels coverage
+        initialDistributionCount : Maybe (Dict (List String) Int)
+        initialDistributionCount =
+            Test.Distribution.Internal.getDistributionLabels distribution
                 |> Maybe.map
                     (\labels ->
                         labels
@@ -103,14 +103,14 @@ initLoopState initialSeed coverage =
                     )
     in
     { runsElapsed = 0
-    , coverageCount = initialCoverageCount
+    , distributionCount = initialDistributionCount
     , nextPowerOfTwo = 1
     , failure = Nothing
     , currentSeed = initialSeed
     }
 
 
-{-| Runs fuzz tests repeatedly and returns information about coverage and possible failure.
+{-| Runs fuzz tests repeatedly and returns information about distribution and possible failure.
 
 The loop algorithm is roughly:
 
@@ -121,7 +121,7 @@ The loop algorithm is roughly:
         run `total - elapsed` tests (short-circuiting on failure)
         loop
 
-    else if doesn't need coverage check:
+    else if doesn't need distribution check:
         end with success
 
     else if all labels sufficiently covered:
@@ -141,16 +141,16 @@ fuzzLoop : LoopConstants a -> LoopState -> RunResult
 fuzzLoop c state =
     case state.failure of
         Just failure ->
-            -- If the test fails, it still is useful to report the coverage even if we didn't do the statistical check for ExpectCoverage.
-            -- For this reason we try to create CoverageToReport even in case of ExpectCoverage.
-            { coverageReport =
-                case state.coverageCount of
+            -- If the test fails, it still is useful to report the distribution even if we didn't do the statistical check for ExpectDistribution.
+            -- For this reason we try to create DistributionToReport even in case of ExpectDistribution.
+            { distributionReport =
+                case state.distributionCount of
                     Nothing ->
-                        NoCoverage
+                        NoDistribution
 
-                    Just coverageCount ->
-                        CoverageToReport
-                            { coverageCount = includeCombinationsInBaseCounts coverageCount
+                    Just distributionCount ->
+                        DistributionToReport
+                            { distributionCount = includeCombinationsInBaseCounts distributionCount
                             , runsElapsed = state.runsElapsed
                             }
             , failure = Just failure
@@ -166,60 +166,60 @@ fuzzLoop c state =
                 fuzzLoop c newState
 
             else
-                case c.coverage of
-                    NoCoverageNeeded ->
-                        { coverageReport = NoCoverage
+                case c.distribution of
+                    NoDistributionNeeded ->
+                        { distributionReport = NoDistribution
                         , failure = Nothing
                         }
 
-                    ReportCoverage _ ->
-                        case state.coverageCount of
+                    ReportDistribution _ ->
+                        case state.distributionCount of
                             Nothing ->
-                                -- Shouldn't happen, we're in the ReportCoverage case. This indicates a bug in `initLoopState`.
-                                coverageBugRunResult
+                                -- Shouldn't happen, we're in the ReportDistribution case. This indicates a bug in `initLoopState`.
+                                distributionBugRunResult
 
-                            Just coverageCount ->
-                                { coverageReport =
-                                    CoverageToReport
-                                        { coverageCount = includeCombinationsInBaseCounts coverageCount
+                            Just distributionCount ->
+                                { distributionReport =
+                                    DistributionToReport
+                                        { distributionCount = includeCombinationsInBaseCounts distributionCount
                                         , runsElapsed = state.runsElapsed
                                         }
                                 , failure = Nothing
                                 }
 
-                    ExpectCoverage _ ->
+                    ExpectDistribution _ ->
                         let
-                            normalizedCoverageCount : Maybe (Dict (List String) Int)
-                            normalizedCoverageCount =
-                                Maybe.map includeCombinationsInBaseCounts state.coverageCount
+                            normalizedDistributionCount : Maybe (Dict (List String) Int)
+                            normalizedDistributionCount =
+                                Maybe.map includeCombinationsInBaseCounts state.distributionCount
                         in
-                        if allSufficientlyCovered c state normalizedCoverageCount then
+                        if allSufficientlyCovered c state normalizedDistributionCount then
                             {- Success! Well, almost. Now we need to check the Zero and MoreThanZero cases.
 
                                Unfortunately I don't see a good way of using the statistical test for this,
                                so we'll just hope the amount of tests we've done so far suffices.
                             -}
-                            case findBadZeroRelatedCase c state normalizedCoverageCount of
+                            case findBadZeroRelatedCase c state normalizedDistributionCount of
                                 Nothing ->
-                                    case normalizedCoverageCount of
+                                    case normalizedDistributionCount of
                                         Nothing ->
-                                            -- Shouldn't happen, we're in the ReportCoverage case. This indicates a bug in `initLoopState`.
-                                            coverageBugRunResult
+                                            -- Shouldn't happen, we're in the ReportDistribution case. This indicates a bug in `initLoopState`.
+                                            distributionBugRunResult
 
-                                        Just coverageCount ->
-                                            { coverageReport =
-                                                CoverageCheckSucceeded
-                                                    { coverageCount = coverageCount
+                                        Just distributionCount ->
+                                            { distributionReport =
+                                                DistributionCheckSucceeded
+                                                    { distributionCount = distributionCount
                                                     , runsElapsed = state.runsElapsed
                                                     }
                                             , failure = Nothing
                                             }
 
                                 Just failedLabel ->
-                                    coverageFailRunResult normalizedCoverageCount failedLabel
+                                    distributionFailRunResult normalizedDistributionCount failedLabel
 
                         else
-                            case findInsufficientlyCoveredLabel c state normalizedCoverageCount of
+                            case findInsufficientlyCoveredLabel c state normalizedDistributionCount of
                                 Nothing ->
                                     let
                                         newState : LoopState
@@ -229,32 +229,32 @@ fuzzLoop c state =
                                     fuzzLoop c { newState | nextPowerOfTwo = newState.nextPowerOfTwo + 1 }
 
                                 Just failedLabel ->
-                                    coverageFailRunResult normalizedCoverageCount failedLabel
+                                    distributionFailRunResult normalizedDistributionCount failedLabel
 
 
-type alias CoverageFailure =
+type alias DistributionFailure =
     { label : String
     , actualPercentage : Float
-    , expectedCoverage : ExpectedCoverage
+    , expectedDistribution : ExpectedDistribution
     , runsElapsed : Int
-    , coverageCount : Dict (List String) Int
+    , distributionCount : Dict (List String) Int
     }
 
 
 allSufficientlyCovered : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Bool
-allSufficientlyCovered c state normalizedCoverageCount =
+allSufficientlyCovered c state normalizedDistributionCount =
     Maybe.map2 Tuple.pair
-        normalizedCoverageCount
-        (Test.Coverage.Internal.getExpectedCoverages c.coverage)
+        normalizedDistributionCount
+        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
         |> Maybe.andThen
-            (\( coverageCount, expectedCoverages ) ->
+            (\( distributionCount, expectedDistributions ) ->
                 let
-                    expectedCoverages_ : Dict String ExpectedCoverage
-                    expectedCoverages_ =
-                        Dict.fromList expectedCoverages
+                    expectedDistributions_ : Dict String ExpectedDistribution
+                    expectedDistributions_ =
+                        Dict.fromList expectedDistributions
                 in
-                coverageCount
-                    -- Needs normalized coverage count:
+                distributionCount
+                    -- Needs normalized distribution count:
                     |> Dict.toList
                     |> List.filterMap
                         (\( labels, count ) ->
@@ -267,13 +267,13 @@ allSufficientlyCovered c state normalizedCoverageCount =
                         )
                     |> Maybe.traverse
                         (\( labels, count ) ->
-                            Dict.get labels expectedCoverages_
-                                |> Maybe.map (\expectedCoverage -> ( labels, count, expectedCoverage ))
+                            Dict.get labels expectedDistributions_
+                                |> Maybe.map (\expectedDistribution -> ( labels, count, expectedDistribution ))
                         )
                     |> Maybe.map
                         (List.all
-                            (\( _, count, expectedCoverage ) ->
-                                case expectedCoverage of
+                            (\( _, count, expectedDistribution ) ->
+                                case expectedDistribution of
                                     -- Zero and MoreThanZero will get checked in the Success case
                                     Zero ->
                                         True
@@ -282,7 +282,7 @@ allSufficientlyCovered c state normalizedCoverageCount =
                                         True
 
                                     AtLeast n ->
-                                        Test.Coverage.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
+                                        Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
                             )
                         )
             )
@@ -290,26 +290,26 @@ allSufficientlyCovered c state normalizedCoverageCount =
         |> Maybe.withDefault False
 
 
-findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe CoverageFailure
-findBadZeroRelatedCase c state normalizedCoverageCount =
+findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
+findBadZeroRelatedCase c state normalizedDistributionCount =
     Maybe.map2 Tuple.pair
-        normalizedCoverageCount
-        (Test.Coverage.Internal.getExpectedCoverages c.coverage)
+        normalizedDistributionCount
+        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
         |> Maybe.andThen
-            (\( coverageCount, expectedCoverages ) ->
-                expectedCoverages
+            (\( distributionCount, expectedDistributions ) ->
+                expectedDistributions
                     |> List.find
-                        (\( label, expectedCoverage ) ->
-                            case expectedCoverage of
+                        (\( label, expectedDistribution ) ->
+                            case expectedDistribution of
                                 Zero ->
                                     -- TODO short-circuit Zero sooner: as soon as we increment its counter, during runNTimes.
-                                    Dict.get [ label ] coverageCount
+                                    Dict.get [ label ] distributionCount
                                         -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
                                         |> Maybe.withDefault 1
                                         |> (/=) 0
 
                                 MoreThanZero ->
-                                    Dict.get [ label ] coverageCount
+                                    Dict.get [ label ] distributionCount
                                         -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
                                         |> Maybe.withDefault 0
                                         |> (==) 0
@@ -318,50 +318,50 @@ findBadZeroRelatedCase c state normalizedCoverageCount =
                                     False
                         )
                     |> Maybe.andThen
-                        (\( label, expectedCoverage ) ->
-                            Dict.get [ label ] coverageCount
+                        (\( label, expectedDistribution ) ->
+                            Dict.get [ label ] distributionCount
                                 |> Maybe.map
                                     (\count ->
                                         { label = label
                                         , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
-                                        , expectedCoverage = expectedCoverage
+                                        , expectedDistribution = expectedDistribution
                                         , runsElapsed = state.runsElapsed
-                                        , coverageCount = coverageCount
+                                        , distributionCount = distributionCount
                                         }
                                     )
                         )
             )
 
 
-findInsufficientlyCoveredLabel : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe CoverageFailure
-findInsufficientlyCoveredLabel c state normalizedCoverageCount =
+findInsufficientlyCoveredLabel : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
+findInsufficientlyCoveredLabel c state normalizedDistributionCount =
     Maybe.map2 Tuple.pair
-        normalizedCoverageCount
-        (Test.Coverage.Internal.getExpectedCoverages c.coverage)
+        normalizedDistributionCount
+        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
         |> Maybe.andThen
-            (\( coverageCount, expectedCoverages ) ->
+            (\( distributionCount, expectedDistributions ) ->
                 let
-                    expectedCoverages_ : Dict String ExpectedCoverage
-                    expectedCoverages_ =
-                        Dict.fromList expectedCoverages
+                    expectedDistributions_ : Dict String ExpectedDistribution
+                    expectedDistributions_ =
+                        Dict.fromList expectedDistributions
                 in
-                -- TODO loop ExpectedCoverages instead of looping the label combinations?
-                coverageCount
-                    -- Needs normalized coverage count:
+                -- TODO loop ExpectedDistributions instead of looping the label combinations?
+                distributionCount
+                    -- Needs normalized distribution count:
                     |> Dict.toList
                     |> List.filterMap
                         (\( labels, count ) ->
                             case labels of
                                 [ onlyLabel ] ->
-                                    Dict.get onlyLabel expectedCoverages_
-                                        |> Maybe.map (\expectedCoverage -> ( onlyLabel, count, expectedCoverage ))
+                                    Dict.get onlyLabel expectedDistributions_
+                                        |> Maybe.map (\expectedDistribution -> ( onlyLabel, count, expectedDistribution ))
 
                                 _ ->
                                     Nothing
                         )
                     |> List.find
-                        (\( _, count, expectedCoverage ) ->
-                            case expectedCoverage of
+                        (\( _, count, expectedDistribution ) ->
+                            case expectedDistribution of
                                 Zero ->
                                     False
 
@@ -369,71 +369,71 @@ findInsufficientlyCoveredLabel c state normalizedCoverageCount =
                                     False
 
                                 AtLeast n ->
-                                    Test.Coverage.Internal.insufficientlyCovered state.runsElapsed count (n / 100)
+                                    Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100)
                         )
                     |> Maybe.map
-                        (\( label, count, expectedCoverage ) ->
+                        (\( label, count, expectedDistribution ) ->
                             { label = label
                             , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
-                            , expectedCoverage = expectedCoverage
+                            , expectedDistribution = expectedDistribution
                             , runsElapsed = state.runsElapsed
-                            , coverageCount = coverageCount
+                            , distributionCount = distributionCount
                             }
                         )
             )
 
 
-coverageFailRunResult : Maybe (Dict (List String) Int) -> CoverageFailure -> RunResult
-coverageFailRunResult normalizedCoverageCount failedLabel =
-    case normalizedCoverageCount of
+distributionFailRunResult : Maybe (Dict (List String) Int) -> DistributionFailure -> RunResult
+distributionFailRunResult normalizedDistributionCount failedLabel =
+    case normalizedDistributionCount of
         Nothing ->
-            -- Shouldn't happen, we're in the ExpectCoverage case. This indicates a bug in `initLoopState`.
-            coverageBugRunResult
+            -- Shouldn't happen, we're in the ExpectDistribution case. This indicates a bug in `initLoopState`.
+            distributionBugRunResult
 
-        Just coverageCount ->
-            { coverageReport =
-                CoverageCheckFailed
-                    { coverageCount = coverageCount
+        Just distributionCount ->
+            { distributionReport =
+                DistributionCheckFailed
+                    { distributionCount = distributionCount
                     , runsElapsed = failedLabel.runsElapsed
                     , badLabel = failedLabel.label
                     , badLabelPercentage = failedLabel.actualPercentage
-                    , expectedCoverage = Test.Coverage.Internal.expectedCoverageToString failedLabel.expectedCoverage
+                    , expectedDistribution = Test.Distribution.Internal.expectedDistributionToString failedLabel.expectedDistribution
                     }
-            , failure = Just <| coverageInsufficientFailure failedLabel
+            , failure = Just <| distributionInsufficientFailure failedLabel
             }
 
 
-coverageBugRunResult : RunResult
-coverageBugRunResult =
-    { coverageReport = NoCoverage
+distributionBugRunResult : RunResult
+distributionBugRunResult =
+    { distributionReport = NoDistribution
     , failure =
         Just
             { given = Nothing
             , expectation =
                 Test.Expectation.fail
-                    { description = "elm-test coverage collection bug"
-                    , reason = Invalid CoverageBug
+                    { description = "elm-test distribution collection bug"
+                    , reason = Invalid DistributionBug
                     }
             }
     }
 
 
-coverageInsufficientFailure : CoverageFailure -> Failure
-coverageInsufficientFailure failure =
+distributionInsufficientFailure : DistributionFailure -> Failure
+distributionInsufficientFailure failure =
     { given = Nothing
     , expectation =
         Test.Expectation.fail
             { description =
-                """Coverage of label "{LABEL}" was insufficient:
+                """Distribution of label "{LABEL}" was insufficient:
   expected:  {EXPECTED_PERCENTAGE}
   got:       {ACTUAL_PERCENTAGE}.
 
 (Generated {RUNS} values.)"""
                     |> String.replace "{LABEL}" failure.label
-                    |> String.replace "{EXPECTED_PERCENTAGE}" (formatExpectedCoverage failure.expectedCoverage)
-                    |> String.replace "{ACTUAL_PERCENTAGE}" (Test.Coverage.Internal.formatPct failure.actualPercentage)
+                    |> String.replace "{EXPECTED_PERCENTAGE}" (formatExpectedDistribution failure.expectedDistribution)
+                    |> String.replace "{ACTUAL_PERCENTAGE}" (Test.Distribution.Internal.formatPct failure.actualPercentage)
                     |> String.replace "{RUNS}" (String.fromInt failure.runsElapsed)
-            , reason = Invalid CoverageInsufficient
+            , reason = Invalid DistributionInsufficient
             }
     }
 
@@ -476,7 +476,7 @@ runOnce c state =
                 Nothing ->
                     stepSeed state.currentSeed
 
-        ( maybeFailure, newCoverageCounter ) =
+        ( maybeFailure, newDistributionCounter ) =
             case genResult of
                 Rejected { reason } ->
                     ( Just
@@ -487,7 +487,7 @@ runOnce c state =
                                 , reason = Invalid InvalidFuzzer
                                 }
                         }
-                    , state.coverageCount
+                    , state.distributionCount
                     )
 
                 Generated { prng, value } ->
@@ -502,8 +502,8 @@ runOnce c state =
                                 , expectation = c.testFn value
                                 }
 
-                        coverageCounter : Maybe (Dict (List String) Int)
-                        coverageCounter =
+                        distributionCounter : Maybe (Dict (List String) Int)
+                        distributionCounter =
                             Maybe.map2
                                 (\labels old ->
                                     let
@@ -521,22 +521,22 @@ runOnce c state =
                                     in
                                     Dict.increment foundLabels old
                                 )
-                                (Test.Coverage.Internal.getCoverageLabels c.coverage)
-                                state.coverageCount
+                                (Test.Distribution.Internal.getDistributionLabels c.distribution)
+                                state.distributionCount
                     in
-                    ( failure, coverageCounter )
+                    ( failure, distributionCounter )
     in
     { state
         | failure = maybeFailure
-        , coverageCount = newCoverageCounter
+        , distributionCount = newDistributionCounter
         , currentSeed = nextSeed
         , runsElapsed = state.runsElapsed + 1
     }
 
 
 includeCombinationsInBaseCounts : Dict (List String) Int -> Dict (List String) Int
-includeCombinationsInBaseCounts coverage =
-    coverage
+includeCombinationsInBaseCounts distribution =
+    distribution
         |> Dict.map
             (\labels count ->
                 case labels of
@@ -544,7 +544,7 @@ includeCombinationsInBaseCounts coverage =
                         let
                             combinations : List Int
                             combinations =
-                                coverage
+                                distribution
                                     |> Dict.filter (\k _ -> List.length k > 1 && List.member single k)
                                     |> Dict.values
                         in
@@ -555,8 +555,8 @@ includeCombinationsInBaseCounts coverage =
             )
 
 
-formatExpectedCoverage : ExpectedCoverage -> String
-formatExpectedCoverage expected =
+formatExpectedDistribution : ExpectedDistribution -> String
+formatExpectedDistribution expected =
     case expected of
         Zero ->
             "exactly 0%"
@@ -565,11 +565,11 @@ formatExpectedCoverage expected =
             "more than 0%"
 
         AtLeast n ->
-            Test.Coverage.Internal.formatPct n
+            Test.Distribution.Internal.formatPct n
 
 
 type alias RunResult =
-    { coverageReport : CoverageReport
+    { distributionReport : DistributionReport
     , failure : Maybe Failure
     }
 

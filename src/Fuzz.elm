@@ -1671,7 +1671,7 @@ examples n fuzzer =
 
 
 {-| Show examples of values satisfying given classification predicates (see
-also `Test.reportCoverage` and `Test.expectCoverage`).
+also `Test.reportDistribution` and `Test.expectDistribution`).
 
 Generates a given number of values and classifies them based on the predicates.
 

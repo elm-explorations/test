@@ -1,30 +1,30 @@
-module Test.Coverage.Internal exposing
-    ( Coverage(..)
-    , ExpectedCoverage(..)
-    , expectedCoverageToString
+module Test.Distribution.Internal exposing
+    ( Distribution(..)
+    , ExpectedDistribution(..)
+    , expectedDistributionToString
     , formatPct
-    , getCoverageLabels
-    , getExpectedCoverages
+    , getDistributionLabels
+    , getExpectedDistributions
     , insufficientlyCovered
     , sufficientlyCovered
     )
 
 
-type Coverage a
-    = NoCoverageNeeded
-    | ReportCoverage (List ( String, a -> Bool ))
-    | ExpectCoverage (List ( ExpectedCoverage, String, a -> Bool ))
+type Distribution a
+    = NoDistributionNeeded
+    | ReportDistribution (List ( String, a -> Bool ))
+    | ExpectDistribution (List ( ExpectedDistribution, String, a -> Bool ))
 
 
-type ExpectedCoverage
+type ExpectedDistribution
     = Zero
     | MoreThanZero
     | AtLeast Float
 
 
-expectedCoverageToString : ExpectedCoverage -> String
-expectedCoverageToString expectedCoverage =
-    case expectedCoverage of
+expectedDistributionToString : ExpectedDistribution -> String
+expectedDistributionToString expectedDistribution =
+    case expectedDistribution of
         Zero ->
             "0%"
 
@@ -35,29 +35,29 @@ expectedCoverageToString expectedCoverage =
             ">= " ++ formatPct pct
 
 
-getCoverageLabels : Coverage a -> Maybe (List ( String, a -> Bool ))
-getCoverageLabels coverage =
-    case coverage of
-        NoCoverageNeeded ->
+getDistributionLabels : Distribution a -> Maybe (List ( String, a -> Bool ))
+getDistributionLabels distribution =
+    case distribution of
+        NoDistributionNeeded ->
             Nothing
 
-        ReportCoverage list ->
+        ReportDistribution list ->
             Just list
 
-        ExpectCoverage list ->
+        ExpectDistribution list ->
             Just (List.map (\( _, l, p ) -> ( l, p )) list)
 
 
-getExpectedCoverages : Coverage a -> Maybe (List ( String, ExpectedCoverage ))
-getExpectedCoverages coverage =
-    case coverage of
-        NoCoverageNeeded ->
+getExpectedDistributions : Distribution a -> Maybe (List ( String, ExpectedDistribution ))
+getExpectedDistributions distribution =
+    case distribution of
+        NoDistributionNeeded ->
             Nothing
 
-        ReportCoverage _ ->
+        ReportDistribution _ ->
             Nothing
 
-        ExpectCoverage list ->
+        ExpectDistribution list ->
             Just (List.map (\( e, l, _ ) -> ( l, e )) list)
 
 
@@ -78,13 +78,13 @@ formatPct n =
         ++ "%"
 
 
-{-| Coverage checks will be allowed to give a false positive once in `certainty`
+{-| Distribution checks will be allowed to give a false positive once in `certainty`
 runs (that is, with probability `1/certainty`).
 
 The current number was taken from Haskell QuickCheck. Their documentation says
 (quote):
 
-> If you are using 'checkCoverage' as part of a test suite, you should
+> If you are using 'checkDistribution' as part of a test suite, you should
 > be careful not to set @certainty@ too low. If you want, say, a 1% chance
 > of a false positive during a project's lifetime, then @certainty@ should
 > be set to at least @100 \* m \* n@, where @m@ is the number of uses of
@@ -106,8 +106,8 @@ falsePositiveProb =
     1 / toFloat certainty
 
 
-{-| We will not reject coverage levels that are only slightly below the required
-levels. For coverages `AtLeast percentage`, we will accept
+{-| We will not reject distribution levels that are only slightly below the required
+levels. For distributions `AtLeast percentage`, we will accept
 `tolerance * percentage`.
 
 In the future we might want to make it configurable, as it is a knob to make
@@ -119,7 +119,7 @@ tolerance =
     0.9
 
 
-{-| Accept the coverage if, with some `certainty`, the actual probability is
+{-| Accept the distribution if, with some `certainty`, the actual probability is
 at least `tolerance` times the required one.
 
 The percentage Float given is in the 0..1 range, not in the 0..100% range.

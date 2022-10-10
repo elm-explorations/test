@@ -2,7 +2,7 @@ module Test exposing
     ( Test, test
     , describe, concat, todo, skip, only
     , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
-    , Coverage, noCoverage, reportCoverage, expectCoverage
+    , Distribution, noDistribution, reportDistribution, expectDistribution
     )
 
 {-| A module containing functions for creating and managing tests.
@@ -18,15 +18,15 @@ module Test exposing
 ## Fuzz Testing
 
 @docs fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
-@docs Coverage, noCoverage, reportCoverage, expectCoverage
+@docs Distribution, noDistribution, reportDistribution, expectDistribution
 
 -}
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Set
-import Test.Coverage exposing (ExpectedCoverage)
-import Test.Coverage.Internal
+import Test.Distribution exposing (ExpectedDistribution)
+import Test.Distribution.Internal
 import Test.Fuzz
 import Test.Internal as Internal
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
@@ -280,7 +280,7 @@ The number of times to run each fuzz test. (Default is 100.)
     import Fuzz exposing (list, int)
     import Expect
 
-    fuzzWith { runs = 350, coverage = noCoverage }
+    fuzzWith { runs = 350, distribution = noDistribution }
         (list int)
         "List.length should never be negative" <|
         -- This anonymous function will be run 350 times, each time with a
@@ -292,22 +292,22 @@ The number of times to run each fuzz test. (Default is 100.)
                 |> Expect.atLeast 0
 
 
-### `coverage`
+### `distribution`
 
 A way to report/enforce a statistical distribution of your input values.
-(Default is `noCoverage`.)
+(Default is `noDistribution`.)
 
     import Test exposing (fuzzWith)
-    import Test.Coverage
+    import Test.Distribution
     import Fuzz exposing (list, int)
     import Expect
 
     fuzzWith
         { runs = 350
-        , coverage =
-            expectCoverage
-                [ ( Test.Coverage.zero, "empty", \xs -> List.length xs == 0 )
-                , ( Test.Coverage.atLeast 10, "3+ items", \xs -> List.length xs >= 3 )
+        , distribution =
+            expectDistribution
+                [ ( Test.Distribution.zero, "empty", \xs -> List.length xs == 0 )
+                , ( Test.Distribution.atLeast 10, "3+ items", \xs -> List.length xs >= 3 )
                 ]
         }
         (list int)
@@ -320,7 +320,7 @@ A way to report/enforce a statistical distribution of your input values.
 -}
 type alias FuzzOptions a =
     { runs : Int
-    , coverage : Coverage a
+    , distribution : Distribution a
     }
 
 
@@ -335,7 +335,7 @@ for example like this:
     import Expect
 
 
-    fuzzWith { runs = 4200, coverage = noCoverage }
+    fuzzWith { runs = 4200, distribution = noDistribution }
         (pair (list int) int)
         "List.reverse never influences List.member" <|
             \(nums, target) ->
@@ -352,7 +352,7 @@ fuzzWith options fuzzer desc getTest =
             }
 
     else
-        fuzzWithHelp options (Test.Fuzz.fuzzTest options.coverage fuzzer desc getTest)
+        fuzzWithHelp options (Test.Fuzz.fuzzTest options.distribution fuzzer desc getTest)
 
 
 fuzzWithHelp : FuzzOptions a -> Test -> Test
@@ -413,7 +413,7 @@ fuzz :
     -> (a -> Expectation)
     -> Test
 fuzz =
-    Test.Fuzz.fuzzTest Test.Coverage.Internal.NoCoverageNeeded
+    Test.Fuzz.fuzzTest Test.Distribution.Internal.NoDistributionNeeded
 
 
 {-| Run a [fuzz test](#fuzz) using two random inputs.
@@ -467,29 +467,29 @@ fuzz3 fuzzA fuzzB fuzzC desc =
 
 
 
--- COVERAGE --
+-- Distribution --
 
 
-{-| With `Coverage` you can observe statistics about your fuzz test inputs and
+{-| With `Distribution` you can observe statistics about your fuzz test inputs and
 assert that a given proportion of test cases belong to a given class.
 
-  - `noCoverage` opts out of these checks.
+  - `noDistribution` opts out of these checks.
 
-  - `reportCoverage` will collect statistics and report them after the test
+  - `reportDistribution` will collect statistics and report them after the test
     runs (both when it passes and fails) and so is mostly useful as a temporary
     setting when creating your fuzzers and tests.
 
-  - `expectCoverage` will collect statistics, but only report them (and fail
-    the test) if the `ExpectedCoverage` is not met. Handy for checking your
+  - `expectDistribution` will collect statistics, but only report them (and fail
+    the test) if the `ExpectedDistribution` is not met. Handy for checking your
     fuzzers are giving interesting and relevant inputs to your tests.
 
 ```elm
-fuzzWith { runs = 10000, coverage = noCoverage }
+fuzzWith { runs = 10000, distribution = noDistribution }
 
 fuzzWith
     { runs = 10000
-    , coverage =
-        reportCoverage
+    , distribution =
+        reportDistribution
             [ ( "fizz", \n -> (n |> modBy 3) == 0 )
             , ( "buzz", \n -> (n |> modBy 5) == 0 )
             , ( "even", \n -> (n |> modBy 2) == 0 )
@@ -499,52 +499,52 @@ fuzzWith
 
 fuzzWith
     { runs = 10000
-    , coverage =
-        expectCoverage
-            [ ( Test.Coverage.atLeast 30, "fizz", \n -> (n |> modBy 3) == 0 )
-            , ( Test.Coverage.atLeast 15, "buzz", \n -> (n |> modBy 5) == 0 )
-            , ( Test.Coverage.moreThanZero, "fizz buzz", \n -> (n |> modBy 15) == 0 )
-            , ( Test.Coverage.zero, "outside range", \n -> n < 1 || n > 20 )
+    , distribution =
+        expectDistribution
+            [ ( Test.Distribution.atLeast 30, "fizz", \n -> (n |> modBy 3) == 0 )
+            , ( Test.Distribution.atLeast 15, "buzz", \n -> (n |> modBy 5) == 0 )
+            , ( Test.Distribution.moreThanZero, "fizz buzz", \n -> (n |> modBy 15) == 0 )
+            , ( Test.Distribution.zero, "outside range", \n -> n < 1 || n > 20 )
             ]
     }
 ```
 
-The `a` type variable in `Coverage a` is the same type as your fuzzed type.
+The `a` type variable in `Distribution a` is the same type as your fuzzed type.
 
 For example, if you're fuzzing a String with `Fuzzer String` and want to see
-coverage information for values produced by this fuzzer, you need to provide
-`String -> Bool` functions to your `reportCoverage` or `expectCoverage` calls,
-which will in turn produce a `Coverage String`.
+distribution information for values produced by this fuzzer, you need to provide
+`String -> Bool` functions to your `reportDistribution` or `expectDistribution` calls,
+which will in turn produce a `Distribution String`.
 
 -}
-type alias Coverage a =
-    Test.Coverage.Internal.Coverage a
+type alias Distribution a =
+    Test.Distribution.Internal.Distribution a
 
 
-{-| Opts out of the test input coverage checking.
+{-| Opts out of the test input distribution checking.
 -}
-noCoverage : Coverage a
-noCoverage =
-    Test.Coverage.Internal.NoCoverageNeeded
+noDistribution : Distribution a
+noDistribution =
+    Test.Distribution.Internal.NoDistributionNeeded
 
 
 {-| Collects statistics and reports them after the test runs (both when it passes
 and fails).
 -}
-reportCoverage : List ( String, a -> Bool ) -> Coverage a
-reportCoverage =
-    Test.Coverage.Internal.ReportCoverage
+reportDistribution : List ( String, a -> Bool ) -> Distribution a
+reportDistribution =
+    Test.Distribution.Internal.ReportDistribution
 
 
-{-| Collects statistics and makes sure the expected coverage is met.
+{-| Collects statistics and makes sure the expected distribution is met.
 
-Fails the test and reports the distribution if the expected coverage is not met.
+Fails the test and reports the distribution if the expected distribution is not met.
 
 Uses a statistical test to make sure the distribution doesn't pass or fail the
-coverage by accident (a flaky test). Will run more tests than specified with the
+distribution by accident (a flaky test). Will run more tests than specified with the
 `runs` config option if needed.
 
-This has the consequence of running more tests the closer your expected coverage
+This has the consequence of running more tests the closer your expected distribution
 is to the true distribution. You can thus minimize and speed up this
 "making sure" process by requesting slightly less % of your distribution than
 needed.
@@ -553,9 +553,9 @@ Currently the statistical test is tuned to allow a false positive/negative in
 1 in every 10^9 tests.
 
 -}
-expectCoverage : List ( ExpectedCoverage, String, a -> Bool ) -> Coverage a
-expectCoverage =
-    Test.Coverage.Internal.ExpectCoverage
+expectDistribution : List ( ExpectedDistribution, String, a -> Bool ) -> Distribution a
+expectDistribution =
+    Test.Distribution.Internal.ExpectDistribution
 
 
 
