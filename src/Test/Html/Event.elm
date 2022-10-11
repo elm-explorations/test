@@ -140,7 +140,8 @@ toResult event =
 -- EFFECTS --
 
 
-{-| -}
+{-| Passes if the event handler stops propagation of the event.
+-}
 expectStopPropagation : Event msg -> Expectation
 expectStopPropagation event =
     case checkStopPropagation event of
@@ -154,7 +155,8 @@ expectStopPropagation event =
             Expect.pass
 
 
-{-| -}
+{-| Passes if the event handler doesn't stop propagation of the event.
+-}
 expectNotStopPropagation : Event msg -> Expectation
 expectNotStopPropagation event =
     case checkStopPropagation event of
@@ -169,7 +171,8 @@ expectNotStopPropagation event =
                 "I found a handler that should have not stopped propagation of the event, but it did."
 
 
-{-| -}
+{-| Passes if the event handler prevents default action of the event.
+-}
 expectPreventDefault : Event msg -> Expectation
 expectPreventDefault event =
     case checkPreventDefault event of
@@ -183,7 +186,8 @@ expectPreventDefault event =
             Expect.pass
 
 
-{-| -}
+{-| Passes if the event handler doesn't prevent default action of the event.
+-}
 expectNotPreventDefault : Event msg -> Expectation
 expectNotPreventDefault event =
     case checkPreventDefault event of

@@ -59,8 +59,7 @@ import Test.Internal as Internal
 import Test.Runner.Failure exposing (Reason(..))
 
 
-{-| An unevaluated test. Run it with [`run`](#run) to evaluate it into a
-list of `Expectation`s.
+{-| An unevaluated test.
 -}
 type Runnable
     = Thunk (() -> List Expectation)
@@ -367,10 +366,10 @@ fnvHash a b =
     Bitwise.xor a b * 16777619 |> Bitwise.shiftRightZfBy 0
 
 
-{-| Return `Nothing` if the given [`Expectation`](#Expectation) is a [`pass`](#pass).
+{-| Return `Nothing` if the given [`Expectation`](Expect#Expectation) is a [`pass`](Expect#pass).
 
-If it is a [`fail`](#fail), return a record containing the expectation
-description, the [`Reason`](#Reason) the test failed, and the given inputs if
+If it is a [`fail`](Expect#fail), return a record containing the expectation
+description, the [`Reason`](Test-Runner-Failure#Reason) the test failed, and the given inputs if
 it was a fuzz test. (If it was not a fuzz test, the record's `given` field
 will be `Nothing`).
 
