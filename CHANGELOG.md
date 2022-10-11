@@ -23,6 +23,7 @@ The changes can be grouped into these categories:
 3. [`Test.Html.Event`](#3-testhtmlevent-additions) additions
 4. [`Expect.true` and `Expect.false` removal](#4-expecttrue-and-expectfalse-removal)
 5. [`Test.Runner.Failure.format` removal](#5-testrunnerfailureformat-removal)
+6. [Fuzzer behaviour changes](#6-fuzzer-behaviour-changes)
 
 ### 1. Fuzzing and shrinking reimplementation
 
@@ -237,3 +238,31 @@ foo
 
 The function `Test.Runner.Failure.format` was deprecated since 1.2.0; with
 2.0.0 we're now fully removing it.
+
+### 6. Fuzzer behaviour changes
+
+String fuzzers now generate Unicode text (including emojis and combining marks). Use `asciiString` or `asciiChar` if you only want the ASCII subset.
+
+```elm
+> Fuzz.examples 3 Fuzz.string
+["y\n\t@]̂z❤B","O🔥","̈4🌈&"] : List String
+```
+
+Reported equality failures now show strings both verbatim and with Unicode characters escaped if needed, to better show things like non-breaking spaces.
+
+```
+↓ Expectations
+↓ Expect.equal on unicode strings should show pretty output
+✗ ascii
+           ▼        ▼▼       ▼▼
+    "\u{1f63b}\u{1f640}\u{1f47b}" (same string but with unicode characters escaped)
+     ▼
+    "😻🙀👻"
+    ╵
+    │ |> Expect.equal
+    ╷
+    "🙀👻😻🙈"
+       ▲▲
+    "\u{1f640}\u{1f47b}\u{1f63b}\u{1f648}" (same string but with unicode characters escaped)
+           ▲▲▲▲▲▲▲▲▲▲        ▲▲      ▲ ▲
+```
