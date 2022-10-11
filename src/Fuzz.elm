@@ -1354,8 +1354,9 @@ filter predicate fuzzer =
 {-| Use a generated value to decide what fuzzer to use next.
 
 For example, let's say you want to generate a list of given length.
-One possible way to do that is first choosing how many elements will there be
-(generating a number), `andThen` generating a list with that many items:
+One (not ideal) possible way to do that is first choosing how many elements
+will there be (generating a number), `andThen` generating a list with that many
+items:
 
     Fuzz.intRange 1 10
         |> Fuzz.andThen
@@ -1373,12 +1374,15 @@ One possible way to do that is first choosing how many elements will there be
                 go length []
             )
 
-(By the way, it will probably be better to just use one of the [`list`](#list)
-helpers in this module.)
+This will work! Different fuzzers will have different PRNG usage patterns
+though and will shrink with varying success. The currently best known way to
+fuzz a list of items is based on a "flip a coin, `andThen` generate a value and
+repeat or end" approach, and is implemented in the [`list`](#list) helpers in
+this module. Use them instead of rolling your own list generator!
 
-Think of it as a generalization of [`map`](#map). Inside [`map`](#map) you don't
-have the option to fuzz another value based on what you already have; inside
-`andThen` you do.
+Think of `andThen` as a generalization of [`map`](#map). Inside [`map`](#map)
+you don't have the option to fuzz another value based on what you already have;
+inside `andThen` you do.
 
 -}
 andThen : (a -> Fuzzer b) -> Fuzzer a -> Fuzzer b
