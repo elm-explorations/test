@@ -24,7 +24,8 @@ import Expect exposing (Expectation)
 import Html exposing (Html)
 import Test.Html.Internal.Inert as Inert
 import Test.Html.Query.Internal as Internal exposing (failWithQuery)
-import Test.Html.Selector.Internal exposing (Selector, selectorToString)
+import Test.Html.Selector exposing (Selector)
+import Test.Html.Selector.Internal exposing (selectorToString)
 
 
 
