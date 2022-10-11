@@ -301,7 +301,8 @@ intRange lo hi =
 
 Will prefer integer values, nice fractions and positive numbers over the rest.
 
-Will occasionally try infinities and NaN. If you don't want to generate these, use `niceFloat`.
+Will occasionally try infinities and NaN. If you don't want to generate these,
+use [`Fuzz.niceFloat`](#niceFloat).
 
 -}
 float : Fuzzer Float
@@ -354,7 +355,7 @@ wellShrinkingFloat =
         |> filter (\n -> not (isInfinite n || isNaN n))
 
 
-{-| Fuzzer generating floats in range n..Infinity.
+{-| Fuzzer generating floats in range `n..Infinity`.
 
 The positive part of the range will shrink nicely, the negative part will shrink uniformly.
 
@@ -380,7 +381,7 @@ floatAtLeast n =
             ]
 
 
-{-| Fuzzer generating floats in range -Infinity..n.
+{-| Fuzzer generating floats in range `-Infinity..n`.
 
 The negative part of the range will shrink nicely, the positive part will shrink uniformly.
 
@@ -473,7 +474,8 @@ inclusive and `1.0` exclusive, in an uniform fashion.
 
 Will occasionally try the boundaries.
 
-Doesn't shrink to nice values like `float` does, but shrinks towards zero.
+Doesn't shrink to nice values like [`Fuzz.float`](#float) does; shrinks towards
+zero.
 
 -}
 percentage : Fuzzer Float
@@ -503,7 +505,8 @@ int32 =
 {-| A fuzzer for simple ASCII char values (range 32..126).
 Skips control characters and the extended character set.
 
-For more serious char fuzzing look at `char` which generates the whole Unicode range.
+For more serious char fuzzing look at [`Fuzz.char`](#char) which generates the
+whole Unicode range.
 
 -}
 asciiChar : Fuzzer Char
@@ -515,7 +518,7 @@ asciiChar =
 
 {-| A fuzzer for arbitrary Unicode char values.
 
-Avoids surrogate pairs or their components (0xD800..0xDFFF).
+Avoids surrogate pairs or their components (`0xD800..0xDFFF`).
 
 Will prefer ASCII characters, whitespace, and some examples known to cause
 trouble, like combining diacritics marks and emojis.
@@ -579,10 +582,10 @@ string =
 
 {-| Generates random unicode strings of a given length.
 
-Note that some unicode characters have String.length of 2. This fuzzer will make
-sure the String.length of the returned string is equal to the wanted length, even
-if it will mean there are less characters. If you instead want it to give N
-characters even if their String.length will be above N, you can use
+Note that some unicode characters have `String.length` of 2. This fuzzer will
+make sure the `String.length` of the returned string is equal to the wanted
+length, even if it will mean there are less characters. If you instead want it
+to give N characters even if their `String.length` will be above N, you can use
 
     Fuzz.listOfLength n Fuzz.char
         |> Fuzz.map String.fromList
@@ -595,10 +598,11 @@ stringOfLength n =
 
 {-| Generates random unicode strings of length between the given limits.
 
-Note that some unicode characters have String.length of 2. This fuzzer will make
-sure the String.length of the returned string is equal to the wanted length, even
-if it will mean there are less characters. If you instead want it to give between
-MIN and MAX characters even if their String.length will be above MAX, you can use
+Note that some unicode characters have `String.length` of 2. This fuzzer will
+make sure the `String.length` of the returned string is equal to the wanted
+length, even if it will mean there are less characters. If you instead want it
+to give between MIN and MAX characters even if their `String.length` will be
+above MAX, you can use
 
     Fuzz.listOfLengthBetween min max Fuzz.char
         |> Fuzz.map String.fromList
@@ -1061,10 +1065,10 @@ map8 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
 {-| Map over many fuzzers. This can act as `mapN` for `N > 8`.
 The argument order is meant to accommodate chaining:
 
-    constant fn
-        |> andMap fuzzerA
-        |> andMap fuzzerB
-        |> andMap fuzzerC
+    Fuzz.constant fn
+        |> Fuzz.andMap fuzzerA
+        |> Fuzz.andMap fuzzerB
+        |> Fuzz.andMap fuzzerC
 
 -}
 andMap : Fuzzer a -> Fuzzer (a -> b) -> Fuzzer b
@@ -1093,10 +1097,10 @@ fuzzer, which causes it to fail any test that uses it:
   - If any of the weights are less than 0
   - If the weights sum to 0
 
-Be careful recursively using this fuzzer in its arguments. Often using `map`
-is a better way to do what you want. If you are fuzzing a tree-like data
-structure, you should include a depth limit so to avoid infinite recursion, like
-so:
+Be careful recursively using this fuzzer in its arguments. Often using
+[`Fuzz.map`](#map) is a better way to do what you want. If you are fuzzing a
+tree-like data structure, you should include a depth limit so to avoid infinite
+recursion, like so:
 
     type Tree
         = Leaf
@@ -1238,7 +1242,7 @@ frequencyValues values =
 
 
 {-| Choose one of the given fuzzers at random. Each fuzzer has an equal chance
-of being chosen; to customize the probabilities, use [`frequency`](#frequency).
+of being chosen; to customize the probabilities, use [`Fuzz.frequency`](#frequency).
 
 This fuzzer will simplify towards the fuzzers earlier in the list (each of which
 will also apply its own way to simplify the values).
@@ -1275,7 +1279,8 @@ oneOfHelp functionName itemName fuzzers =
 
 
 {-| Choose one of the given values at random. Each value has an equal chance
-of being chosen; to customize the probabilities, use [`frequencyValues`](#frequencyValues).
+of being chosen; to customize the probabilities, use
+[`Fuzz.frequencyValues`](#frequencyValues).
 
 This fuzzer will simplify towards the values earlier in the list.
 
@@ -1309,10 +1314,10 @@ function.
 Warning: By using `Fuzz.filter` you can get exceptionally unlucky and get 15
 rejections in a row, in which case the test will fluke out and fail!
 
-It's always preferable to get to your wanted values using [`map`](#map), as you
-don't run the risk of rejecting too may values and slowing down your tests, for
-example using `Fuzz.intRange 0 5 |> Fuzz.map (\x -> x * 2)` instead of
-`Fuzz.intRange 0 9 |> Fuzz.filter (\x -> modBy 2 x == 0)`.
+It's always preferable to get to your wanted values using [`Fuzz.map`](#map),
+as you don't run the risk of rejecting too may values and slowing down your
+tests, for example using `Fuzz.intRange 0 5 |> Fuzz.map (\x -> x * 2)` instead
+of `Fuzz.intRange 0 9 |> Fuzz.filter (\x -> modBy 2 x == 0)`.
 
 If you want to generate indefinitely until you find a satisfactory value (with
 a risk of infinite loop depending on the predicate), you can use this pattern:
@@ -1365,7 +1370,7 @@ items:
                     go : Int -> List a -> Fuzzer (List a)
                     go left acc =
                         if left <= 0 then
-                            constant (List.reverse acc)
+                            Fuzz.constant (List.reverse acc)
 
                         else
                             itemFuzzer
@@ -1377,12 +1382,12 @@ items:
 This will work! Different fuzzers will have different PRNG usage patterns
 though and will shrink with varying success. The currently best known way to
 fuzz a list of items is based on a "flip a coin, `andThen` generate a value and
-repeat or end" approach, and is implemented in the [`list`](#list) helpers in
-this module. Use them instead of rolling your own list generator!
+repeat or end" approach, and is implemented in the [`Fuzz.list`](#list) helpers
+in this module. Use them instead of rolling your own list generator!
 
-Think of `andThen` as a generalization of [`map`](#map). Inside [`map`](#map)
-you don't have the option to fuzz another value based on what you already have;
-inside `andThen` you do.
+Think of `andThen` as a generalization of [`Fuzz.map`](#map). Inside
+[`Fuzz.map`](#map) you don't have the option to fuzz another value based on
+what you already have; inside `andThen` you do.
 
 -}
 andThen : (a -> Fuzzer b) -> Fuzzer a -> Fuzzer b
@@ -1432,7 +1437,8 @@ shuffledList items =
 {-| Executes every fuzzer in the list and collects their values into the returned
 list.
 
-Rejections (eg. from `filter` or `reject`) bubble up instead of being discarded.
+Rejections (eg. from [`Fuzz.filter`](#filter) or [`Fuzz.invalid`](#invalid))
+bubble up instead of being discarded.
 
 -}
 sequence : List (Fuzzer a) -> Fuzzer (List a)
@@ -1443,7 +1449,8 @@ sequence fuzzers =
 {-| Runs the Fuzzer-returning function on every item in the list, executes them=
 and collects their values into the returned list.
 
-Rejections (eg. from `filter` or `reject`) bubble up instead of being discarded.
+Rejections (eg. from [`Fuzz.filter`](#filter) or [`Fuzz.invalid`](#invalid))
+bubble up instead of being discarded.
 
 -}
 traverse : (a -> Fuzzer b) -> List a -> Fuzzer (List b)
@@ -1675,7 +1682,8 @@ examples n fuzzer =
 
 
 {-| Show examples of values satisfying given classification predicates (see
-also `Test.reportDistribution` and `Test.expectDistribution`).
+also [`Test.reportDistribution`](Test#reportDistribution) and
+[`Test.expectDistribution`](Test#expectDistribution)).
 
 Generates a given number of values and classifies them based on the predicates.
 
