@@ -1216,7 +1216,7 @@ values.
 For example, to create a `Fuzzer` that has a 1/4 chance of generating a string
 "foo", and a 3/4 chance of generating a string "bar", you could do this:
 
-    Fuzz.frequency
+    Fuzz.frequencyValues
         [ ( 1, "foo" )
         , ( 3, "bar" )
         ]
