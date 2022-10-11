@@ -2,7 +2,7 @@
 
 | Version                                                                              | Notes                                                                                                                                                     |
 | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [**2.0.0**](https://github.com/elm-explorations/test/tree/2.0.0)                     | Reimplements fuzzing+shrinking, adds fuzzer coverage reporting. Most notably readds `Fuzz.andThen`. See ["Changes in 2.0.0"](#changes-in-200) |
+| [**2.0.0**](https://github.com/elm-explorations/test/tree/2.0.0)                     | Reimplements fuzzing+shrinking, adds fuzzer distribution reporting. Most notably readds `Fuzz.andThen`. See ["Changes in 2.0.0"](#changes-in-200) |
 | [**1.2.2**](https://github.com/elm-explorations/test/tree/1.2.2)                     | Fixes a crash in `Test.Html` when the HTML contains nested `Html.Lazy` nodes. [#78](https://github.com/elm-explorations/test/issues/78)                   |
 | [**1.2.1**](https://github.com/elm-explorations/test/tree/1.2.1)                     | Many small documentation fixes.  Improve error messages when failing to simulate an event.                                                                |
 | [**1.2.0**](https://github.com/elm-explorations/test/tree/1.2.0)                     | Add HTML tests. [#41](https://github.com/elm-explorations/test/pull/41)                                                                                   |
@@ -19,7 +19,7 @@
 The changes can be grouped into these categories:
 
 1. [Fuzzing and shrinking reimplementation](#1-fuzzing-and-shrinking-reimplementation) (re-adding `Fuzz.andThen` etc.)
-2. [`Test.Coverage`](#2-testcoverage): fuzzer coverage reporting
+2. [`Test.Distribution`](#2-testdistribution): fuzzer distribution reporting
 3. [`Test.Html.Event`](#3-testhtmlevent-additions) additions
 4. [`Expect.true` and `Expect.false` removal](#4-expecttrue-and-expectfalse-removal)
 5. [`Test.Runner.Failure.format` removal](#5-testrunnerfailureformat-removal)
@@ -108,10 +108,10 @@ Full list of changes:
   - :heavy_minus_sign: `custom : Generator a -> Shrinker a -> Fuzzer a`
   - :heavy_plus_sign: (discouraged escape hatch) `fromGenerator : Generator a -> Fuzzer a`
 
-### 2. `Test.Coverage`
+### 2. `Test.Distribution`
 
 You can now report or enforce the value distribution of your fuzzers with
-`Test.reportCoverage` and `Test.expectCoverage`.
+`Test.reportDistribution` and `Test.expectDistribution`.
 
 For more information on this technique, we recommend watching the talk
 ["Building on developers' intuitions to create effective property-based
@@ -122,8 +122,8 @@ Plug these functions into `Test.fuzzWith`:
 ```elm
   Test.fuzzWith
       { runs = 10000
-      , coverage =
-          Test.reportCoverage
+      , distribution =
+          Test.reportDistribution
               [ ( "low", \n -> n == 1 )
               , ( "high", \n -> n == 20 )
               , ( "in between", \n -> n > 1 && n < 20 )
@@ -131,53 +131,53 @@ Plug these functions into `Test.fuzzWith`:
               ]
       }
       (Fuzz.intRange 1 20)
-      "Example for Test.reportCoverage"
+      "Example for Test.reportDistribution"
       (\n -> Expect.pass)
 ```
 
 Reporting will never change the outcome of a test, but will always output a
-coverage report table next to the other test results:
+distribution report table next to the other test results:
 
 ```
-↓ Coverage.ReportCoveragePassing
-✓ Example for Test.reportCoverage
+↓ Distribution.ReportDistributionPassing
+✓ Example for Test.reportDistribution
 
-    Coverage report:
-    ================
+    Distribution report:
+    ====================
       in between:  90.5%  (9046x)  ███████████████████████████░░░
       low:          4.9%   (485x)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
       high:         4.7%   (469x)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
       outside:        0%     (0x)  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
-On the other hand, the function `Test.expectCoverage` will _make sure_ the fuzzers have the distribution you expect:
+On the other hand, the function `Test.expectDistribution` will _make sure_ the fuzzers have the distribution you expect:
 
 ```elm
     Test.fuzzWith
         { runs = 10000
-        , coverage =
-            Test.expectCoverage
+        , distribution =
+            Test.expectDistribution
                 [ -- Expecting the number 1 to be generated at least 10% of the time, which is too much!
-                  ( Test.Coverage.atLeast 10, "low", \n -> n == 1 )
-                , ( Test.Coverage.atLeast 4, "high", \n -> n == 20 )
-                , ( Test.Coverage.atLeast 80, "in between", \n -> n > 1 && n < 20 )
-                , ( Test.Coverage.zero, "outside", \n -> n < 1 || n > 20 )
-                , ( Test.Coverage.moreThanZero, "one", \n -> n == 1 )
+                  ( Test.Distribution.atLeast 10, "low", \n -> n == 1 )
+                , ( Test.Distribution.atLeast 4, "high", \n -> n == 20 )
+                , ( Test.Distribution.atLeast 80, "in between", \n -> n > 1 && n < 20 )
+                , ( Test.Distribution.zero, "outside", \n -> n < 1 || n > 20 )
+                , ( Test.Distribution.moreThanZero, "one", \n -> n == 1 )
                 ]
         }
         (Fuzz.intRange 1 20)
-        "Example for Test.expectCoverage (with insufficient coverage)"
+        "Example for Test.expectDistribution (with insufficient distribution)"
         (\n -> Expect.pass)
 ```
 
 Resulting in a failure (although the fuzz test itself does pass):
 
 ```
-↓ Coverage.ExpectCoverageFailingCoverage
-✗ Example for Test.expectCoverage (with insufficient coverage)
+↓ Distribution.ExpectDistributionFailingDistribution
+✗ Example for Test.expectDistribution (with insufficient distribution)
 
-    Coverage report:
-    ================
+    Distribution report:
+    ====================
       in between:  90%  (9004x)  ███████████████████████████░░░
       high:         5%   (498x)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
       low:          5%   (498x)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -187,7 +187,7 @@ Resulting in a failure (although the fuzz test itself does pass):
     Combinations (included in the above base counts):
       low, one:     5%   (498x)  █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
-    Coverage of label "low" was insufficient:
+    Distribution of label "low" was insufficient:
       expected:  10.000%
       got:       4.980%.
 
