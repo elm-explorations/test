@@ -1311,8 +1311,8 @@ rejections in a row, in which case the test will fluke out and fail!
 
 It's always preferable to get to your wanted values using [`map`](#map), as you
 don't run the risk of rejecting too may values and slowing down your tests, for
-example using `Fuzz.int 0 5 |> Fuzz.map (\x -> x * 2)` instead of
-`Fuzz.int 0 9 |> Fuzz.filter (\x -> modBy 2 x == 0)`.
+example using `Fuzz.intRange 0 5 |> Fuzz.map (\x -> x * 2)` instead of
+`Fuzz.intRange 0 9 |> Fuzz.filter (\x -> modBy 2 x == 0)`.
 
 If you want to generate indefinitely until you find a satisfactory value (with
 a risk of infinite loop depending on the predicate), you can use this pattern:
@@ -1357,7 +1357,7 @@ For example, let's say you want to generate a list of given length.
 One possible way to do that is first choosing how many elements will there be
 (generating a number), `andThen` generating a list with that many items:
 
-    Fuzz.int 1 10
+    Fuzz.intRange 1 10
         |> Fuzz.andThen
             (\length ->
                 let
