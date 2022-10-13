@@ -465,11 +465,11 @@ distributionInsufficientFailure failure =
     }
 
 
-{-| Short-circuits on failure or the skipped values limit reached.
+{-| Short-circuits on failure.
 -}
 runNTimes : Int -> LoopConstants a -> LoopState -> LoopState
 runNTimes times c state =
-    if times <= 0 || state.failure /= Nothing || state.runsSkipped >= c.skipsAllowed then
+    if times <= 0 || state.failure /= Nothing then
         state
 
     else
