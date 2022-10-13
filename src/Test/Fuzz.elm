@@ -8,6 +8,8 @@ import MicroListExtra as List
 import MicroMaybeExtra as Maybe
 import PRNG
 import Random
+import RandomRun exposing (RandomRun)
+import Set exposing (Set)
 import Simplify
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
@@ -39,16 +41,19 @@ validatedFuzzTest fuzzer getExpectation distribution =
     ElmTestVariant__FuzzTest
         (\seed runs ->
             let
+                constants : LoopConstants a
+                constants =
+                    { fuzzer = fuzzer
+                    , testFn = getExpectation
+                    , initialSeed = seed
+                    , runsNeeded = runs
+                    , distribution = distribution
+                    , skipsAllowed = runs * maxSkippedRunsRatio
+                    }
+
                 runResult : RunResult
                 runResult =
-                    fuzzLoop
-                        { fuzzer = fuzzer
-                        , testFn = getExpectation
-                        , initialSeed = seed
-                        , runsNeeded = runs
-                        , distribution = distribution
-                        }
-                        (initLoopState seed distribution)
+                    fuzzLoop constants (initLoopState constants)
             in
             case runResult.failure of
                 Nothing ->
@@ -77,6 +82,7 @@ type alias LoopConstants a =
     , initialSeed : Random.Seed
     , runsNeeded : Int
     , distribution : Distribution a
+    , skipsAllowed : Int
     }
 
 
@@ -86,15 +92,17 @@ type alias LoopState =
     , nextPowerOfTwo : Int
     , failure : Maybe Failure
     , currentSeed : Random.Seed
+    , seenRandomRuns : Set (List Int)
+    , runsSkipped : Int
     }
 
 
-initLoopState : Random.Seed -> Distribution a -> LoopState
-initLoopState initialSeed distribution =
+initLoopState : LoopConstants a -> LoopState
+initLoopState c =
     let
         initialDistributionCount : Maybe (Dict (List String) Int)
         initialDistributionCount =
-            Test.Distribution.Internal.getDistributionLabels distribution
+            Test.Distribution.Internal.getDistributionLabels c.distribution
                 |> Maybe.map
                     (\labels ->
                         labels
@@ -106,8 +114,27 @@ initLoopState initialSeed distribution =
     , distributionCount = initialDistributionCount
     , nextPowerOfTwo = 1
     , failure = Nothing
-    , currentSeed = initialSeed
+    , currentSeed = c.initialSeed
+    , seenRandomRuns = Set.empty
+    , runsSkipped = 0
     }
+
+
+{-| If user specified 100 runs and this ratio is 10, we can only skip 100\*10 =
+1000 values before stopping.
+
+Consider `Fuzz.bool`: it only has two possible RandomRuns:
+
+  - [ 0 ] --> False
+  - [ 1 ] --> True
+
+We'll likely try those pretty soon. We don't have a good way of figuring out
+that's all of them so we'll just skip them for until 1000 values have been tried.
+
+-}
+maxSkippedRunsRatio : Int
+maxSkippedRunsRatio =
+    10
 
 
 {-| Runs fuzz tests repeatedly and returns information about distribution and possible failure.
@@ -151,13 +178,13 @@ fuzzLoop c state =
                     Just distributionCount ->
                         DistributionToReport
                             { distributionCount = includeCombinationsInBaseCounts distributionCount
-                            , runsElapsed = state.runsElapsed
+                            , runsElapsed = state.runsElapsed + state.runsSkipped
                             }
             , failure = Just failure
             }
 
         Nothing ->
-            if state.runsElapsed < c.runsNeeded then
+            if state.runsElapsed < c.runsNeeded && state.runsSkipped < c.skipsAllowed then
                 let
                     newState : LoopState
                     newState =
@@ -182,7 +209,7 @@ fuzzLoop c state =
                                 { distributionReport =
                                     DistributionToReport
                                         { distributionCount = includeCombinationsInBaseCounts distributionCount
-                                        , runsElapsed = state.runsElapsed
+                                        , runsElapsed = state.runsElapsed + state.runsSkipped
                                         }
                                 , failure = Nothing
                                 }
@@ -210,7 +237,7 @@ fuzzLoop c state =
                                             { distributionReport =
                                                 DistributionCheckSucceeded
                                                     { distributionCount = distributionCount
-                                                    , runsElapsed = state.runsElapsed
+                                                    , runsElapsed = state.runsElapsed + state.runsSkipped
                                                     }
                                             , failure = Nothing
                                             }
@@ -282,7 +309,7 @@ allSufficientlyCovered c state normalizedDistributionCount =
                                         True
 
                                     AtLeast n ->
-                                        Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
+                                        Test.Distribution.Internal.sufficientlyCovered (state.runsElapsed + state.runsSkipped) count (n / 100)
                             )
                         )
             )
@@ -323,9 +350,9 @@ findBadZeroRelatedCase c state normalizedDistributionCount =
                                 |> Maybe.map
                                     (\count ->
                                         { label = label
-                                        , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
+                                        , actualPercentage = toFloat count * 100 / toFloat (state.runsElapsed + state.runsSkipped)
                                         , expectedDistribution = expectedDistribution
-                                        , runsElapsed = state.runsElapsed
+                                        , runsElapsed = state.runsElapsed + state.runsSkipped
                                         , distributionCount = distributionCount
                                         }
                                     )
@@ -369,14 +396,14 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
                                     False
 
                                 AtLeast n ->
-                                    Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100)
+                                    Test.Distribution.Internal.insufficientlyCovered (state.runsElapsed + state.runsSkipped) count (n / 100)
                         )
                     |> Maybe.map
                         (\( label, count, expectedDistribution ) ->
                             { label = label
-                            , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
+                            , actualPercentage = toFloat count * 100 / toFloat (state.runsElapsed + state.runsSkipped)
                             , expectedDistribution = expectedDistribution
-                            , runsElapsed = state.runsElapsed
+                            , runsElapsed = state.runsElapsed + state.runsSkipped
                             , distributionCount = distributionCount
                             }
                         )
@@ -438,11 +465,11 @@ distributionInsufficientFailure failure =
     }
 
 
-{-| Short-circuits on failure.
+{-| Short-circuits on failure or the skipped values limit reached.
 -}
 runNTimes : Int -> LoopConstants a -> LoopState -> LoopState
 runNTimes times c state =
-    if times <= 0 || state.failure /= Nothing then
+    if times <= 0 || state.failure /= Nothing || state.runsSkipped >= c.skipsAllowed then
         state
 
     else
@@ -475,11 +502,12 @@ runOnce c state =
 
                 Nothing ->
                     stepSeed state.currentSeed
-
-        ( maybeFailure, newDistributionCounter ) =
-            case genResult of
-                Rejected { reason } ->
-                    ( Just
+    in
+    case genResult of
+        Rejected { reason } ->
+            { state
+                | failure =
+                    Just
                         { given = Nothing
                         , expectation =
                             Test.Expectation.fail
@@ -487,51 +515,76 @@ runOnce c state =
                                 , reason = Invalid InvalidFuzzer
                                 }
                         }
-                    , state.distributionCount
-                    )
+                , currentSeed = nextSeed
+                , runsElapsed = state.runsElapsed + 1
+            }
 
-                Generated { prng, value } ->
-                    let
-                        failure : Maybe Failure
-                        failure =
-                            testGeneratedValue
-                                { getExpectation = c.testFn
-                                , fuzzer = c.fuzzer
-                                , randomRun = PRNG.getRun prng
-                                , value = value
-                                , expectation = c.testFn value
-                                }
+        Generated { prng, value } ->
+            let
+                randomRun : RandomRun
+                randomRun =
+                    PRNG.getRun prng
 
-                        distributionCounter : Maybe (Dict (List String) Int)
-                        distributionCounter =
-                            Maybe.map2
-                                (\labels old ->
-                                    let
-                                        foundLabels : List String
-                                        foundLabels =
-                                            labels
-                                                |> List.filterMap
-                                                    (\( label, predicate ) ->
-                                                        if predicate value then
-                                                            Just label
+                randomRunList : List Int
+                randomRunList =
+                    RandomRun.toList randomRun
 
-                                                        else
-                                                            Nothing
-                                                    )
-                                    in
-                                    Dict.increment foundLabels old
-                                )
-                                (Test.Distribution.Internal.getDistributionLabels c.distribution)
-                                state.distributionCount
-                    in
-                    ( failure, distributionCounter )
-    in
-    { state
-        | failure = maybeFailure
-        , distributionCount = newDistributionCounter
-        , currentSeed = nextSeed
-        , runsElapsed = state.runsElapsed + 1
-    }
+                nextDistributionCount : Maybe (Dict (List String) Int)
+                nextDistributionCount =
+                    Maybe.map2
+                        (\labels old ->
+                            let
+                                foundLabels : List String
+                                foundLabels =
+                                    labels
+                                        |> List.filterMap
+                                            (\( label, predicate ) ->
+                                                if predicate value then
+                                                    Just label
+
+                                                else
+                                                    Nothing
+                                            )
+                            in
+                            Dict.increment foundLabels old
+                        )
+                        (Test.Distribution.Internal.getDistributionLabels c.distribution)
+                        state.distributionCount
+            in
+            if Set.member randomRunList state.seenRandomRuns then
+                {- We've tried this RandomRun already and know it ends in Pass
+                   (if it ended in Failure we'd have short-circuited).
+                   Let's not do unneeded work!
+
+                   We still want to update the distribution counts though,
+                   those don't care about whether the value passes or fails the
+                   test.
+                -}
+                { state
+                    | currentSeed = nextSeed
+                    , distributionCount = nextDistributionCount
+                    , runsSkipped = state.runsSkipped + 1
+                }
+
+            else
+                let
+                    nextFailure : Maybe Failure
+                    nextFailure =
+                        testGeneratedValue
+                            { getExpectation = c.testFn
+                            , fuzzer = c.fuzzer
+                            , randomRun = randomRun
+                            , value = value
+                            , expectation = c.testFn value
+                            }
+                in
+                { state
+                    | failure = nextFailure
+                    , distributionCount = nextDistributionCount
+                    , currentSeed = nextSeed
+                    , runsElapsed = state.runsElapsed + 1
+                    , seenRandomRuns = Set.insert randomRunList state.seenRandomRuns
+                }
 
 
 includeCombinationsInBaseCounts : Dict (List String) Int -> Dict (List String) Int
