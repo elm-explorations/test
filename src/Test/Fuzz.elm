@@ -31,13 +31,13 @@ fuzzTest distribution fuzzer untrimmedDesc getExpectation =
         blankDescriptionFailure
 
     else
-        ElmTestVariant__Labeled desc <| validatedFuzzTest fuzzer getExpectation distribution
+        ElmTestVariant__Labeled desc <| validatedFuzzTest desc fuzzer getExpectation distribution
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
-validatedFuzzTest fuzzer getExpectation distribution =
+validatedFuzzTest : String -> Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
+validatedFuzzTest description fuzzer getExpectation distribution =
     ElmTestVariant__FuzzTest
         (\seed runs ->
             let
@@ -49,6 +49,7 @@ validatedFuzzTest fuzzer getExpectation distribution =
                     , runsNeeded = runs
                     , distribution = distribution
                     , skipsAllowed = runs * maxSkippedRunsRatio
+                    , description = description
                     }
 
                 runResult : RunResult
@@ -83,6 +84,7 @@ type alias LoopConstants a =
     , runsNeeded : Int
     , distribution : Distribution a
     , skipsAllowed : Int
+    , description : String
     }
 
 
@@ -120,8 +122,8 @@ initLoopState c =
     }
 
 
-{-| If user specified 100 runs and this ratio is 10, we can only skip 100\*10 =
-1000 values before stopping.
+{-| If user specified 100 runs and this ratio is 2, we can only skip 100\*2 =
+200 values before stopping.
 
 Consider `Fuzz.bool`: it only has two possible RandomRuns:
 
@@ -129,12 +131,12 @@ Consider `Fuzz.bool`: it only has two possible RandomRuns:
   - [ 1 ] --> True
 
 We'll likely try those pretty soon. We don't have a good way of figuring out
-that's all of them so we'll just skip them for until 1000 values have been tried.
+that's all of them so we'll just skip them for until 200 values have been tried.
 
 -}
 maxSkippedRunsRatio : Int
 maxSkippedRunsRatio =
-    10
+    2
 
 
 {-| Runs fuzz tests repeatedly and returns information about distribution and possible failure.
