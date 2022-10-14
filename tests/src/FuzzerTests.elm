@@ -1189,8 +1189,8 @@ distributionTests =
             (Fuzz.intRange 1 20)
             "Int range boundaries - mandatory"
             (\n -> Expect.pass)
-        , Test.skip <|
-            -- we don't want failing tests around by default
+        , {- we don't want failing tests around by default
+
             Test.fuzzWith
                 { runs = 10000
                 , distribution =
@@ -1205,6 +1205,7 @@ distributionTests =
                 (Fuzz.intRange 1 20)
                 "Failing distribution test"
                 (\n -> Expect.pass)
+        -}
         ]
 
 
