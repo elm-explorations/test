@@ -6,7 +6,6 @@ module RandomRun exposing
     , deleteChunk
     , empty
     , equal
-    , fromList
     , get
     , isEmpty
     , isFull
@@ -333,10 +332,3 @@ update index fn run =
 equal : RandomRun -> RandomRun -> Bool
 equal run1 run2 =
     toList run1 == toList run2
-
-
-fromList : List Int -> RandomRun
-fromList list =
-    { length = List.length list
-    , data = Queue.fromList list
-    }

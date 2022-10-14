@@ -1,4 +1,4 @@
-module Fuzz.Internal exposing (Fuzzer(..), gen, genR, generate)
+module Fuzz.Internal exposing (Fuzzer(..), generate)
 
 {-| This module is here just to hide the `generate` function from the end users
 of the library.
@@ -17,13 +17,3 @@ type Fuzzer a
 generate : PRNG -> Fuzzer a -> GenResult a
 generate prng (Fuzzer fuzzer) =
     fuzzer prng
-
-
-gen : List Int -> Fuzzer a -> GenResult a
-gen randomRun fuzzer =
-    generate (PRNG.hardcoded (RandomRun.fromList randomRun)) fuzzer
-
-
-genR : Int -> Fuzzer a -> GenResult a
-genR seed fuzzer =
-    generate (PRNG.random (Random.initialSeed seed)) fuzzer
