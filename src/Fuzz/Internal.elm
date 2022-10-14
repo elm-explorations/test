@@ -6,8 +6,6 @@ of the library.
 
 import GenResult exposing (GenResult)
 import PRNG exposing (PRNG)
-import Random
-import RandomRun
 
 
 type Fuzzer a
