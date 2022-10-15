@@ -376,7 +376,7 @@ fuzzWith options fuzzer desc getTest =
             |> Internal.wrapTest
 
 
-fuzzWithHelp : FuzzOptions -> Test -> Test
+fuzzWithHelp : FuzzOptions a -> Internal.TestData -> Internal.TestData
 fuzzWithHelp options aTest =
     case aTest of
         Internal.UnitTest _ ->

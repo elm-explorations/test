@@ -22,12 +22,12 @@ var _Test_elmTestSymbol = Symbol("elmTestSymbol");
 
 function _Test_tagTest(test)
 {
-  test[__elmTestSymbol] = true;
+  test[_Test_elmTestSymbol] = true;
   return test;
 }
 
 function _Test_downcastTest(value)
 {
-  return value && value[__elmTestSymbol] ? $elm$core$Maybe$Just(value) : $elm$core$Maybe$Nothing;
+  return value && value[_Test_elmTestSymbol] ? $elm$core$Maybe$Just(value) : $elm$core$Maybe$Nothing;
 }
 
