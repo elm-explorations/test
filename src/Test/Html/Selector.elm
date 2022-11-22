@@ -269,7 +269,7 @@ attribute with _exactly_ the given value (sans leading/trailing whitespace).
 
 Note this selector _doesn't_ trim the strings:
 
-`Selector.textExactly "11,22"` will _not_ `Html.text "\n    11,22   \n"`.
+`Selector.textExactly "11,22"` will _not_ match `Html.text "\n    11,22   \n"`.
 
 If you need a partial match, take a look at [`text`](#text).
 
