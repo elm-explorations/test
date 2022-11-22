@@ -16,6 +16,7 @@ all =
     describe "Test.Html.Selector"
         [ bug13
         , textSelectors
+        , textExactlySelectors
         ]
 
 
@@ -67,4 +68,90 @@ textSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has (List.map text strings)
+        , fuzz3 (list string) string (list string) "Finds a submatch" <|
+            \before str after ->
+                let
+                    textNodes =
+                        [ before, [ "hello" ++ str ++ "world" ], after ]
+                            |> List.concat
+                            |> List.map Html.text
+                in
+                Html.div [] textNodes
+                    |> Query.fromHtml
+                    |> Query.has [ text str ]
+        ]
+
+
+nonemptyString : Fuzzer String
+nonemptyString =
+    stringOfLengthBetween 1 10
+
+
+textExactlySelectors : Test
+textExactlySelectors =
+    describe "Selector.textExactly"
+        [ fuzz3 (list string) string (list string) "Finds one result" <|
+            \before str after ->
+                let
+                    textNodes =
+                        [ before, [ str ], after ]
+                            |> List.concat
+                            |> List.map Html.text
+                in
+                Html.div [] textNodes
+                    |> Query.fromHtml
+                    |> Query.has [ textExactly str ]
+        , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
+            \before strings after ->
+                let
+                    textNodes =
+                        [ before, strings, after ]
+                            |> List.concat
+                            |> List.map Html.text
+                in
+                Html.div [] textNodes
+                    |> Query.fromHtml
+                    |> Query.has (List.map textExactly strings)
+        , fuzz3 (list nonemptyString) nonemptyString (list nonemptyString) "Doesn't find a submatch" <|
+            \before str after ->
+                let
+                    strTrimmed =
+                        String.trim str
+
+                    str0 =
+                        if String.isEmpty strTrimmed then
+                            "A"
+
+                        else
+                            strTrimmed
+
+                    str1 =
+                        if List.member str0 before then
+                            str0 ++ "_"
+
+                        else
+                            str0
+
+                    str2 =
+                        if List.member str1 after then
+                            str1 ++ "_"
+
+                        else
+                            str1
+
+                    textNodes =
+                        [ before, [ "hello" ++ str2 ++ "world" ], after ]
+                            |> List.concat
+                            |> List.map Html.text
+                in
+                Html.div [] textNodes
+                    |> Query.fromHtml
+                    |> Query.hasNot [ textExactly str2 ]
+        , test "Trimming is happening" <|
+            \() ->
+                Html.div [] [ Html.text """
+                    We like whitespace
+                """ ]
+                    |> Query.fromHtml
+                    |> Query.has [ textExactly "We like whitespace" ]
         ]
