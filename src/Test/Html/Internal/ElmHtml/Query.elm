@@ -163,7 +163,7 @@ queryInNodeHelp maxDescendantDepth selector node =
                         []
 
                 ContainsTextExactly innerText ->
-                    if String.trim innerText == String.trim text then
+                    if innerText == text then
                         [ node ]
 
                     else
@@ -354,8 +354,7 @@ markdownPredicate selector =
         ContainsTextExactly text ->
             .model
                 >> .markdown
-                >> String.trim
-                >> (==) (String.trim text)
+                >> (==) text
 
         Multiple selectors ->
             MarkdownNode

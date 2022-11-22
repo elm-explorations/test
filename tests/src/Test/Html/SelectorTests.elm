@@ -115,22 +115,12 @@ textExactlySelectors =
         , fuzz3 (list nonemptyString) nonemptyString (list nonemptyString) "Doesn't find a submatch" <|
             \before str after ->
                 let
-                    strTrimmed =
-                        String.trim str
-
-                    str0 =
-                        if String.isEmpty strTrimmed then
-                            "A"
-
-                        else
-                            strTrimmed
-
                     str1 =
-                        if List.member str0 before then
-                            str0 ++ "_"
+                        if List.member str before then
+                            str ++ "_"
 
                         else
-                            str0
+                            str
 
                     str2 =
                         if List.member str1 after then
@@ -147,11 +137,11 @@ textExactlySelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.hasNot [ textExactly str2 ]
-        , test "Trimming is happening" <|
+        , test "Trimming is not happening" <|
             \() ->
                 Html.div [] [ Html.text """
                     We like whitespace
                 """ ]
                     |> Query.fromHtml
-                    |> Query.has [ textExactly "We like whitespace" ]
+                    |> Query.hasNot [ textExactly "We like whitespace" ]
         ]
