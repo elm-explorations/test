@@ -35,6 +35,7 @@ type Selector
     | BoolAttribute String Bool
     | Style { key : String, value : String }
     | ContainsText String
+    | ContainsExactText String
     | Multiple (List Selector)
 
 
@@ -156,6 +157,13 @@ queryInNodeHelp maxDescendantDepth selector node =
             case selector of
                 ContainsText innerText ->
                     if String.contains innerText text then
+                        [ node ]
+
+                    else
+                        []
+
+                ContainsExactText innerText ->
+                    if innerText == text then
                         [ node ]
 
                     else
@@ -300,6 +308,9 @@ nodeRecordPredicate selector =
         ContainsText _ ->
             always False
 
+        ContainsExactText _ ->
+            always False
+
         Multiple selectors ->
             NodeEntry
                 >> hasAllSelectors selectors
@@ -339,6 +350,11 @@ markdownPredicate selector =
             .model
                 >> .markdown
                 >> String.contains text
+
+        ContainsExactText text ->
+            .model
+                >> .markdown
+                >> (==) text
 
         Multiple selectors ->
             MarkdownNode

@@ -13,6 +13,7 @@ type Selector
     | Style { key : String, value : String }
     | Tag String
     | Text String
+    | ExactText String
     | Containing (List Selector)
     | Invalid
 
@@ -63,6 +64,9 @@ selectorToString criteria =
 
         Text text ->
             "text " ++ quoteString text
+
+        ExactText text ->
+            "exact text " ++ quoteString text
 
         Containing list ->
             let
@@ -154,6 +158,9 @@ query fn fnAll selector list =
 
                 Text text ->
                     List.concatMap (fn (ElmHtmlQuery.ContainsText text)) elems
+
+                ExactText text ->
+                    List.concatMap (fn (ElmHtmlQuery.ContainsExactText text)) elems
 
                 Containing selectors ->
                     let
