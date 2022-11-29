@@ -16,7 +16,7 @@ all =
     describe "Test.Html.Selector"
         [ bug13
         , textSelectors
-        , textExactlySelectors
+        , exactTextSelectors
         ]
 
 
@@ -87,9 +87,9 @@ nonemptyString =
     stringOfLengthBetween 1 10
 
 
-textExactlySelectors : Test
-textExactlySelectors =
-    describe "Selector.textExactly"
+exactTextSelectors : Test
+exactTextSelectors =
+    describe "Selector.exactText"
         [ fuzz3 (list string) string (list string) "Finds one result" <|
             \before str after ->
                 let
@@ -100,7 +100,7 @@ textExactlySelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.has [ textExactly str ]
+                    |> Query.has [ exactText str ]
         , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
             \before strings after ->
                 let
@@ -111,7 +111,7 @@ textExactlySelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.has (List.map textExactly strings)
+                    |> Query.has (List.map exactText strings)
         , fuzz3 (list nonemptyString) nonemptyString (list nonemptyString) "Doesn't find a submatch" <|
             \before str after ->
                 let
@@ -136,12 +136,12 @@ textExactlySelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.hasNot [ textExactly str2 ]
+                    |> Query.hasNot [ exactText str2 ]
         , test "Trimming is not happening" <|
             \() ->
                 Html.div [] [ Html.text """
                     We like whitespace
                 """ ]
                     |> Query.fromHtml
-                    |> Query.hasNot [ textExactly "We like whitespace" ]
+                    |> Query.hasNot [ exactText "We like whitespace" ]
         ]

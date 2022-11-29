@@ -1,6 +1,6 @@
 module Test.Html.Selector exposing
     ( Selector
-    , tag, text, textExactly, containing, attribute, all
+    , tag, text, exactText, containing, attribute, all
     , id, class, classes, exactClassName, style, checked, selected, disabled
     )
 
@@ -11,7 +11,7 @@ module Test.Html.Selector exposing
 
 ## General Selectors
 
-@docs tag, text, textExactly, containing, attribute, all
+@docs tag, text, exactText, containing, attribute, all
 
 
 ## Attributes
@@ -253,7 +253,7 @@ attribute _containing_ the given value.
 
 `Selector.text "11,22"` will match `Html.text "11,222"`.
 
-If you need an exact match, take a look at [`textExactly`](#textExactly).
+If you need an exact match, take a look at [`exactText`](#exactText).
 
 -}
 text : String -> Selector
@@ -265,18 +265,19 @@ text =
 [`text`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#text)
 attribute with _exactly_ the given value (sans leading/trailing whitespace).
 
-`Selector.textExactly "11,22"` will _not_ match `Html.text "11,222"`.
+`Selector.exactText "11,22"` will _not_ match `Html.text "11,222"`.
 
-Note this selector is whitespace sensitive (it _doesn't_ trim strings prior to checking them):
+Note this selector is whitespace sensitive (it _doesn't_ trim strings prior to
+checking them):
 
-`Selector.textExactly "11,22"` will _not_ match `Html.text "\n    11,22   \n"`.
+`Selector.exactText "11,22"` will _not_ match `Html.text "\n    11,22   \n"`.
 
 If you need a partial match, take a look at [`text`](#text).
 
 -}
-textExactly : String -> Selector
-textExactly =
-    Internal.TextExactly
+exactText : String -> Selector
+exactText =
+    Internal.ExactText
 
 
 {-| Matches elements whose descendants match the given selectors.
