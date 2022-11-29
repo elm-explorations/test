@@ -267,7 +267,7 @@ attribute with _exactly_ the given value (sans leading/trailing whitespace).
 
 `Selector.textExactly "11,22"` will _not_ match `Html.text "11,222"`.
 
-Note this selector _doesn't_ trim the strings:
+Note this selector is whitespace sensitive (it _doesn't_ trim strings prior to checking them):
 
 `Selector.textExactly "11,22"` will _not_ match `Html.text "\n    11,22   \n"`.
 
