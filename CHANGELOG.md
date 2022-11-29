@@ -2,6 +2,7 @@
 
 | Version                                                                              | Notes                                                                                                                                              |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [**2.1.0**](https://github.com/elm-explorations/test/tree/2.1.0)                     | Add `Test.Html.Selector.exactText`                                                                                                                           |
 | [**2.0.1**](https://github.com/elm-explorations/test/tree/2.0.1)                     | Documentation fixes                                                                                                                                |
 | [**2.0.0**](https://github.com/elm-explorations/test/tree/2.0.0)                     | Reimplements fuzzing+shrinking, adds fuzzer distribution reporting. Most notably readds `Fuzz.andThen`. See ["Changes in 2.0.0"](#changes-in-200)  |
 | [**1.2.2**](https://github.com/elm-explorations/test/tree/1.2.2)                     | Fixes a crash in `Test.Html` when the HTML contains nested `Html.Lazy` nodes. [#78](https://github.com/elm-explorations/test/issues/78)            |

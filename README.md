@@ -44,10 +44,10 @@ suite =
 
 This code uses a few common functions:
 
-* [`describe`](https://package.elm-lang.org/packages/elm-explorations/test/2.0.1/Test/#describe) to add a description string to a list of tests
-* [`test`](https://package.elm-lang.org/packages/elm-explorations/test/2.0.1/Test/#test) to write a unit test
-* [`Expect`](https://package.elm-lang.org/packages/elm-explorations/test/2.0.1/Expect/) to determine if a test should pass or fail
-* [`fuzz`](https://package.elm-lang.org/packages/elm-explorations/test/2.0.1/Test/#fuzz) to run a function that produces a test several times with randomly-generated inputs
+* [`describe`](https://package.elm-lang.org/packages/elm-explorations/test/2.1.0/Test/#describe) to add a description string to a list of tests
+* [`test`](https://package.elm-lang.org/packages/elm-explorations/test/2.1.0/Test/#test) to write a unit test
+* [`Expect`](https://package.elm-lang.org/packages/elm-explorations/test/2.1.0/Expect/) to determine if a test should pass or fail
+* [`fuzz`](https://package.elm-lang.org/packages/elm-explorations/test/2.1.0/Test/#fuzz) to run a function that produces a test several times with randomly-generated inputs
 
 Check out [a large real-world test suite](https://github.com/rtfeldman/elm-css/tree/master/tests) for more.
 
@@ -55,7 +55,7 @@ Tip! Run [elm-test init](https://github.com/rtfeldman/node-test-runner#init) to 
 
 ### Running tests
 
-This package lets you define tests ([Test](https://package.elm-lang.org/packages/elm-explorations/test/2.0.1/Test/#Test) values).
+This package lets you define tests ([Test](https://package.elm-lang.org/packages/elm-explorations/test/2.1.0/Test/#Test) values).
 
 To execute your tests and see if they pass you need a program that can consume your tests, run them and report the results.
 
