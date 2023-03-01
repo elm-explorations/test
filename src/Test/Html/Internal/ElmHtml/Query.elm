@@ -1,6 +1,6 @@
 module Test.Html.Internal.ElmHtml.Query exposing
     ( Selector(..)
-    , query, queryAll, queryChildren, queryChildrenAll, queryInNode
+    , querySelfOnly, querySelfAndDirectChildren, querySelfAndAllDescendants
     , queryById, queryByClassName, queryByClassList, queryByStyle, queryByTagName, queryByAttribute, queryByBoolAttribute
     , getChildren
     )
@@ -8,7 +8,7 @@ module Test.Html.Internal.ElmHtml.Query exposing
 {-| Query things using ElmHtml
 
 @docs Selector
-@docs query, queryAll, queryChildren, queryChildrenAll, queryInNode
+@docs querySelfOnly, querySelfAndDirectChildren, querySelfAndAllDescendants
 @docs queryById, queryByClassName, queryByClassList, queryByStyle, queryByTagName, queryByAttribute, queryByBoolAttribute
 @docs getChildren
 
@@ -39,84 +39,83 @@ type Selector
     | Multiple (List Selector)
 
 
+type Depth
+    = NoMoreLayers
+    | SelfOnly
+    | SelfAndDirectChildren
+    | SelfAndAllDescendants
+
+
 {-| Query for a node with a given tag in a Html element
 -}
 queryByTagName : String -> ElmHtml msg -> List (ElmHtml msg)
 queryByTagName tagname =
-    query (Tag tagname)
+    querySelfAndAllDescendants (Tag tagname)
 
 
 {-| Query for a node with a given id in a Html element
 -}
 queryById : String -> ElmHtml msg -> List (ElmHtml msg)
 queryById id =
-    query (Id id)
+    querySelfAndAllDescendants (Id id)
 
 
 {-| Query for a node with a given classname in a Html element
 -}
 queryByClassName : String -> ElmHtml msg -> List (ElmHtml msg)
 queryByClassName classname =
-    query (ClassName classname)
+    querySelfAndAllDescendants (ClassName classname)
 
 
 {-| Query for a node with all the given classnames in a Html element
 -}
 queryByClassList : List String -> ElmHtml msg -> List (ElmHtml msg)
 queryByClassList classList =
-    query (ClassList classList)
+    querySelfAndAllDescendants (ClassList classList)
 
 
 {-| Query for a node with the given style in a Html element
 -}
 queryByStyle : { key : String, value : String } -> ElmHtml msg -> List (ElmHtml msg)
 queryByStyle style =
-    query (Style style)
+    querySelfAndAllDescendants (Style style)
 
 
 {-| Query for a node with a given attribute in a Html element
 -}
 queryByAttribute : String -> String -> ElmHtml msg -> List (ElmHtml msg)
 queryByAttribute key value =
-    query (Attribute key value)
+    querySelfAndAllDescendants (Attribute key value)
 
 
 {-| Query for a node with a given attribute in a Html element
 -}
 queryByBoolAttribute : String -> Bool -> ElmHtml msg -> List (ElmHtml msg)
 queryByBoolAttribute key value =
-    query (BoolAttribute key value)
-
-
-{-| Query an ElmHtml element using a selector, searching all children.
--}
-query : Selector -> ElmHtml msg -> List (ElmHtml msg)
-query selector =
-    queryInNode selector
-
-
-{-| Query an ElmHtml node using multiple selectors, considering both the node itself
-as well as all of its descendants.
--}
-queryAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryAll selectors =
-    query (Multiple selectors)
+    querySelfAndAllDescendants (BoolAttribute key value)
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
 as well as all of its descendants.
 -}
-queryInNode : Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryInNode =
-    queryInNodeHelp Nothing
+querySelfAndAllDescendants : Selector -> ElmHtml msg -> List (ElmHtml msg)
+querySelfAndAllDescendants =
+    queryHelp SelfAndAllDescendants
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
-as well as all of its descendants.
+as well as its direct children.
 -}
-queryChildren : Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryChildren =
-    queryInNodeHelp (Just 1)
+querySelfAndDirectChildren : Selector -> ElmHtml msg -> List (ElmHtml msg)
+querySelfAndDirectChildren =
+    queryHelp SelfAndDirectChildren
+
+
+{-| Query an ElmHtml node using a selector, considering only the node itself.
+-}
+querySelfOnly : Selector -> ElmHtml msg -> List (ElmHtml msg)
+querySelfOnly =
+    queryHelp SelfOnly
 
 
 {-| Returns just the immediate children of an ElmHtml node
@@ -131,16 +130,8 @@ getChildren elmHtml =
             []
 
 
-{-| Query to ensure an ElmHtml node has all selectors given, without considering
-any descendants lower than its immediate children.
--}
-queryChildrenAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryChildrenAll selectors =
-    queryInNodeHelp (Just 1) (Multiple selectors)
-
-
-queryInNodeHelp : Maybe Int -> Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryInNodeHelp maxDescendantDepth selector node =
+queryHelp : Depth -> Selector -> ElmHtml msg -> List (ElmHtml msg)
+queryHelp maxDescendantDepth selector node =
     case node of
         NodeEntry record ->
             let
@@ -183,24 +174,27 @@ queryInNodeHelp maxDescendantDepth selector node =
             []
 
 
-descendInQuery : Maybe Int -> Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+descendInQuery : Depth -> Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
 descendInQuery maxDescendantDepth selector children =
     case maxDescendantDepth of
-        Nothing ->
+        SelfAndAllDescendants ->
             -- No maximum, so continue.
             List.concatMap
-                (queryInNodeHelp Nothing selector)
+                (queryHelp SelfAndAllDescendants selector)
                 children
 
-        Just depth ->
-            if depth > 0 then
-                -- Continue with maximum depth reduced by 1.
-                List.concatMap
-                    (queryInNodeHelp (Just (depth - 1)) selector)
-                    children
+        SelfAndDirectChildren ->
+            -- Continue with maximum depth reduced by 1.
+            List.concatMap
+                (queryHelp SelfOnly selector)
+                children
 
-            else
-                []
+        SelfOnly ->
+            -- The checking of self is done in queryHelp, not here.
+            []
+
+        NoMoreLayers ->
+            []
 
 
 predicateFromSelector : Selector -> ElmHtml msg -> Bool

@@ -1,4 +1,15 @@
-module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString)
+module Test.Html.Selector.Internal exposing
+    ( Selector(..)
+    , hasAll
+    , namedAttr
+    , namedBoolAttr
+    , query
+    , queryAllSelfAndAllDescendants
+    , queryAllSelfAndDirectChildren
+    , queryAllSelfOnly
+    , selectorToString
+    , styleToString
+    )
 
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
 import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
@@ -93,33 +104,44 @@ hasAll selectors elems =
             True
 
         selector :: rest ->
-            if List.isEmpty (queryAll [ selector ] elems) then
+            if List.isEmpty (queryAllSelfAndAllDescendants [ selector ] elems) then
                 False
 
             else
                 hasAll rest elems
 
 
-queryAll : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
-queryAll selectors list =
+queryAllSelfOnly : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+queryAllSelfOnly selectors list =
     case selectors of
         [] ->
             list
 
         selector :: rest ->
-            query ElmHtmlQuery.query queryAll selector list
-                |> queryAll rest
+            query ElmHtmlQuery.querySelfOnly queryAllSelfOnly selector list
+                |> queryAllSelfOnly rest
 
 
-queryAllChildren : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
-queryAllChildren selectors list =
+queryAllSelfAndAllDescendants : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+queryAllSelfAndAllDescendants selectors list =
     case selectors of
         [] ->
             list
 
         selector :: rest ->
-            query ElmHtmlQuery.queryChildren queryAllChildren selector list
-                |> queryAllChildren rest
+            query ElmHtmlQuery.querySelfAndAllDescendants queryAllSelfAndAllDescendants selector list
+                |> queryAllSelfAndAllDescendants rest
+
+
+queryAllSelfAndDirectChildren : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+queryAllSelfAndDirectChildren selectors list =
+    case selectors of
+        [] ->
+            list
+
+        selector :: rest ->
+            query ElmHtmlQuery.querySelfAndDirectChildren queryAllSelfAndDirectChildren selector list
+                |> queryAllSelfAndDirectChildren rest
 
 
 query :

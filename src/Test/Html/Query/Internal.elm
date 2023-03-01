@@ -106,7 +106,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                         elements =
                             elmHtmlList
                                 |> List.concatMap getChildren
-                                |> InternalSelector.queryAll selectors
+                                |> InternalSelector.queryAllSelfAndAllDescendants selectors
                     in
                     ("Query.findAll " ++ joinAsList selectorToString selectors)
                         |> withHtmlContext (getHtmlContext elements)
@@ -117,7 +117,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                         elements =
                             elmHtmlList
                                 |> List.concatMap getChildren
-                                |> InternalSelector.queryAll selectors
+                                |> InternalSelector.queryAllSelfAndAllDescendants selectors
 
                         result =
                             ("Query.find " ++ joinAsList selectorToString selectors)
@@ -134,7 +134,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                         elements =
                             elmHtmlList
                                 |> List.concatMap getChildren
-                                |> InternalSelector.queryAllChildren selectors
+                                |> InternalSelector.queryAllSelfAndDirectChildren selectors
                     in
                     ("Query.children " ++ joinAsList selectorToString selectors)
                         |> withHtmlContext (getHtmlContext elements)
@@ -315,20 +315,20 @@ traverseSelector selectorQuery elmHtmlList =
         Find selectors ->
             elmHtmlList
                 |> List.concatMap getChildren
-                |> InternalSelector.queryAll selectors
+                |> InternalSelector.queryAllSelfAndAllDescendants selectors
                 |> verifySingle "Query.find"
                 |> Result.map (\elem -> [ elem ])
 
         FindAll selectors ->
             elmHtmlList
                 |> List.concatMap getChildren
-                |> InternalSelector.queryAll selectors
+                |> InternalSelector.queryAllSelfAndAllDescendants selectors
                 |> Ok
 
         Children selectors ->
             elmHtmlList
                 |> List.concatMap getChildren
-                |> InternalSelector.queryAllChildren selectors
+                |> InternalSelector.queryAllSelfAndDirectChildren selectors
                 |> Ok
 
         First ->
@@ -520,7 +520,7 @@ hasNot selectors query =
             Expect.pass
 
         Ok elmHtmlList ->
-            case InternalSelector.queryAll selectors elmHtmlList of
+            case InternalSelector.queryAllSelfAndAllDescendants selectors elmHtmlList of
                 [] ->
                     Expect.pass
 
@@ -538,7 +538,7 @@ showSelectorOutcome : List (ElmHtml msg) -> Selector -> String
 showSelectorOutcome elmHtmlList selector =
     let
         outcome =
-            case InternalSelector.queryAll [ selector ] elmHtmlList of
+            case InternalSelector.queryAllSelfAndAllDescendants [ selector ] elmHtmlList of
                 [] ->
                     "✗"
 
@@ -552,7 +552,7 @@ showSelectorOutcomeInverse : List (ElmHtml msg) -> Selector -> String
 showSelectorOutcomeInverse elmHtmlList selector =
     let
         outcome =
-            case InternalSelector.queryAll [ selector ] elmHtmlList of
+            case InternalSelector.queryAllSelfAndAllDescendants [ selector ] elmHtmlList of
                 [] ->
                     "✓"
 
