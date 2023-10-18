@@ -2,6 +2,7 @@
 
 | Version                                                                              | Notes                                                                                                                                              |
 | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [**2.1.2**](https://github.com/elm-explorations/test/tree/2.1.2)                     | `Fuzz`: Remove arbitrary limit on amount of randomness drawn
 | [**2.1.1**](https://github.com/elm-explorations/test/tree/2.1.1)                     | `Test.Html.Query`: Change how boolean attributes are rendered
 | [**2.1.0**](https://github.com/elm-explorations/test/tree/2.1.0)                     | Add `Test.Html.Selector.exactText`                                                                                                                           |
 | [**2.0.1**](https://github.com/elm-explorations/test/tree/2.0.1)                     | Documentation fixes                                                                                                                                |
