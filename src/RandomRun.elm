@@ -8,7 +8,6 @@ module RandomRun exposing
     , equal
     , get
     , isEmpty
-    , isFull
     , length
     , nextChoice
     , replace
@@ -33,25 +32,6 @@ type alias RandomRun =
     }
 
 
-{-| A cap for the maximum amount of entropy a fuzzer can use.
-This stops infinite recursion (in cases where each step of the recursion makes
-a PRNG choice), like in:
-
-    infiniteList : Fuzzer a -> Fuzzer (List a)
-    infiniteList itemFuzzer =
-        let
-            go accList =
-                itemFuzzer
-                    |> Fuzz.andThen (\item -> go (item :: accList))
-        in
-        go []
-
--}
-maxLength : Int
-maxLength =
-    64 * 1024
-
-
 type alias Chunk =
     { size : Int
     , startIndex : Int
@@ -68,11 +48,6 @@ empty =
 isEmpty : RandomRun -> Bool
 isEmpty run =
     run.length == 0
-
-
-isFull : RandomRun -> Bool
-isFull run =
-    run.length == maxLength
 
 
 nextChoice : RandomRun -> Maybe ( Int, RandomRun )

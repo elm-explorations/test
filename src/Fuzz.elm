@@ -1509,70 +1509,63 @@ rollDice : Int -> Random.Generator Int -> Fuzzer Int
 rollDice maxValue diceGenerator =
     Fuzzer <|
         \prng ->
-            if RandomRun.isFull (PRNG.getRun prng) then
-                Rejected
-                    { reason = "Fuzz.rollDice: Your fuzzers have hit the max size of RandomRun (generating too much data)."
-                    , prng = prng
-                    }
+            case prng of
+                Random r ->
+                    let
+                        ( diceRoll, newSeed ) =
+                            Random.step diceGenerator r.seed
+                    in
+                    if diceRoll < 0 then
+                        Rejected
+                            { reason = "elm-test bug: generated a choice < 0"
+                            , prng = prng
+                            }
 
-            else
-                case prng of
-                    Random r ->
-                        let
-                            ( diceRoll, newSeed ) =
-                                Random.step diceGenerator r.seed
-                        in
-                        if diceRoll < 0 then
+                    else if diceRoll > maxValue then
+                        Rejected
+                            { reason = "elm-test bug: generated a choice > maxChoice"
+                            , prng = prng
+                            }
+
+                    else
+                        Generated
+                            { value = diceRoll
+                            , prng =
+                                Random
+                                    { seed = newSeed
+                                    , run = RandomRun.append diceRoll r.run
+                                    }
+                            }
+
+                Hardcoded h ->
+                    case RandomRun.nextChoice h.unusedPart of
+                        Nothing ->
+                            -- This happens if we simplified too much / in an incompatible way
                             Rejected
-                                { reason = "elm-test bug: generated a choice < 0"
+                                { reason = "elm-test internals: hardcoded PRNG run out of numbers"
                                 , prng = prng
                                 }
 
-                        else if diceRoll > maxValue then
-                            Rejected
-                                { reason = "elm-test bug: generated a choice > maxChoice"
-                                , prng = prng
-                                }
-
-                        else
-                            Generated
-                                { value = diceRoll
-                                , prng =
-                                    Random
-                                        { seed = newSeed
-                                        , run = RandomRun.append diceRoll r.run
-                                        }
-                                }
-
-                    Hardcoded h ->
-                        case RandomRun.nextChoice h.unusedPart of
-                            Nothing ->
-                                -- This happens if we simplified too much / in an incompatible way
+                        Just ( hardcodedChoice, restOfChoices ) ->
+                            if hardcodedChoice < 0 then
+                                -- This happens eg. when decrementing after delete shrink
                                 Rejected
-                                    { reason = "elm-test internals: hardcoded PRNG run out of numbers"
+                                    { reason = "elm-test internals: generated a choice < 0"
                                     , prng = prng
                                     }
 
-                            Just ( hardcodedChoice, restOfChoices ) ->
-                                if hardcodedChoice < 0 then
-                                    -- This happens eg. when decrementing after delete shrink
-                                    Rejected
-                                        { reason = "elm-test internals: generated a choice < 0"
-                                        , prng = prng
-                                        }
+                            else if hardcodedChoice > maxValue then
+                                -- This happens eg. when redistributing choices
+                                Rejected
+                                    { reason = "elm-test internals: generated a choice > maxChoice"
+                                    , prng = prng
+                                    }
 
-                                else if hardcodedChoice > maxValue then
-                                    -- This happens eg. when redistributing choices
-                                    Rejected
-                                        { reason = "elm-test internals: generated a choice > maxChoice"
-                                        , prng = prng
-                                        }
-
-                                else
-                                    Generated
-                                        { value = hardcodedChoice
-                                        , prng = Hardcoded { h | unusedPart = restOfChoices }
-                                        }
+                            else
+                                Generated
+                                    { value = hardcodedChoice
+                                    , prng = Hardcoded { h | unusedPart = restOfChoices }
+                                    }
 
 
 forcedChoice : Int -> Fuzzer Int
@@ -1582,12 +1575,6 @@ forcedChoice n =
             if n < 0 then
                 Rejected
                     { reason = "elm-test bug: forcedChoice: n < 0"
-                    , prng = prng
-                    }
-
-            else if RandomRun.isFull (PRNG.getRun prng) then
-                Rejected
-                    { reason = "Fuzz.forcedChoice: Your fuzzers have hit the max size of RandomRun (generating too much data)."
                     , prng = prng
                     }
 
