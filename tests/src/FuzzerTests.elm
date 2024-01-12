@@ -1145,14 +1145,14 @@ fuzzerSpecificationTests =
                     intsNotDivBy5 : Fuzzer Int
                     intsNotDivBy5 =
                         Fuzz.int
-                            |> Fuzz.filterMap (\i -> if isDivBy5 i then Just i else Nothing)
+                            |> Fuzz.filterMap (\i -> if isDivBy5 i then Nothing else Just i)
 
                 in
                 [ rejects "impossible func (always Nothing)"
                     (Fuzz.int |> Fuzz.filterMap (\_ -> Nothing))
                     "Too many values were filtered out"
                 , passes "trivial func (always Just) doesn't reject"
-                    (Fuzz.int |> Fuzz.filterMap (\_ -> True))
+                    (Fuzz.int |> Fuzz.filterMap Just)
                     (\_ -> True)
                 , canGenerateSatisfyingWith { runs = 5000 } "not divisible by 5" intsNotDivBy5 (not << isDivBy5)
                 , cannotGenerateSatisfyingWith { runs = 5000 } "divisible by 5" intsNotDivBy5 isDivBy5

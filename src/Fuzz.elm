@@ -63,7 +63,7 @@ can usually find the simplest input that reproduces a bug.
 
 ## Working with Fuzzers
 
-@docs constant, invalid, filter
+@docs constant, invalid, filter, filterMap
 @docs map, map2, map3, map4, map5, map6, map7, map8, andMap
 @docs andThen, lazy, sequence, traverse
 
@@ -1340,6 +1340,22 @@ filter predicate = filterMap (\a -> if predicate a then Just a else Nothing)
 
 {-| A fuzzer that applies a function returning a Maybe on a given fuzzer and
 output values, as List.filterMap does.
+
+Example usage:
+
+    type UnicodeNonLetter = UnicodeNonLetter Char
+
+    fromChar : Char -> Maybe UnicodeNonLetter
+    fromChar c =
+        if (c |> Unicode.isLower |> not) && (c |> Unicode.isUpper |> not) then
+            UnicodeNonLetter |> Just
+        else
+            Nothing
+
+
+    fuzz : Fuzzer UnicodeNonLetter
+    fuzz =
+        Fuzz.char |> Fuzz.filterMap fromChar
 
 Warning: By using `Fuzz.filterMap` you can get exceptionally unlucky and get 15
 rejections in a row, in which case the test will fluke out and fail!
