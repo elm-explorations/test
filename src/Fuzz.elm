@@ -9,7 +9,7 @@ module Fuzz exposing
     , array, maybe, result
     , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
-    , constant, invalid, filter
+    , constant, invalid, filter, filterMap
     , map, map2, map3, map4, map5, map6, map7, map8, andMap
     , andThen, lazy, sequence, traverse
     , fromGenerator
@@ -62,7 +62,7 @@ can usually find the simplest input that reproduces a bug.
 
 ## Working with Fuzzers
 
-@docs constant, invalid, filter
+@docs constant, invalid, filter, filterMap
 @docs map, map2, map3, map4, map5, map6, map7, map8, andMap
 @docs andThen, lazy, sequence, traverse
 
@@ -1335,9 +1335,65 @@ a risk of infinite loop depending on the predicate), you can use this pattern:
 
 -}
 filter : (a -> Bool) -> Fuzzer a -> Fuzzer a
-filter predicate fuzzer =
+filter predicate =
+    filterMap
+        (\a ->
+            if predicate a then
+                Just a
+
+            else
+                Nothing
+        )
+
+
+{-| A fuzzer that applies a function returning a Maybe on a given fuzzer and
+output values, as List.filterMap does.
+
+Example usage:
+
+    type UnicodeNonLetter
+        = UnicodeNonLetter Char
+
+    fromChar : Char -> Maybe UnicodeNonLetter
+    fromChar c =
+        if (c |> Unicode.isLower |> not) && (c |> Unicode.isUpper |> not) then
+            UnicodeNonLetter |> Just
+
+        else
+            Nothing
+
+    fuzz : Fuzzer UnicodeNonLetter
+    fuzz =
+        Fuzz.char |> Fuzz.filterMap fromChar
+
+Warning: By using `Fuzz.filterMap` you can get exceptionally unlucky and get 15
+rejections in a row, in which case the test will fluke out and fail!
+
+It's always preferable to get to your wanted values using [`Fuzz.map`](#map),
+as you don't run the risk of rejecting too may values and slowing down your
+tests, for example using `Fuzz.intRange 0 5 |> Fuzz.map (\x -> x * 2)` instead
+of `Fuzz.intRange 0 9 |> Fuzz.filterMap (\x -> if modBy 2 x == 0 then Just x else Nothing)`.
+
+If you want to generate indefinitely until you find a satisfactory value (with
+a risk of infinite loop depending on the predicate), you can use this pattern:
+
+    goodItemFuzzer =
+        itemFuzzer
+            |> Fuzz.andThen
+                (\item ->
+                    case f item of
+                        Just b ->
+                            Fuzz.constant b
+
+                        Nothing ->
+                            goodItemFuzzer
+                )
+
+-}
+filterMap : (a -> Maybe b) -> Fuzzer a -> Fuzzer b
+filterMap f fuzzer =
     let
-        go : Int -> Fuzzer a
+        go : Int -> Fuzzer b
         go rejectionCount =
             if rejectionCount > 15 then
                 invalid "Too many values were filtered out"
@@ -1346,11 +1402,12 @@ filter predicate fuzzer =
                 fuzzer
                     |> andThen
                         (\value ->
-                            if predicate value then
-                                constant value
+                            case f value of
+                                Just b ->
+                                    constant b
 
-                            else
-                                go (rejectionCount + 1)
+                                Nothing ->
+                                    go (rejectionCount + 1)
                         )
     in
     go 0
