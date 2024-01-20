@@ -6,7 +6,7 @@
     "test": "bash tests/run-tests.sh",
     "test:random": "RANDOMIZED=1 bash tests/run-tests.sh",
     "format": "elm-format --validate src tests/src benchmarks",
-    "install-local": "rm -rf ~/.elm/0.19.1/packages/elm-explorations/test/2.1.1/ && mkdir -p ~/.elm/0.19.1/packages/elm-explorations/test/2.1.1/ && cp -r ./{src,elm.json,LICENSE,README.md} ~/.elm/0.19.1/packages/elm-explorations/test/2.1.1/"
+    "install-local": "rm -rf ~/.elm/0.19.1/packages/elm-explorations/test/2.2.0/ && mkdir -p ~/.elm/0.19.1/packages/elm-explorations/test/2.2.0/ && cp -r ./{src,elm.json,LICENSE,README.md} ~/.elm/0.19.1/packages/elm-explorations/test/2.2.0/"
   },
   "author": "Richard Feldman",
   "license": "BSD-3-Clause"
