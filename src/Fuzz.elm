@@ -9,11 +9,10 @@ module Fuzz exposing
     , array, maybe, result
     , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
-    , constant, invalid, filter
+    , constant, invalid, filter, filterMap
     , map, map2, map3, map4, map5, map6, map7, map8, andMap
     , andThen, lazy, sequence, traverse
     , fromGenerator
-    , filterMap
     )
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
@@ -1336,22 +1335,32 @@ a risk of infinite loop depending on the predicate), you can use this pattern:
 
 -}
 filter : (a -> Bool) -> Fuzzer a -> Fuzzer a
-filter predicate = filterMap (\a -> if predicate a then Just a else Nothing)
+filter predicate =
+    filterMap
+        (\a ->
+            if predicate a then
+                Just a
+
+            else
+                Nothing
+        )
+
 
 {-| A fuzzer that applies a function returning a Maybe on a given fuzzer and
 output values, as List.filterMap does.
 
 Example usage:
 
-    type UnicodeNonLetter = UnicodeNonLetter Char
+    type UnicodeNonLetter
+        = UnicodeNonLetter Char
 
     fromChar : Char -> Maybe UnicodeNonLetter
     fromChar c =
         if (c |> Unicode.isLower |> not) && (c |> Unicode.isUpper |> not) then
             UnicodeNonLetter |> Just
+
         else
             Nothing
-
 
     fuzz : Fuzzer UnicodeNonLetter
     fuzz =

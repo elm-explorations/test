@@ -1145,8 +1145,14 @@ fuzzerSpecificationTests =
                     intsNotDivBy5 : Fuzzer Int
                     intsNotDivBy5 =
                         Fuzz.int
-                            |> Fuzz.filterMap (\i -> if isDivBy5 i then Nothing else Just i)
+                            |> Fuzz.filterMap
+                                (\i ->
+                                    if isDivBy5 i then
+                                        Nothing
 
+                                    else
+                                        Just i
+                                )
                 in
                 [ rejects "impossible func (always Nothing)"
                     (Fuzz.int |> Fuzz.filterMap (\_ -> Nothing))
