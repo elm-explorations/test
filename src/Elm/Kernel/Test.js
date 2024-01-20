@@ -2,6 +2,7 @@
 
 import Elm.Kernel.Utils exposing (Tuple0)
 import Result exposing (Err, Ok)
+import Maybe exposing (Just, Nothing)
 
 */
 
@@ -16,3 +17,17 @@ function _Test_runThunk(thunk)
     return __Result_Err(err.toString());
   }
 }
+
+var _Test_elmTestSymbol = Symbol("elmTestSymbol");
+
+function _Test_tagTest(test)
+{
+  test[_Test_elmTestSymbol] = true;
+  return test;
+}
+
+function _Test_downcastTest(value)
+{
+  return value && value[_Test_elmTestSymbol] ? $elm$core$Maybe$Just(value) : $elm$core$Maybe$Nothing;
+}
+

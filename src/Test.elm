@@ -54,6 +54,7 @@ concat tests =
             { description = "This `concat` has no tests in it. Let's give it some!"
             , reason = Invalid EmptyList
             }
+            |> Internal.wrapTest
 
     else
         case Internal.duplicatedName tests of
@@ -66,9 +67,13 @@ concat tests =
                     { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
                     , reason = Invalid DuplicatedName
                     }
+                    |> Internal.wrapTest
 
             Ok _ ->
-                Internal.ElmTestVariant__Batch tests
+                tests
+                    |> List.map (Internal.unwrapTest)
+                    |> Internal.Batch
+                    |> Internal.wrapTest
 
 
 {-| Apply a description to a list of tests.
@@ -106,12 +111,14 @@ describe untrimmedDesc tests =
             { description = "This `describe` has a blank description. Let's give it a useful one!"
             , reason = Invalid BadDescription
             }
+            |> Internal.wrapTest
 
     else if List.isEmpty tests then
         Internal.failNow
             { description = "This `describe " ++ desc ++ "` has no tests in it. Let's give it some!"
             , reason = Invalid EmptyList
             }
+            |> Internal.wrapTest
 
     else
         case Internal.duplicatedName tests of
@@ -120,22 +127,28 @@ describe untrimmedDesc tests =
                     dupDescription duped =
                         "Contains multiple tests named '" ++ duped ++ "'. Let's rename them so we know which is which."
                 in
-                Internal.ElmTestVariant__Labeled desc <|
-                    Internal.failNow
-                        { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
-                        , reason = Invalid DuplicatedName
-                        }
+                Internal.failNow
+                    { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
+                    , reason = Invalid DuplicatedName
+                    }
+                    |> Internal.Labeled desc
+                    |> Internal.wrapTest
 
             Ok childrenNames ->
                 if Set.member desc childrenNames then
-                    Internal.ElmTestVariant__Labeled desc <|
-                        Internal.failNow
-                            { description = "The test '" ++ desc ++ "' contains a child test of the same name. Let's rename them so we know which is which."
-                            , reason = Invalid DuplicatedName
-                            }
+                    Internal.failNow
+                        { description = "The test '" ++ desc ++ "' contains a child test of the same name. Let's rename them so we know which is which."
+                        , reason = Invalid DuplicatedName
+                        }
+                        |> Internal.Labeled desc
+                        |> Internal.wrapTest
 
                 else
-                    Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__Batch tests)
+                    tests
+                        |> List.map (Internal.unwrapTest)
+                        |> Internal.Batch
+                        |> Internal.Labeled desc
+                        |> Internal.wrapTest
 
 
 {-| Return a [`Test`](#Test) that evaluates a single
@@ -159,9 +172,12 @@ test untrimmedDesc thunk =
     in
     if String.isEmpty desc then
         Internal.blankDescriptionFailure
+            |> Internal.wrapTest
 
     else
-        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk () ]))
+        Internal.UnitTest (\() -> [ thunk () ])
+            |> Internal.Labeled desc
+            |> Internal.wrapTest
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests
@@ -190,6 +206,7 @@ todo desc =
         { description = desc
         , reason = TODO
         }
+        |> Internal.wrapTest
 
 
 {-| Returns a [`Test`](#Test) that causes other tests to be skipped, and
@@ -230,7 +247,7 @@ an `only` inside a `skip`, it will also get skipped.
 -}
 only : Test -> Test
 only =
-    Internal.ElmTestVariant__Only
+    Internal.unwrapTest >> Internal.Only >> Internal.wrapTest
 
 
 {-| Returns a [`Test`](#Test) that gets skipped.
@@ -266,7 +283,7 @@ an `only` inside a `skip`, it will also get skipped.
 -}
 skip : Test -> Test
 skip =
-    Internal.ElmTestVariant__Skipped
+    Internal.unwrapTest >> Internal.Skipped >> Internal.wrapTest
 
 
 {-| Options [`fuzzWith`](#fuzzWith) accepts.
@@ -350,37 +367,41 @@ fuzzWith options fuzzer desc getTest =
             { description = "Fuzz tests must have a run count of at least 1, not " ++ String.fromInt options.runs ++ "."
             , reason = Invalid NonpositiveFuzzCount
             }
+            |> Internal.wrapTest
 
     else
-        fuzzWithHelp options (Test.Fuzz.fuzzTest options.distribution fuzzer desc getTest)
+        fuzzWithHelp
+            options
+            (Test.Fuzz.fuzzTest options.distribution fuzzer desc getTest |> Internal.unwrapTest)
+            |> Internal.wrapTest
 
 
-fuzzWithHelp : FuzzOptions a -> Test -> Test
+fuzzWithHelp : FuzzOptions a -> Internal.TestData -> Internal.TestData
 fuzzWithHelp options aTest =
     case aTest of
-        Internal.ElmTestVariant__UnitTest _ ->
+        Internal.UnitTest _ ->
             aTest
 
-        Internal.ElmTestVariant__FuzzTest run ->
-            Internal.ElmTestVariant__FuzzTest (\seed _ -> run seed options.runs)
+        Internal.FuzzTest run ->
+            Internal.FuzzTest (\seed _ -> run seed options.runs)
 
-        Internal.ElmTestVariant__Labeled label subTest ->
-            Internal.ElmTestVariant__Labeled label (fuzzWithHelp options subTest)
+        Internal.Labeled label subTest ->
+            Internal.Labeled label (fuzzWithHelp options subTest)
 
-        Internal.ElmTestVariant__Skipped subTest ->
+        Internal.Skipped subTest ->
             -- It's important to treat skipped tests exactly the same as normal,
             -- until after seed distribution has completed.
             fuzzWithHelp options subTest
-                |> Internal.ElmTestVariant__Only
+                |> Internal.Only
 
-        Internal.ElmTestVariant__Only subTest ->
+        Internal.Only subTest ->
             fuzzWithHelp options subTest
-                |> Internal.ElmTestVariant__Only
+                |> Internal.Only
 
-        Internal.ElmTestVariant__Batch tests ->
+        Internal.Batch tests ->
             tests
                 |> List.map (fuzzWithHelp options)
-                |> Internal.ElmTestVariant__Batch
+                |> Internal.Batch
 
 
 {-| Take a function that produces a test, and calls it several (usually 100) times, using a randomly-generated input
