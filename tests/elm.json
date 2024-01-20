@@ -17,7 +17,7 @@
             "elm/virtual-dom": "1.0.2",
             "elm-explorations/linear-algebra": "1.0.3",
             "elm-explorations/markdown": "1.0.0",
-            "elm-explorations/test": "2.1.1",
+            "elm-explorations/test": "2.1.2",
             "elm-explorations/webgl": "1.1.2",
             "jinjor/elm-diff": "1.0.6"
         },
