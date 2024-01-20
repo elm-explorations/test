@@ -1357,7 +1357,7 @@ Example usage:
     fromChar : Char -> Maybe UnicodeNonLetter
     fromChar c =
         if (c |> Unicode.isLower |> not) && (c |> Unicode.isUpper |> not) then
-            UnicodeNonLetter |> Just
+            Just (UnicodeNonLetter c)
 
         else
             Nothing
