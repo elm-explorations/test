@@ -1,7 +1,7 @@
-module Runner.Log exposing
-    ( run, runWithOptions
-    , logOutput
-    )
+module Runner.Log {a:run, b:runWithOptions
+    , c:logOutput
+    }
+ where
 
 {-| Log Runner
 
@@ -21,15 +21,17 @@ if the tests all passed, and 1 if any failed.
 
 -}
 
-import Random
-import Runner.String exposing (Summary)
-import String
-import Test exposing (Test)
+import Random as Random
+import Runner.String (Summary)
+import Runner.String as Runner.String
+import String as String
+import Test (Test)
+import Test as Test
 
 
 {-| Run the test using the default `Test.Runner.String` options.
 -}
-run : Test -> ()
+run :: Test -> {}
 run test =
     Runner.String.run test
         |> logOutput
@@ -37,13 +39,13 @@ run test =
 
 {-| Run the test using the provided options.
 -}
-runWithOptions : Int -> Random.Seed -> Test -> ()
+runWithOptions :: Int -> Random.Seed -> Test -> {}
 runWithOptions runs seed test =
     Runner.String.runWithOptions runs seed test
         |> logOutput
 
 
-summarize : Summary -> String
+summarize :: Summary -> String
 summarize { output, passed, failed, autoFail } =
     let
         headline =
@@ -56,32 +58,32 @@ summarize { output, passed, failed, autoFail } =
                         "TEST RUN PASSED"
 
                     Just reason ->
-                        "TEST RUN FAILED because " ++ reason
+                        "TEST RUN FAILED because " <> reason
     in
     String.join "\n"
         [ output
-        , headline ++ "\n"
-        , "Passed: " ++ String.fromInt passed
-        , "Failed: " ++ String.fromInt failed
+        , headline <> "\n"
+        , "Passed: " <> String.fromInt passed
+        , "Failed: " <> String.fromInt failed
         ]
 
 
-logOutput : Summary -> ()
+logOutput :: Summary -> {}
 logOutput summary =
     let
         output =
-            summarize summary ++ "\n\nExit code"
+            summarize summary <> "\n\nExit code"
 
         _ =
             if summary.failed > 0 || summary.autoFail /= Nothing then
                 output
                     |> (\a -> Debug.log a 1)
                     |> (\_ -> Debug.todo "FAILED TEST RUN")
-                    |> (\_ -> ())
+                    |> (\_ -> {})
 
             else
                 output
                     |> (\a -> Debug.log a 0)
-                    |> (\_ -> ())
+                    |> (\_ -> {})
     in
-    ()
+    {}

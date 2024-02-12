@@ -1,8 +1,8 @@
-module Test.Html.Event exposing
-    ( Event, simulate, expect, toResult
+module Test.Html.Event ( Event, simulate, expect, toResult
     , expectStopPropagation, expectNotStopPropagation, expectPreventDefault, expectNotPreventDefault
     , custom, click, doubleClick, mouseDown, mouseUp, mouseEnter, mouseLeave, mouseOver, mouseOut, input, check, submit, blur, focus
     )
+ where
 
 {-| This module lets you simulate events on `Html` values and expect that
 they result in certain `Msg` values being sent to `update`.
@@ -32,15 +32,24 @@ in `Html.Events`.
 
 -}
 
-import Dict
-import Expect exposing (Expectation)
-import Json.Decode as Decode exposing (Decoder)
-import Json.Encode as Encode exposing (Value)
-import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..))
+import Dict as Dict
+import Expect (Expectation)
+import Expect as Expect
+import Json.Decode (Decoder)
+import Json.Decode as Decode
+
+import Json.Encode (Value)
+import Json.Encode as Encode
+
+import Test.Html.Internal.ElmHtml.InternalTypes (ElmHtml(..))
+import Test.Html.Internal.ElmHtml.InternalTypes as Test.Html.Internal.ElmHtml.InternalTypes
 import Test.Html.Query as Query
+
 import Test.Html.Query.Internal as QueryInternal
+
 import Test.Internal as Internal
-import VirtualDom
+
+import VirtualDom as VirtualDom
 
 
 {-| A simulated event.
@@ -48,8 +57,8 @@ import VirtualDom
 See [`simulate`](#simulate).
 
 -}
-type Event msg
-    = Event ( String, Value ) (QueryInternal.Single msg)
+data Event msg
+    = Event {a::String, b::Value } (QueryInternal.Single msg)
 
 
 {-| Simulate an event on a node.
@@ -68,7 +77,7 @@ type Event msg
                 |> Event.expect (Change "cats")
 
 -}
-simulate : ( String, Value ) -> Query.Single msg -> Event msg
+simulate :: {a::String, b::Value } -> Query.Single msg -> Event msg
 simulate =
     Event
 
@@ -89,7 +98,7 @@ simulate =
                 |> Event.expect (Change "cats")
 
 -}
-expect : msg -> Event msg -> Expectation
+expect :: msg -> Event msg -> Expectation
 expect msg (Event event (QueryInternal.Single showTrace query)) =
     case toResult (Event event (QueryInternal.Single showTrace query)) of
         Err noEvent ->
@@ -101,10 +110,10 @@ expect msg (Event event (QueryInternal.Single showTrace query)) =
                 |> Expect.equal msg
                 |> QueryInternal.failWithQuery showTrace
                     ("Event.expectEvent: Expected the msg \u{001B}[32m"
-                        ++ Internal.toString msg
-                        ++ "\u{001B}[39m from the event \u{001B}[31m"
-                        ++ Internal.toString event
-                        ++ "\u{001B}[39m but could not find the event."
+                        <> Internal.toString msg
+                        <> "\u{001B}[39m from the event \u{001B}[31m"
+                        <> Internal.toString event
+                        <> "\u{001B}[39m but could not find the event."
                     )
                     query
 
@@ -125,7 +134,7 @@ when testing that an event handler is _not_ present.
                 |> Expect.equal (Ok (Change "cats"))
 
 -}
-toResult : Event msg -> Result String msg
+toResult :: Event msg -> Result String msg
 toResult event =
     findHandler event
         |> Result.map (Decode.map .message)
@@ -142,7 +151,7 @@ toResult event =
 
 {-| Passes if the event handler stops propagation of the event.
 -}
-expectStopPropagation : Event msg -> Expectation
+expectStopPropagation :: Event msg -> Expectation
 expectStopPropagation event =
     case checkStopPropagation event of
         Err reason ->
@@ -157,7 +166,7 @@ expectStopPropagation event =
 
 {-| Passes if the event handler doesn't stop propagation of the event.
 -}
-expectNotStopPropagation : Event msg -> Expectation
+expectNotStopPropagation :: Event msg -> Expectation
 expectNotStopPropagation event =
     case checkStopPropagation event of
         Err reason ->
@@ -173,7 +182,7 @@ expectNotStopPropagation event =
 
 {-| Passes if the event handler prevents default action of the event.
 -}
-expectPreventDefault : Event msg -> Expectation
+expectPreventDefault :: Event msg -> Expectation
 expectPreventDefault event =
     case checkPreventDefault event of
         Err reason ->
@@ -188,7 +197,7 @@ expectPreventDefault event =
 
 {-| Passes if the event handler doesn't prevent default action of the event.
 -}
-expectNotPreventDefault : Event msg -> Expectation
+expectNotPreventDefault :: Event msg -> Expectation
 expectNotPreventDefault event =
     case checkPreventDefault event of
         Err reason ->
@@ -204,63 +213,63 @@ expectNotPreventDefault event =
 
 {-| A [`click`](https://developer.mozilla.org/en-US/docs/Web/Events/click) event.
 -}
-click : ( String, Value )
+click :: {a::String, b::Value }
 click =
     ( "click", emptyObject )
 
 
 {-| A [`dblclick`](https://developer.mozilla.org/en-US/docs/Web/Events/dblclick) event.
 -}
-doubleClick : ( String, Value )
+doubleClick :: {a::String, b::Value }
 doubleClick =
     ( "dblclick", emptyObject )
 
 
 {-| A [`mousedown`](https://developer.mozilla.org/en-US/docs/Web/Events/mousedown) event.
 -}
-mouseDown : ( String, Value )
+mouseDown :: {a::String, b::Value }
 mouseDown =
     ( "mousedown", emptyObject )
 
 
 {-| A [`mouseup`](https://developer.mozilla.org/en-US/docs/Web/Events/mouseup) event.
 -}
-mouseUp : ( String, Value )
+mouseUp :: {a::String, b::Value }
 mouseUp =
     ( "mouseup", emptyObject )
 
 
 {-| A [`mouseenter`](https://developer.mozilla.org/en-US/docs/Web/Events/mouseenter) event.
 -}
-mouseEnter : ( String, Value )
+mouseEnter :: {a::String, b::Value }
 mouseEnter =
     ( "mouseenter", emptyObject )
 
 
 {-| A [`mouseleave`](https://developer.mozilla.org/en-US/docs/Web/Events/mouseleave) event.
 -}
-mouseLeave : ( String, Value )
+mouseLeave :: {a::String, b::Value }
 mouseLeave =
     ( "mouseleave", emptyObject )
 
 
 {-| A [`mouseover`](https://developer.mozilla.org/en-US/docs/Web/Events/mouseover) event.
 -}
-mouseOver : ( String, Value )
+mouseOver :: {a::String, b::Value }
 mouseOver =
     ( "mouseover", emptyObject )
 
 
 {-| A [`mouseout`](https://developer.mozilla.org/en-US/docs/Web/Events/mouseout) event.
 -}
-mouseOut : ( String, Value )
+mouseOut :: {a::String, b::Value }
 mouseOut =
     ( "mouseout", emptyObject )
 
 
 {-| An [`input`](https://developer.mozilla.org/en-US/docs/Web/Events/input) event.
 -}
-input : String -> ( String, Value )
+input :: String -> {a::String, b::Value }
 input value =
     ( "input"
     , Encode.object
@@ -274,7 +283,7 @@ input value =
 {-| A [`change`](https://developer.mozilla.org/en-US/docs/Web/Events/change) event
 where `event.target.checked` is set to the given `Bool` value.
 -}
-check : Bool -> ( String, Value )
+check :: Bool -> {a::String, b::Value }
 check checked =
     ( "change"
     , Encode.object
@@ -287,21 +296,21 @@ check checked =
 
 {-| A [`submit`](https://developer.mozilla.org/en-US/docs/Web/Events/submit) event.
 -}
-submit : ( String, Value )
+submit :: {a::String, b::Value }
 submit =
     ( "submit", emptyObject )
 
 
 {-| A [`blur`](https://developer.mozilla.org/en-US/docs/Web/Events/blur) event.
 -}
-blur : ( String, Value )
+blur :: {a::String, b::Value }
 blur =
     ( "blur", emptyObject )
 
 
 {-| A [`focus`](https://developer.mozilla.org/en-US/docs/Web/Events/focus) event.
 -}
-focus : ( String, Value )
+focus :: {a::String, b::Value }
 focus =
     ( "focus", emptyObject )
 
@@ -334,7 +343,7 @@ the browser would send to the event listener callback.
                     |> Event.expect (Change "cats")
 
 -}
-custom : String -> Value -> ( String, Value )
+custom :: String -> Value -> {a::String, b::Value }
 custom =
     Tuple.pair
 
@@ -343,21 +352,21 @@ custom =
 -- INTERNAL --
 
 
-emptyObject : Value
+emptyObject :: Value
 emptyObject =
-    Encode.object []
+    Encode.object List.nil
 
 
-eventPayload : Event msg -> Value
+eventPayload :: Event msg -> Value
 eventPayload (Event ( _, payload ) _) =
     payload
 
 
-type alias Handling msg =
-    { message : msg, stopPropagation : Bool, preventDefault : Bool }
+type Handling msg =
+    { message :: msg, stopPropagation :: Bool, preventDefault :: Bool }
 
 
-findHandler : Event msg -> Result String (Decoder (Handling msg))
+findHandler :: Event msg -> Result String (Decoder (Handling msg))
 findHandler (Event ( eventName, _ ) (QueryInternal.Single _ query)) =
     QueryInternal.traverse query
         |> Result.andThen (QueryInternal.verifySingle eventName)
@@ -365,23 +374,23 @@ findHandler (Event ( eventName, _ ) (QueryInternal.Single _ query)) =
         |> Result.andThen (findEvent eventName)
 
 
-findEvent : String -> ElmHtml msg -> Result String (Decoder (Handling msg))
+findEvent :: String -> ElmHtml msg -> Result String (Decoder (Handling msg))
 findEvent eventName element =
     let
         elementOutput =
             QueryInternal.prettyPrint element
 
-        handlerToDecoder : VirtualDom.Handler msg -> Decoder (Handling msg)
+        handlerToDecoder :: VirtualDom.Handler msg -> Decoder (Handling msg)
         handlerToDecoder handler =
             case handler of
                 VirtualDom.Normal decoder ->
                     decoder |> Decode.map (\msg -> Handling msg False False)
 
                 VirtualDom.MayStopPropagation decoder ->
-                    decoder |> Decode.map (\( msg, sp ) -> Handling msg sp False)
+                    decoder |> Decode.map (\{a:msg, b:sp } -> Handling msg sp False)
 
                 VirtualDom.MayPreventDefault decoder ->
-                    decoder |> Decode.map (\( msg, pd ) -> Handling msg False pd)
+                    decoder |> Decode.map (\{a:msg, b:pd } -> Handling msg False pd)
 
                 VirtualDom.Custom decoder ->
                     decoder
@@ -390,11 +399,11 @@ findEvent eventName element =
             node.facts.events
                 |> Dict.get eventName
                 |> Maybe.map handlerToDecoder
-                |> Result.fromMaybe ("Event.expectEvent: I found a node, but it does not listen for \"" ++ eventName ++ "\" events like I expected it would.\n\n" ++ elementOutput)
+                |> Result.fromMaybe ("Event.expectEvent: I found a node, but it does not listen for \"" <> eventName <> "\" events like I expected it would.\n\n" <> elementOutput)
     in
     case element of
         TextTag _ ->
-            Err ("I found a text node instead of an element. Text nodes do not receive events, so it would be impossible to simulate \"" ++ eventName ++ "\" events on it. The text in the node was: \"" ++ elementOutput ++ "\"")
+            Err ("I found a text node instead of an element. Text nodes do not receive events, so it would be impossible to simulate \"" <> eventName <> "\" events on it. The text in the node was: \"" <> elementOutput <> "\"")
 
         NodeEntry node ->
             eventDecoder node
@@ -406,17 +415,17 @@ findEvent eventName element =
             eventDecoder node
 
 
-checkStopPropagation : Event msg -> Result String Bool
+checkStopPropagation :: Event msg -> Result String Bool
 checkStopPropagation =
     checkEffect .stopPropagation
 
 
-checkPreventDefault : Event msg -> Result String Bool
+checkPreventDefault :: Event msg -> Result String Bool
 checkPreventDefault =
     checkEffect .preventDefault
 
 
-checkEffect : (Handling msg -> Bool) -> Event msg -> Result String Bool
+checkEffect :: (Handling msg -> Bool) -> Event msg -> Result String Bool
 checkEffect extractor event =
     findHandler event
         |> Result.map (Decode.map extractor)

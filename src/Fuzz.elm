@@ -1,5 +1,4 @@
-module Fuzz exposing
-    ( Fuzzer, examples, labelExamples
+module Fuzz ( Fuzzer, examples, labelExamples
     , int, intRange, uniformInt, intAtLeast, intAtMost
     , float, niceFloat, percentage, floatRange, floatAtLeast, floatAtMost
     , char, asciiChar
@@ -14,6 +13,7 @@ module Fuzz exposing
     , andThen, lazy, sequence, traverse
     , fromGenerator
     )
+ where
 
 {-| This is a library of _fuzzers_ you can use to supply values to your fuzz
 tests. You can typically pick out which ones you need according to their types.
@@ -73,34 +73,41 @@ can usually find the simplest input that reproduces a bug.
 
 -}
 
-import Array exposing (Array)
-import Bitwise
-import Char
-import Dict exposing (Dict)
-import Fuzz.Float
-import Fuzz.Internal exposing (Fuzzer(..))
-import GenResult exposing (GenResult(..))
+import Array (Array)
+import Array as Array
+import Bitwise as Bitwise
+import Char as Char
+import Dict (Dict)
+import Dict as Dict
+import Fuzz.Float as Fuzz.Float
+import Fuzz.Internal (Fuzzer(..))
+import Fuzz.Internal as Fuzz.Internal
+import GenResult (GenResult(..))
+import GenResult as GenResult
 import MicroDictExtra as Dict
+
 import MicroListExtra as List
-import PRNG exposing (PRNG(..))
-import Random
-import RandomRun
+
+import PRNG (PRNG(..))
+import PRNG as PRNG
+import Random as Random
+import RandomRun as RandomRun
 
 
 {-| The representation of fuzzers is opaque. Conceptually, a `Fuzzer a` consists
 of a way to randomly generate values of type `a` in a way allowing the test runner
 to simplify those values.
 -}
-type alias Fuzzer a =
+type Fuzzer a =
     Fuzz.Internal.Fuzzer a
 
 
 {-| A fuzzer for the unit value. Unit is a type with only one value, commonly
 used as a placeholder.
 -}
-unit : Fuzzer ()
+unit :: Fuzzer {}
 unit =
-    constant ()
+    constant {}
 
 
 {-| A fuzzer for boolean values. It's useful when building up fuzzers of complex
@@ -112,7 +119,7 @@ the true and false cases explicitly.
 Simplifies in order `False < True`.
 
 -}
-bool : Fuzzer Bool
+bool :: Fuzzer Bool
 bool =
     oneOfValues [ False, True ]
 
@@ -122,22 +129,22 @@ bool =
 Simplifies in order `LT < EQ < GT`.
 
 -}
-order : Fuzzer Order
+order :: Fuzzer Order
 order =
     oneOfValues [ LT, EQ, GT ]
 
 
-intBucketingThreshold : Int
+intBucketingThreshold :: Int
 intBucketingThreshold =
     255
 
 
-intPreferences : List { weight : Int, bits : Int }
+intPreferences :: List { weight :: Int, bits :: Int }
 intPreferences =
-    [ { weight = 4, bits = 4 } -- 0..15
-    , { weight = 8, bits = 8 } -- 0..255
-    , { weight = 2, bits = 16 } -- 0..65535
-    , { weight = 1, bits = 32 } -- 0..4294967295
+    [ { weight : 4, bits : 4 } -- 0..15
+    , { weight : 8, bits : 8 } -- 0..255
+    , { weight : 2, bits : 16 } -- 0..65535
+    , { weight : 1, bits : 32 } -- 0..4294967295
     ]
 
 
@@ -151,10 +158,10 @@ This fuzzer will generate values in the range `Random.minInt .. Random.maxInt`.
   - Prefers smaller values over larger ones
 
 -}
-int : Fuzzer Int
+int :: Fuzzer Int
 int =
     intPreferences
-        |> List.map (\{ weight, bits } -> ( weight, intBits bits ))
+        |> List.map (\{ weight, bits } -> {a:weight, b:intBits bits })
         |> intFrequency
         |> map
             (\n ->
@@ -175,21 +182,21 @@ int =
 
 {-| An unsigned integer taken uniformly from the range 0..(2^n)-1.
 -}
-intBits : Int -> Fuzzer Int
+intBits :: Int -> Fuzzer Int
 intBits bitsCount =
     uniformInt ((2 ^ bitsCount) - 1)
 
 
 {-| A fuzzer that will generate values in range n..2^32-1.
 -}
-intAtLeast : Int -> Fuzzer Int
+intAtLeast :: Int -> Fuzzer Int
 intAtLeast n =
     intRange n (2 ^ 32 - 1)
 
 
 {-| A fuzzer that will generate values in range -(2^32-1)..n.
 -}
-intAtMost : Int -> Fuzzer Int
+intAtMost :: Int -> Fuzzer Int
 intAtMost n =
     intRange -(2 ^ 32 - 1) n
 
@@ -197,7 +204,7 @@ intAtMost n =
 {-| A fuzzer for int values between a given minimum and maximum value,
 inclusive. Shrunk values will also be within the range.
 -}
-intRange : Int -> Int -> Fuzzer Int
+intRange :: Int -> Int -> Fuzzer Int
 intRange lo hi =
     if hi < lo then
         intRange hi lo
@@ -207,7 +214,7 @@ intRange lo hi =
 
     else
         let
-            int_ : Int -> Fuzzer Int
+            int_ :: Int -> Fuzzer Int
             int_ upperLimit =
                 {- Two variants:
 
@@ -235,11 +242,11 @@ intRange lo hi =
 
                 else
                     let
-                        range : Int
+                        range :: Int
                         range =
                             upperLimit + 1
 
-                        maxBits : Int
+                        maxBits :: Int
                         maxBits =
                             range
                                 -- find how many bits the number takes
@@ -264,7 +271,7 @@ intRange lo hi =
                                 else
                                     list_
                            )
-                        |> List.map (\{ weight, bits } -> ( weight, intBits bits ))
+                        |> List.map (\{ weight, bits } -> {a:weight, b:intBits bits })
                         |> intFrequency
                         |> map (modBy range)
         in
@@ -305,14 +312,14 @@ Will occasionally try infinities and NaN. If you don't want to generate these,
 use [`Fuzz.niceFloat`](#niceFloat).
 
 -}
-float : Fuzzer Float
+float :: Fuzzer Float
 float =
     intFrequency
         [ {- Just to shrink nicely. The wellShrinkingFloat below needs 3 items
              in the RandomRun so sometimes it's not an option anymore.
           -}
-          ( 1, constant 0 )
-        , ( 5, wellShrinkingFloat )
+          {a:1, b:constant 0 }
+        , {a:5, b:wellShrinkingFloat }
         , ( 1, constant (1 / 0) )
         , ( 1, constant (-1 / 0) )
         , ( 1, constant (0 / 0) )
@@ -326,7 +333,7 @@ Will prefer integer values, nice fractions and positive numbers over the rest.
 Will never try infinities or NaN.
 
 -}
-niceFloat : Fuzzer Float
+niceFloat :: Fuzzer Float
 niceFloat =
     wellShrinkingFloat
 
@@ -334,14 +341,14 @@ niceFloat =
 {-| This float fuzzer will prefer non-fractional floats and (if it must) nice
 fractions.
 -}
-wellShrinkingFloat : Fuzzer Float
+wellShrinkingFloat :: Fuzzer Float
 wellShrinkingFloat =
     map3
         (\hi lo shouldNegate ->
             let
-                f : Float
+                f :: Float
                 f =
-                    Fuzz.Float.wellShrinkingFloat ( hi, lo )
+                    Fuzz.Float.wellShrinkingFloat {a:hi, b:lo }
             in
             if shouldNegate then
                 negate f
@@ -362,21 +369,21 @@ The positive part of the range will shrink nicely, the negative part will shrink
 The fuzzer will occasionally try the minimum, 0 (if in range) and Infinity.
 
 -}
-floatAtLeast : Float -> Fuzzer Float
+floatAtLeast :: Float -> Fuzzer Float
 floatAtLeast n =
     if n <= 0 then
         intFrequency
-            [ ( 4, floatRange n 0 )
-            , ( 4, wellShrinkingFloat |> map abs )
-            , ( 2, constant n )
+            [ {a:4, b:floatRange n 0 }
+            , {a:4, b:wellShrinkingFloat |> map abs }
+            , {a:2, b:constant n }
             , ( 2, constant (1 / 0) )
-            , ( 1, constant 0 )
+            , {a:1, b:constant 0 }
             ]
 
     else
         intFrequency
             [ ( 8, wellShrinkingFloat |> map (\x -> n + abs x) )
-            , ( 2, constant n )
+            , {a:2, b:constant n }
             , ( 2, constant (1 / 0) )
             ]
 
@@ -388,21 +395,21 @@ The negative part of the range will shrink nicely, the positive part will shrink
 The fuzzer will occasionally try the maximum, 0 (if in range) and -Infinity.
 
 -}
-floatAtMost : Float -> Fuzzer Float
+floatAtMost :: Float -> Fuzzer Float
 floatAtMost n =
     if n >= 0 then
         intFrequency
-            [ ( 4, floatRange 0 n )
+            [ {a:4, b:floatRange 0 n }
             , ( 4, wellShrinkingFloat |> map (negate << abs) )
-            , ( 2, constant n )
+            , {a:2, b:constant n }
             , ( 2, constant (-1 / 0) )
-            , ( 1, constant 0 )
+            , {a:1, b:constant 0 }
             ]
 
     else
         intFrequency
             [ ( 8, wellShrinkingFloat |> map (\x -> n - abs x) )
-            , ( 2, constant n )
+            , {a:2, b:constant n }
             , ( 2, constant (-1 / 0) )
             ]
 
@@ -412,7 +419,7 @@ floatAtMost n =
 Shrunken values will also be within the range.
 
 -}
-floatRange : Float -> Float -> Fuzzer Float
+floatRange :: Float -> Float -> Fuzzer Float
 floatRange lo hi =
     if hi < lo then
         floatRange hi lo
@@ -423,16 +430,16 @@ floatRange lo hi =
     else if lo >= 0 then
         -- both non-negative
         intFrequency
-            [ ( 1, constant lo )
-            , ( 1, constant hi )
-            , ( 4, scaledFloat lo hi )
+            [ {a:1, b:constant lo }
+            , {a:1, b:constant hi }
+            , {a:4, b:scaledFloat lo hi }
             ]
 
     else if hi <= 0 then
         -- both negative
         intFrequency
-            [ ( 1, constant lo )
-            , ( 1, constant hi )
+            [ {a:1, b:constant lo }
+            , {a:1, b:constant hi }
             , ( 4
               , scaledFloat (negate hi) (negate lo)
                     -- simplify towards zero
@@ -445,18 +452,18 @@ floatRange lo hi =
            both of which will simplify towards zero. We prefer positive values.
         -}
         intFrequency
-            [ ( 1, constant 0 )
-            , ( 2, constant lo )
-            , ( 2, constant hi )
+            [ {a:1, b:constant 0 }
+            , {a:2, b:constant lo }
+            , {a:2, b:constant hi }
             , ( 4, scaledFloat 0 (negate lo) |> map negate )
-            , ( 4, scaledFloat 0 hi )
+            , {a:4, b:scaledFloat 0 hi }
             ]
 
 
 {-| This float fuzzer won't shrink nicely (to integers or nice fractions). For
 that, use `wellShrinkingFloat`.
 -}
-scaledFloat : Float -> Float -> Fuzzer Float
+scaledFloat :: Float -> Float -> Fuzzer Float
 scaledFloat lo hi =
     if lo == hi then
         constant lo
@@ -478,7 +485,7 @@ Doesn't shrink to nice values like [`Fuzz.float`](#float) does; shrinks towards
 zero.
 
 -}
-percentage : Fuzzer Float
+percentage :: Fuzzer Float
 percentage =
     {- We can't use Random.Generators here as all fuzzed values must be
        representable as one or more ints. We generally use a pair of 32bit ints
@@ -488,8 +495,8 @@ percentage =
        mantissa calculations so we don't bother generating those.
     -}
     intFrequency
-        [ ( 1, constant 0 )
-        , ( 1, constant Fuzz.Float.maxFractionalFloat ) -- just barely below 1
+        [ {a:1, b:constant 0 }
+        , {a:1, b:constant Fuzz.Float.maxFractionalFloat } -- just barely below 1
         , ( 4
           , pair (uniformInt 0x000FFFFF) int32
                 |> map Fuzz.Float.fractionalFloat
@@ -497,7 +504,7 @@ percentage =
         ]
 
 
-int32 : Fuzzer Int
+int32 :: Fuzzer Int
 int32 =
     uniformInt 0xFFFFFFFF
 
@@ -509,7 +516,7 @@ For more serious char fuzzing look at [`Fuzz.char`](#char) which generates the
 whole Unicode range.
 
 -}
-asciiChar : Fuzzer Char
+asciiChar :: Fuzzer Char
 asciiChar =
     -- TODO: what about preferring nasty chars like \, /, $, @ (interpolation, SQL injections, ...)?
     intRange 32 126
@@ -524,18 +531,20 @@ Will prefer ASCII characters, whitespace, and some examples known to cause
 trouble, like combining diacritics marks and emojis.
 
 -}
-char : Fuzzer Char
+asdf = ( next { only = next.all  })
+
+char :: Fuzzer Char
 char =
     let
-        whitespaceChar : Fuzzer Char
+        whitespaceChar :: Fuzzer Char
         whitespaceChar =
             oneOfValues
-                [ ' '
-                , '\t'
-                , '\n'
+                [ " "
+                , "\t"
+                , "\n"
                 ]
 
-        combiningDiacriticalMarkChar : Fuzzer Char
+        combiningDiacriticalMarkChar :: Fuzzer Char
         combiningDiacriticalMarkChar =
             -- going a roundabout way about this to keep Vim from being confused about unclosed strings
             oneOfValues
@@ -544,12 +553,12 @@ char =
                 , Char.fromCode 0x0308 -- combining diaeresis
                 ]
 
-        emojiChar : Fuzzer Char
+        emojiChar :: Fuzzer Char
         emojiChar =
             oneOfValues
-                [ '🌈'
-                , '❤'
-                , '🔥'
+                [ "🌈"
+                , "❤"
+                , "🔥"
                 ]
 
         {- Note: This can produce garbage values as Unicode doesn't use all valid values.
@@ -558,24 +567,24 @@ char =
            `(str |> reverse |> reverse) == str` because of being converted to
            0xFFFD REPLACEMENT CHARACTER.
         -}
-        arbitraryUnicodeChar : Fuzzer Char
+        arbitraryUnicodeChar :: Fuzzer Char
         arbitraryUnicodeChar =
             intRange 0 0x0010FFFF
                 |> filter (\n -> not (n >= 0xD800 && n <= 0xDFFF))
                 |> map Char.fromCode
     in
     intFrequency
-        [ ( 5, asciiChar )
-        , ( 2, whitespaceChar )
-        , ( 1, combiningDiacriticalMarkChar )
-        , ( 1, emojiChar )
-        , ( 1, arbitraryUnicodeChar )
+        [ {a:5, b:asciiChar }
+        , {a:2, b:whitespaceChar }
+        , {a:1, b:combiningDiacriticalMarkChar }
+        , {a:1, b:emojiChar }
+        , {a:1, b:arbitraryUnicodeChar }
         ]
 
 
 {-| Generates random unicode strings of up to 10 characters.
 -}
-string : Fuzzer String
+string :: Fuzzer String
 string =
     stringOfLengthBetween 0 10
 
@@ -591,7 +600,7 @@ to give N characters even if their `String.length` will be above N, you can use
         |> Fuzz.map String.fromList
 
 -}
-stringOfLength : Int -> Fuzzer String
+stringOfLength :: Int -> Fuzzer String
 stringOfLength n =
     stringOfLengthBetween n n
 
@@ -608,7 +617,7 @@ above MAX, you can use
         |> Fuzz.map String.fromList
 
 -}
-stringOfLengthBetween : Int -> Int -> Fuzzer String
+stringOfLengthBetween :: Int -> Int -> Fuzzer String
 stringOfLengthBetween min max =
     if min > max then
         stringOfLengthBetween max min
@@ -631,21 +640,21 @@ stringOfLengthBetween min max =
 
 {-| Generates random ASCII strings of up to 10 characters.
 -}
-asciiString : Fuzzer String
+asciiString :: Fuzzer String
 asciiString =
     asciiStringOfLengthBetween 0 10
 
 
 {-| Generates random ASCII strings of a given length.
 -}
-asciiStringOfLength : Int -> Fuzzer String
+asciiStringOfLength :: Int -> Fuzzer String
 asciiStringOfLength n =
     asciiStringOfLengthBetween n n
 
 
 {-| Generates random ASCII strings of length between the given limits.
 -}
-asciiStringOfLengthBetween : Int -> Int -> Fuzzer String
+asciiStringOfLengthBetween :: Int -> Int -> Fuzzer String
 asciiStringOfLengthBetween min max =
     listOfLengthBetween min max asciiChar
         |> map String.fromList
@@ -653,29 +662,29 @@ asciiStringOfLengthBetween min max =
 
 {-| Given a fuzzer of a type, create a fuzzer of a maybe for that type.
 -}
-maybe : Fuzzer a -> Fuzzer (Maybe a)
+maybe :: Fuzzer a -> Fuzzer (Maybe a)
 maybe fuzzer =
     intFrequency
-        [ ( 1, constant Nothing )
-        , ( 3, map Just fuzzer )
+        [ {a:1, b:constant Nothing }
+        , {a:3, b:map Just fuzzer }
         ]
 
 
 {-| Given fuzzers for an error type and a success type, create a fuzzer for
 a result.
 -}
-result : Fuzzer error -> Fuzzer value -> Fuzzer (Result error value)
+result :: Fuzzer error -> Fuzzer value -> Fuzzer (Result error value)
 result fuzzerError fuzzerValue =
     intFrequency
-        [ ( 1, map Err fuzzerError )
-        , ( 3, map Ok fuzzerValue )
+        [ {a:1, b:map Err fuzzerError }
+        , {a:3, b:map Ok fuzzerValue }
         ]
 
 
 {-| Given a fuzzer of a type, create a fuzzer of a list of that type.
 Generates random lists of varying length, up to 32 elements.
 -}
-list : Fuzzer a -> Fuzzer (List a)
+list :: Fuzzer a -> Fuzzer (List a)
 list fuzzer =
     listOfLengthBetween 0 32 fuzzer
 
@@ -683,7 +692,7 @@ list fuzzer =
 {-| Given a fuzzer of a type, create a fuzzer of a list of that type.
 Generates random lists of exactly the specified length.
 -}
-listOfLength : Int -> Fuzzer a -> Fuzzer (List a)
+listOfLength :: Int -> Fuzzer a -> Fuzzer (List a)
 listOfLength n fuzzer =
     listOfLengthBetween n n fuzzer
 
@@ -691,22 +700,22 @@ listOfLength n fuzzer =
 {-| Given a fuzzer of a type, create a fuzzer of a list of that type.
 Generates random lists of length between the two given integers.
 -}
-listOfLengthBetween : Int -> Int -> Fuzzer a -> Fuzzer (List a)
+listOfLengthBetween :: Int -> Int -> Fuzzer a -> Fuzzer (List a)
 listOfLengthBetween lo hi itemFuzzer =
     if lo > hi then
         -- the name allows for it, even if it's a little weird
         listOfLengthBetween hi lo itemFuzzer
 
     else if hi <= 0 then
-        constant []
+        constant List.nil
 
     else
         let
-            average : Float
+            average :: Float
             average =
                 toFloat lo + toFloat hi / 2
 
-            continueProbability : Float
+            continueProbability :: Float
             continueProbability =
                 {- Taken from Python Hypothesis library (ListStrategy).
                    It should supposedly be a geometric distribution, although I
@@ -714,19 +723,19 @@ listOfLengthBetween lo hi itemFuzzer =
                 -}
                 1 - 1 / (1 + average)
 
-            addItem : Int -> List a -> Fuzzer (List a)
+            addItem :: Int -> List a -> Fuzzer (List a)
             addItem length acc =
                 itemFuzzer
                     |> andThen
                         (\item ->
-                            go (length + 1) (item :: acc)
+                            go (length + 1) (item List.: acc)
                         )
 
-            end : List a -> Fuzzer (List a)
+            end :: List a -> Fuzzer (List a)
             end acc =
                 constant (List.reverse acc)
 
-            go : Int -> List a -> Fuzzer (List a)
+            go :: Int -> List a -> Fuzzer (List a)
             go length acc =
                 if length < lo then
                     forcedChoice 1
@@ -747,56 +756,56 @@ listOfLengthBetween lo hi itemFuzzer =
                                     end acc
                             )
         in
-        go 0 []
+        go 0 List.nil
 
 
 {-| Given a fuzzer of a type, create a fuzzer of an array of that type.
 Generates random arrays of varying length, favoring shorter arrays.
 -}
-array : Fuzzer a -> Fuzzer (Array a)
+array :: Fuzzer a -> Fuzzer (Array a)
 array fuzzer =
     map Array.fromList (list fuzzer)
 
 
 {-| Create a fuzzer of pairs from two fuzzers.
 -}
-pair : Fuzzer a -> Fuzzer b -> Fuzzer ( a, b )
+pair :: Fuzzer a -> Fuzzer b -> Fuzzer {a:a, b:b }
 pair fuzzerA fuzzerB =
-    map2 (\a b -> ( a, b )) fuzzerA fuzzerB
+    map2 (\a b -> {a:a, b:b }) fuzzerA fuzzerB
 
 
 {-| Create a fuzzer of triples from three fuzzers.
 -}
-triple : Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer ( a, b, c )
+triple :: Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer {a:a, b:b, c:c }
 triple fuzzerA fuzzerB fuzzerC =
-    map3 (\a b c -> ( a, b, c )) fuzzerA fuzzerB fuzzerC
+    map3 (\a b c -> {a:a, b:b, c:c }) fuzzerA fuzzerB fuzzerC
 
 
 {-| Create a fuzzer that only and always returns the value provided, and performs
 no simplifying. This is hardly random, and so this function is best used as a
 helper when creating more complicated fuzzers.
 -}
-constant : a -> Fuzzer a
+constant :: a -> Fuzzer a
 constant x =
     Fuzzer <|
         \prng ->
             Generated
-                { value = x
-                , prng = prng
+                { value : x
+                , prng : prng
                 }
 
 
 {-| Map a function over a fuzzer.
 -}
-map : (a -> b) -> Fuzzer a -> Fuzzer b
+map :: (a -> b) -> Fuzzer a -> Fuzzer b
 map fn (Fuzzer fuzzer) =
     Fuzzer <|
         \prng ->
             case fuzzer prng of
                 Generated g ->
                     Generated
-                        { value = fn g.value
-                        , prng = g.prng
+                        { value : fn g.value
+                        , prng : g.prng
                         }
 
                 Rejected r ->
@@ -805,7 +814,7 @@ map fn (Fuzzer fuzzer) =
 
 {-| Map over two fuzzers.
 -}
-map2 : (a -> b -> c) -> Fuzzer a -> Fuzzer b -> Fuzzer c
+map2 :: (a -> b -> c) -> Fuzzer a -> Fuzzer b -> Fuzzer c
 map2 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) =
     Fuzzer <|
         \prng ->
@@ -814,8 +823,8 @@ map2 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) =
                     case fuzzerB a.prng of
                         Generated b ->
                             Generated
-                                { value = fn a.value b.value
-                                , prng = b.prng
+                                { value : fn a.value b.value
+                                , prng : b.prng
                                 }
 
                         Rejected r ->
@@ -827,7 +836,7 @@ map2 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) =
 
 {-| Map over three fuzzers.
 -}
-map3 : (a -> b -> c -> d) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d
+map3 :: (a -> b -> c -> d) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d
 map3 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) =
     Fuzzer <|
         \prng ->
@@ -838,8 +847,8 @@ map3 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) =
                             case fuzzerC b.prng of
                                 Generated c ->
                                     Generated
-                                        { value = fn a.value b.value c.value
-                                        , prng = c.prng
+                                        { value : fn a.value b.value c.value
+                                        , prng : c.prng
                                         }
 
                                 Rejected r ->
@@ -854,7 +863,7 @@ map3 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) =
 
 {-| Map over four fuzzers.
 -}
-map4 : (a -> b -> c -> d -> e) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e
+map4 :: (a -> b -> c -> d -> e) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e
 map4 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) =
     Fuzzer <|
         \prng ->
@@ -867,8 +876,8 @@ map4 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) =
                                     case fuzzerD c.prng of
                                         Generated d ->
                                             Generated
-                                                { value = fn a.value b.value c.value d.value
-                                                , prng = d.prng
+                                                { value : fn a.value b.value c.value d.value
+                                                , prng : d.prng
                                                 }
 
                                         Rejected r ->
@@ -886,7 +895,7 @@ map4 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) =
 
 {-| Map over five fuzzers.
 -}
-map5 : (a -> b -> c -> d -> e -> f) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f
+map5 :: (a -> b -> c -> d -> e -> f) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f
 map5 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuzzer fuzzerE) =
     Fuzzer <|
         \prng ->
@@ -901,8 +910,8 @@ map5 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
                                             case fuzzerE d.prng of
                                                 Generated e ->
                                                     Generated
-                                                        { value = fn a.value b.value c.value d.value e.value
-                                                        , prng = e.prng
+                                                        { value : fn a.value b.value c.value d.value e.value
+                                                        , prng : e.prng
                                                         }
 
                                                 Rejected r ->
@@ -923,7 +932,7 @@ map5 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
 
 {-| Map over six fuzzers.
 -}
-map6 : (a -> b -> c -> d -> e -> f -> g) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g
+map6 :: (a -> b -> c -> d -> e -> f -> g) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g
 map6 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuzzer fuzzerE) (Fuzzer fuzzerF) =
     Fuzzer <|
         \prng ->
@@ -940,8 +949,8 @@ map6 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
                                                     case fuzzerF e.prng of
                                                         Generated f ->
                                                             Generated
-                                                                { value = fn a.value b.value c.value d.value e.value f.value
-                                                                , prng = f.prng
+                                                                { value : fn a.value b.value c.value d.value e.value f.value
+                                                                , prng : f.prng
                                                                 }
 
                                                         Rejected r ->
@@ -965,7 +974,7 @@ map6 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
 
 {-| Map over seven fuzzers.
 -}
-map7 : (a -> b -> c -> d -> e -> f -> g -> h) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g -> Fuzzer h
+map7 :: (a -> b -> c -> d -> e -> f -> g -> h) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g -> Fuzzer h
 map7 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuzzer fuzzerE) (Fuzzer fuzzerF) (Fuzzer fuzzerG) =
     Fuzzer <|
         \prng ->
@@ -984,8 +993,8 @@ map7 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
                                                             case fuzzerG f.prng of
                                                                 Generated g ->
                                                                     Generated
-                                                                        { value = fn a.value b.value c.value d.value e.value f.value g.value
-                                                                        , prng = g.prng
+                                                                        { value : fn a.value b.value c.value d.value e.value f.value g.value
+                                                                        , prng : g.prng
                                                                         }
 
                                                                 Rejected r ->
@@ -1012,7 +1021,7 @@ map7 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
 
 {-| Map over eight fuzzers.
 -}
-map8 : (a -> b -> c -> d -> e -> f -> g -> h -> i) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g -> Fuzzer h -> Fuzzer i
+map8 :: (a -> b -> c -> d -> e -> f -> g -> h -> i) -> Fuzzer a -> Fuzzer b -> Fuzzer c -> Fuzzer d -> Fuzzer e -> Fuzzer f -> Fuzzer g -> Fuzzer h -> Fuzzer i
 map8 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuzzer fuzzerE) (Fuzzer fuzzerF) (Fuzzer fuzzerG) (Fuzzer fuzzerH) =
     Fuzzer <|
         \prng ->
@@ -1033,8 +1042,8 @@ map8 fn (Fuzzer fuzzerA) (Fuzzer fuzzerB) (Fuzzer fuzzerC) (Fuzzer fuzzerD) (Fuz
                                                                     case fuzzerH g.prng of
                                                                         Generated h ->
                                                                             Generated
-                                                                                { value = fn a.value b.value c.value d.value e.value f.value g.value h.value
-                                                                                , prng = h.prng
+                                                                                { value : fn a.value b.value c.value d.value e.value f.value g.value h.value
+                                                                                , prng : h.prng
                                                                                 }
 
                                                                         Rejected r ->
@@ -1071,7 +1080,7 @@ The argument order is meant to accommodate chaining:
         |> Fuzz.andMap fuzzerC
 
 -}
-andMap : Fuzzer a -> Fuzzer (a -> b) -> Fuzzer b
+andMap :: Fuzzer a -> Fuzzer (a -> b) -> Fuzzer b
 andMap =
     map2 (|>)
 
@@ -1118,15 +1127,15 @@ recursion, like so:
                 ]
 
 -}
-frequency : List ( Float, Fuzzer a ) -> Fuzzer a
+frequency :: List {a::Float, b::Fuzzer a } -> Fuzzer a
 frequency fuzzers =
     frequencyHelp "Fuzz.frequency" fuzzers
 
 
-frequencyHelp : String -> List ( Float, Fuzzer a ) -> Fuzzer a
+frequencyHelp :: String -> List {a::Float, b::Fuzzer a } -> Fuzzer a
 frequencyHelp functionName fuzzers =
     if List.any (\( w, _ ) -> w < 0) fuzzers then
-        invalid <| functionName ++ ": No frequency weights can be less than 0."
+        invalid <| functionName <> ": No frequency weights can be less than 0."
 
     else
         let
@@ -1134,7 +1143,7 @@ frequencyHelp functionName fuzzers =
                 List.filter (\( w, _ ) -> w > 0) fuzzers
         in
         if List.isEmpty nonzeroFuzzers then
-            invalid <| functionName ++ ": You must provide at least one frequency pair with weight greater than 0."
+            invalid <| functionName <> ": You must provide at least one frequency pair with weight greater than 0."
 
         else
             let
@@ -1146,7 +1155,7 @@ frequencyHelp functionName fuzzers =
 
             else
                 let
-                    weightSum : Float
+                    weightSum :: Float
                     weightSum =
                         List.foldl (\( w, _ ) acc -> w + acc) 0 nonzeroFuzzers
                 in
@@ -1154,20 +1163,20 @@ frequencyHelp functionName fuzzers =
                     |> andThen
                         (\p ->
                             let
-                                f : Float
+                                f :: Float
                                 f =
                                     p * weightSum
 
-                                go : Float -> List ( Float, Fuzzer a ) -> Fuzzer a
+                                go :: Float -> List {a::Float, b::Fuzzer a } -> Fuzzer a
                                 go countdown acc =
                                     case acc of
-                                        [] ->
-                                            invalid <| "elm-test bug: " ++ functionName ++ " encountered empty list after checking for it."
+                                        List.nil ->
+                                            invalid <| "elm-test bug: " <> functionName <> " encountered empty list after checking for it."
 
                                         [ ( _, last ) ] ->
                                             last
 
-                                        ( w, current ) :: rest ->
+                                        {a:w, b:current } List.: rest ->
                                             if countdown <= w then
                                                 current
 
@@ -1188,16 +1197,16 @@ small integer (index into the user-given list).
 `frequency` will automatically switch to this function if used with integers.
 
 -}
-intFrequency : List ( Int, Fuzzer a ) -> Fuzzer a
+intFrequency :: List {a::Int, b::Fuzzer a } -> Fuzzer a
 intFrequency fuzzers =
     if List.any (\( w, _ ) -> w <= 0) fuzzers then
         invalid "intFrequency: Weights cannot be non-positive"
 
     else
         case fuzzers of
-            ( n, _ ) :: rest ->
+            ( n, _ ) List.: rest ->
                 let
-                    weightSum : Int
+                    weightSum :: Int
                     weightSum =
                         List.foldl (\( w, _ ) acc -> w + acc) n rest
                 in
@@ -1211,7 +1220,7 @@ intFrequency fuzzers =
                                 |> Maybe.withDefault (invalid "elm-test bug: intFrequency index out of range")
                         )
 
-            [] ->
+            List.nil ->
                 invalid "intFrequency: You must provide at least one item."
 
 
@@ -1235,7 +1244,7 @@ fuzzer, which causes it to fail any test that uses it:
   - If the weights sum to 0
 
 -}
-frequencyValues : List ( Float, a ) -> Fuzzer a
+frequencyValues :: List ( Float, a ) -> Fuzzer a
 frequencyValues values =
     frequencyHelp "Fuzz.frequencyValues"
         (List.map (Tuple.mapSecond constant) values)
@@ -1253,16 +1262,16 @@ will also apply its own way to simplify the values).
         ]
 
 -}
-oneOf : List (Fuzzer a) -> Fuzzer a
+oneOf :: List (Fuzzer a) -> Fuzzer a
 oneOf fuzzers =
     oneOfHelp "Fuzz.oneOf" "fuzzer" fuzzers
 
 
-oneOfHelp : String -> String -> List (Fuzzer a) -> Fuzzer a
+oneOfHelp :: String -> String -> List (Fuzzer a) -> Fuzzer a
 oneOfHelp functionName itemName fuzzers =
     case List.length fuzzers of
         0 ->
-            invalid <| functionName ++ ": You must provide at least one item."
+            invalid <| functionName <> ": You must provide at least one item."
 
         length ->
             uniformInt (length - 1)
@@ -1271,7 +1280,7 @@ oneOfHelp functionName itemName fuzzers =
                         case List.getAt i fuzzers of
                             Nothing ->
                                 -- shouldn't happen
-                                invalid <| "elm-test bug: " ++ functionName ++ " didn't find a " ++ itemName ++ " at position " ++ String.fromInt i ++ " in the list of length " ++ String.fromInt length ++ "."
+                                invalid <| "elm-test bug: " <> functionName <> " didn't find a " <> itemName <> " at position " <> String.fromInt i <> " in the list of length " <> String.fromInt length <> "."
 
                             Just fuzzer ->
                                 fuzzer
@@ -1290,7 +1299,7 @@ This fuzzer will simplify towards the values earlier in the list.
         ]
 
 -}
-oneOfValues : List a -> Fuzzer a
+oneOfValues :: List a -> Fuzzer a
 oneOfValues values =
     oneOfHelp "Fuzz.oneOfValues" "value" (List.map constant values)
 
@@ -1298,13 +1307,13 @@ oneOfValues values =
 {-| A fuzzer that is invalid for the provided reason. Any fuzzers built with it
 are also invalid. Any tests using an invalid fuzzer fail.
 -}
-invalid : String -> Fuzzer a
+invalid :: String -> Fuzzer a
 invalid reason =
     Fuzzer <|
         \prng ->
             Rejected
-                { reason = reason
-                , prng = prng
+                { reason : reason
+                , prng : prng
                 }
 
 
@@ -1334,10 +1343,10 @@ a risk of infinite loop depending on the predicate), you can use this pattern:
                 )
 
 -}
-filter : (a -> Bool) -> Fuzzer a -> Fuzzer a
+filter :: (a -> Bool) -> Fuzzer a -> Fuzzer a
 filter predicate fuzzer =
     let
-        go : Int -> Fuzzer a
+        go :: Int -> Fuzzer a
         go rejectionCount =
             if rejectionCount > 15 then
                 invalid "Too many values were filtered out"
@@ -1390,7 +1399,7 @@ Think of `andThen` as a generalization of [`Fuzz.map`](#map). Inside
 what you already have; inside `andThen` you do.
 
 -}
-andThen : (a -> Fuzzer b) -> Fuzzer a -> Fuzzer b
+andThen :: (a -> Fuzzer b) -> Fuzzer a -> Fuzzer b
 andThen fn (Fuzzer fuzzer) =
     Fuzzer <|
         \prng ->
@@ -1409,23 +1418,23 @@ andThen fn (Fuzzer fuzzer) =
 {-| A fuzzer that delays its execution. Handy for recursive types and preventing
 infinite recursion.
 -}
-lazy : (() -> Fuzzer a) -> Fuzzer a
+lazy :: ({} -> Fuzzer a) -> Fuzzer a
 lazy thunk =
     Fuzzer <|
         \prng ->
             let
                 (Fuzzer fuzzer) =
-                    thunk ()
+                    thunk {}
             in
             fuzzer prng
 
 
 {-| A fuzzer that shuffles the given list.
 -}
-shuffledList : List a -> Fuzzer (List a)
+shuffledList :: List a -> Fuzzer (List a)
 shuffledList items =
     items
-        |> traverse (\item -> int |> map (\index -> ( index, item )))
+        |> traverse (\item -> int |> map (\index -> {a:index, b:item }))
         |> map
             (\listWithIndexes ->
                 listWithIndexes
@@ -1441,9 +1450,9 @@ Rejections (eg. from [`Fuzz.filter`](#filter) or [`Fuzz.invalid`](#invalid))
 bubble up instead of being discarded.
 
 -}
-sequence : List (Fuzzer a) -> Fuzzer (List a)
+sequence :: List (Fuzzer a) -> Fuzzer (List a)
 sequence fuzzers =
-    List.foldr (map2 (::)) (constant []) fuzzers
+    List.foldr (map2 (List.:)) (constant List.nil) fuzzers
 
 
 {-| Runs the Fuzzer-returning function on every item in the list, executes them=
@@ -1453,7 +1462,7 @@ Rejections (eg. from [`Fuzz.filter`](#filter) or [`Fuzz.invalid`](#invalid))
 bubble up instead of being discarded.
 
 -}
-traverse : (a -> Fuzzer b) -> List a -> Fuzzer (List b)
+traverse :: (a -> Fuzzer b) -> List a -> Fuzzer (List b)
 traverse toFuzzer items =
     sequence (List.map toFuzzer items)
 
@@ -1465,7 +1474,7 @@ Will simplify towards 0, but draws uniformly over the whole range.
 Max supported value is 2^32 - 1.
 
 -}
-uniformInt : Int -> Fuzzer Int
+uniformInt :: Int -> Fuzzer Int
 uniformInt n =
     rollDice n (Random.int 0 n)
 
@@ -1478,7 +1487,7 @@ Probabilities outside the `0..1` range will be clamped to `0..1`.
 Simplifies towards False (if not prevented to do that by using probability >= 1).
 
 -}
-weightedBool : Float -> Fuzzer Bool
+weightedBool :: Float -> Fuzzer Bool
 weightedBool p =
     (if p <= 0 then
         forcedChoice 0
@@ -1505,35 +1514,35 @@ Based on the PRNG value, this function:
   - or picks a number from the hardcoded list. (PRNG.Hardcoded)
 
 -}
-rollDice : Int -> Random.Generator Int -> Fuzzer Int
+rollDice :: Int -> Random.Generator Int -> Fuzzer Int
 rollDice maxValue diceGenerator =
     Fuzzer <|
         \prng ->
             case prng of
                 Random r ->
                     let
-                        ( diceRoll, newSeed ) =
+                        {a:diceRoll, b:newSeed } =
                             Random.step diceGenerator r.seed
                     in
                     if diceRoll < 0 then
                         Rejected
-                            { reason = "elm-test bug: generated a choice < 0"
-                            , prng = prng
+                            { reason : "elm-test bug: generated a choice < 0"
+                            , prng : prng
                             }
 
                     else if diceRoll > maxValue then
                         Rejected
-                            { reason = "elm-test bug: generated a choice > maxChoice"
-                            , prng = prng
+                            { reason : "elm-test bug: generated a choice > maxChoice"
+                            , prng : prng
                             }
 
                     else
                         Generated
-                            { value = diceRoll
-                            , prng =
+                            { value : diceRoll
+                            , prng :
                                 Random
-                                    { seed = newSeed
-                                    , run = RandomRun.append diceRoll r.run
+                                    { seed : newSeed
+                                    , run : RandomRun.append diceRoll r.run
                                     }
                             }
 
@@ -1542,48 +1551,48 @@ rollDice maxValue diceGenerator =
                         Nothing ->
                             -- This happens if we simplified too much / in an incompatible way
                             Rejected
-                                { reason = "elm-test internals: hardcoded PRNG run out of numbers"
-                                , prng = prng
+                                { reason : "elm-test internals: hardcoded PRNG run out of numbers"
+                                , prng : prng
                                 }
 
-                        Just ( hardcodedChoice, restOfChoices ) ->
+                        Just {a:hardcodedChoice, b:restOfChoices } ->
                             if hardcodedChoice < 0 then
                                 -- This happens eg. when decrementing after delete shrink
                                 Rejected
-                                    { reason = "elm-test internals: generated a choice < 0"
-                                    , prng = prng
+                                    { reason : "elm-test internals: generated a choice < 0"
+                                    , prng : prng
                                     }
 
                             else if hardcodedChoice > maxValue then
                                 -- This happens eg. when redistributing choices
                                 Rejected
-                                    { reason = "elm-test internals: generated a choice > maxChoice"
-                                    , prng = prng
+                                    { reason : "elm-test internals: generated a choice > maxChoice"
+                                    , prng : prng
                                     }
 
                             else
                                 Generated
-                                    { value = hardcodedChoice
-                                    , prng = Hardcoded { h | unusedPart = restOfChoices }
+                                    { value : hardcodedChoice
+                                    , prng : Hardcoded ( h { unusedPart = restOfChoices  })
                                     }
 
 
-forcedChoice : Int -> Fuzzer Int
+forcedChoice :: Int -> Fuzzer Int
 forcedChoice n =
     Fuzzer <|
         \prng ->
             if n < 0 then
                 Rejected
-                    { reason = "elm-test bug: forcedChoice: n < 0"
-                    , prng = prng
+                    { reason : "elm-test bug: forcedChoice: n < 0"
+                    , prng : prng
                     }
 
             else
                 case prng of
                     Random r ->
                         Generated
-                            { value = n
-                            , prng = Random { r | run = RandomRun.append n r.run }
+                            { value : n
+                            , prng : Random ( r { run = RandomRun.append n r.run  })
                             }
 
                     Hardcoded h ->
@@ -1591,27 +1600,27 @@ forcedChoice n =
                             Nothing ->
                                 -- This happens if we simplified too much / in an incompatible way
                                 Rejected
-                                    { reason = "elm-test internals: hardcoded PRNG run out of numbers"
-                                    , prng = prng
+                                    { reason : "elm-test internals: hardcoded PRNG run out of numbers"
+                                    , prng : prng
                                     }
 
-                            Just ( hardcodedChoice, restOfChoices ) ->
+                            Just {a:hardcodedChoice, b:restOfChoices } ->
                                 if hardcodedChoice /= n then
                                     Rejected
-                                        { reason = "elm-test internals: hardcoded value was not the same as the forced one"
-                                        , prng = prng
+                                        { reason : "elm-test internals: hardcoded value was not the same as the forced one"
+                                        , prng : prng
                                         }
 
                                 else
                                     Generated
-                                        { value = n
-                                        , prng = Hardcoded { h | unusedPart = restOfChoices }
+                                        { value : n
+                                        , prng : Hardcoded ( h { unusedPart = restOfChoices  })
                                         }
 
 
 {-| We could golf this to ((/=) 0) but this is perhaps more readable.
 -}
-intToBool : Int -> Bool
+intToBool :: Int -> Bool
 intToBool n =
     if n == 0 then
         False
@@ -1620,7 +1629,7 @@ intToBool n =
         True
 
 
-weightedBoolGenerator : Float -> Random.Generator Int
+weightedBoolGenerator :: Float -> Random.Generator Int
 weightedBoolGenerator p =
     Random.float 0 1
         |> Random.map
@@ -1633,11 +1642,11 @@ weightedBoolGenerator p =
             )
 
 
-intFrequencyGenerator : Int -> List Int -> Random.Generator Int
+intFrequencyGenerator :: Int -> List Int -> Random.Generator Int
 intFrequencyGenerator w1 ws =
     Random.weighted
-        ( toFloat w1, 0 )
-        (List.indexedMap (\i w -> ( toFloat w, i + 1 )) ws)
+        {a:toFloat w1, b:0 }
+        (List.indexedMap (\i w -> {a:toFloat w, b:i + 1 }) ws)
 
 
 {-| Generate a few example values from the fuzzer.
@@ -1654,7 +1663,7 @@ Uses the first argument as the seed as well as the count of examples to generate
 Will return an empty list in case of rejection.
 
 -}
-examples : Int -> Fuzzer a -> List a
+examples :: Int -> Fuzzer a -> List a
 examples n fuzzer =
     case
         Fuzz.Internal.generate
@@ -1665,7 +1674,7 @@ examples n fuzzer =
             value
 
         Rejected _ ->
-            []
+            List.nil
 
 
 {-| Show examples of values satisfying given classification predicates (see
@@ -1711,7 +1720,7 @@ function will also return all the found combinations:
     ]
 
 -}
-labelExamples : Int -> List ( String, a -> Bool ) -> Fuzzer a -> List ( List String, Maybe a )
+labelExamples :: Int -> List ( String, a -> Bool ) -> Fuzzer a -> List {a::List String, b::Maybe a }
 labelExamples n labels fuzzer =
     case
         Fuzz.Internal.generate
@@ -1720,17 +1729,17 @@ labelExamples n labels fuzzer =
     of
         Generated { value } ->
             let
-                foundExamples : Dict (List String) a
+                foundExamples :: Dict (List String) a
                 foundExamples =
                     value
                         |> List.foldl
                             (\item acc ->
                                 let
-                                    categories : List String
+                                    categories :: List String
                                     categories =
                                         labels
                                             |> List.filterMap
-                                                (\( label, predicate ) ->
+                                                (\{a:label, b:predicate } ->
                                                     if predicate item then
                                                         Just label
 
@@ -1755,7 +1764,7 @@ labelExamples n labels fuzzer =
                             )
                             Dict.empty
 
-                combinations : List ( List String, a )
+                combinations :: List ( List String, a )
                 combinations =
                     foundExamples
                         |> Dict.filter (\k _ -> List.length k > 1)
@@ -1777,10 +1786,10 @@ labelExamples n labels fuzzer =
                             Just ( [ label ], Just example )
                 )
                 labels
-                ++ List.map (\( label, example ) -> ( label, Just example )) combinations
+                <> List.map (\{a:label, b:example } -> ( label, Just example )) combinations
 
         Rejected _ ->
-            []
+            List.nil
 
 
 {-| (Avoid this function if you can! It is only provided as an escape hatch.)
@@ -1795,7 +1804,7 @@ want meaningful shrinking, define fuzzers using the other functions in this
 module!
 
 -}
-fromGenerator : Random.Generator a -> Fuzzer a
+fromGenerator :: Random.Generator a -> Fuzzer a
 fromGenerator generator =
     int32
         |> map

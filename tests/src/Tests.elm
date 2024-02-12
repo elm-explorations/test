@@ -1,24 +1,30 @@
-module Tests exposing (all)
+module Tests (all) where
 
-import Expect
-import FloatWithinTests exposing (floatWithinTests)
-import Fuzz exposing (..)
-import FuzzerTests exposing (fuzzerTests)
-import Helpers exposing (..)
-import RunnerTests
-import ShrinkingChallengeTests exposing (shrinkingChallenges)
-import Test exposing (..)
-import Test.Distribution
-import Test.Html.EventTests
-import Test.Html.ExampleAppTests
-import Test.Html.Query.CustomNodeTests
-import Test.Html.Query.MarkdownTests
-import Test.Html.QueryTests
-import Test.Html.SelectorTests
-import Test.Runner
+import Expect as Expect
+import FloatWithinTests (floatWithinTests)
+import FloatWithinTests as FloatWithinTests
+import Fuzz (..)
+import Fuzz as Fuzz
+import FuzzerTests (fuzzerTests)
+import FuzzerTests as FuzzerTests
+import Helpers (..)
+import Helpers as Helpers
+import RunnerTests as RunnerTests
+import ShrinkingChallengeTests (shrinkingChallenges)
+import ShrinkingChallengeTests as ShrinkingChallengeTests
+import Test (..)
+import Test as Test
+import Test.Distribution as Test.Distribution
+import Test.Html.EventTests as Test.Html.EventTests
+import Test.Html.ExampleAppTests as Test.Html.ExampleAppTests
+import Test.Html.Query.CustomNodeTests as Test.Html.Query.CustomNodeTests
+import Test.Html.Query.MarkdownTests as Test.Html.Query.MarkdownTests
+import Test.Html.QueryTests as Test.Html.QueryTests
+import Test.Html.SelectorTests as Test.Html.SelectorTests
+import Test.Runner as Test.Runner
 
 
-all : Test
+all :: Test
 all =
     Test.concat
         [ readmeExample
@@ -35,7 +41,7 @@ all =
         ]
 
 
-elmHtmlTests : Test
+elmHtmlTests :: Test
 elmHtmlTests =
     describe "elm-html-test"
         [ Test.Html.QueryTests.all
@@ -47,7 +53,7 @@ elmHtmlTests =
         ]
 
 
-readmeExample : Test
+readmeExample :: Test
 readmeExample =
     describe "The String module"
         [ describe "String.reverse"
@@ -73,7 +79,7 @@ readmeExample =
         ]
 
 
-expectationTests : Test
+expectationTests :: Test
 expectationTests =
     describe "Expectations"
         [ describe "Expect.err"
@@ -90,7 +96,7 @@ expectationTests =
             [ test "fails with empty list" <|
                 \_ ->
                     "dummy subject"
-                        |> Expect.all []
+                        |> Expect.all List.nil
                         |> expectToFail
             ]
         , describe "Expect.equal"
@@ -118,7 +124,7 @@ expectationTests =
         ]
 
 
-regressions : Test
+regressions :: Test
 regressions =
     describe "regression tests"
         [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
@@ -132,14 +138,14 @@ regressions =
                likely (but not guaranteed) that the 5 won't turn up. See #128.
                (Issue numbers refer to elm-community/elm-test.)
             -}
-            \() ->
+            \{} ->
                 fuzz (intRange 1 8)
                     "fuzz tests run 100 times"
                     (Expect.notEqual 5)
                     |> expectTestToFail
         , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
             -- if characters that span more than one utf-16 character work, this version of the unicode string fuzzer is good to go
-            \() -> "🔥" |> String.reverse |> Expect.equal "🔥"
+            \{} -> "🔥" |> String.reverse |> Expect.equal "🔥"
 
         {-
            , test "String.reverse implements unicode string reversing correctly" <|
@@ -150,42 +156,42 @@ regressions =
         ]
 
 
-testTests : Test
+testTests :: Test
 testTests =
     describe "functions that create tests"
         [ describe "describe"
             [ test "fails with empty list" <|
-                \() ->
-                    describe "x" []
+                \{} ->
+                    describe "x" List.nil
                         |> expectTestToFail
             , test "fails with empty description" <|
-                \() ->
+                \{} ->
                     describe "" [ test "x" expectPass ]
                         |> expectTestToFail
             ]
         , describe "test"
             [ test "fails with empty name" <|
-                \() ->
+                \{} ->
                     test "" expectPass
                         |> expectTestToFail
             ]
         , describe "fuzz"
             [ test "fails with empty name" <|
-                \() ->
+                \{} ->
                     fuzz Fuzz.bool "" expectPass
                         |> expectTestToFail
             ]
         , describe "fuzzWith"
             [ test "fails with fewer than 1 run" <|
-                \() ->
-                    fuzzWith { runs = 0, distribution = noDistribution }
+                \{} ->
+                    fuzzWith { runs : 0, distribution : noDistribution }
                         Fuzz.bool
                         "nonpositive"
                         expectPass
                         |> expectTestToFail
             , test "fails with empty name" <|
-                \() ->
-                    fuzzWith { runs = 1, distribution = noDistribution }
+                \{} ->
+                    fuzzWith { runs : 1, distribution : noDistribution }
                         Fuzz.bool
                         ""
                         expectPass
@@ -193,7 +199,7 @@ testTests =
             ]
         , describe "Test.todo"
             [ test "causes test failure" <|
-                \() ->
+                \{} ->
                     todo "a TODO test fails"
                         |> expectTestToFail
             , test "Passes are not TODO"
@@ -206,37 +212,37 @@ testTests =
         ]
 
 
-identicalNamesAreRejectedTests : Test
+identicalNamesAreRejectedTests :: Test
 identicalNamesAreRejectedTests =
     describe "Identically-named sibling and parent/child tests fail"
         [ test "a describe with two identically named children" <|
-            \() ->
+            \{} ->
                 describe "x"
                     [ test "foo" expectPass
                     , test "foo" expectPass
                     ]
                     |> expectTestToFail
         , test "a describe with the same name as a child test" <|
-            \() ->
+            \{} ->
                 describe "A"
                     [ test "A" expectPass ]
                     |> expectTestToFail
         , test "a describe with the same name as a child describe fails" <|
-            \() ->
+            \{} ->
                 describe "A"
                     [ describe "A"
                         [ test "x" expectPass ]
                     ]
                     |> expectTestToFail
         , test "a describe with the same name as a sibling describe fails" <|
-            \() ->
+            \{} ->
                 Test.concat
                     [ describe "A" [ test "x" expectPass ]
                     , describe "A" [ test "y" expectPass ]
                     ]
                     |> expectTestToFail
         , test "a describe with the same name as a de facto sibling describe fails" <|
-            \() ->
+            \{} ->
                 Test.concat
                     [ Test.concat
                         [ describe "A" [ test "x" expectPass ]
@@ -245,7 +251,7 @@ identicalNamesAreRejectedTests =
                     ]
                     |> expectTestToFail
         , test "a describe with the same name as a de facto sibling describe fails (2)" <|
-            \() ->
+            \{} ->
                 Test.concat
                     [ Test.concat
                         [ describe "A" [ test "x" expectPass ]

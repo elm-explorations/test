@@ -1,16 +1,17 @@
-module MicroDictExtra exposing (any, increment)
+module MicroDictExtra {a:any, b:increment} where
 
-import Dict exposing (Dict)
+import Dict (Dict)
+import Dict as Dict
 
 
-any : (k -> v -> Bool) -> Dict k v -> Bool
+any :: (k -> v -> Bool) -> Dict k v -> Bool
 any pred dict =
     dict
         |> Dict.toList
-        |> List.any (\( k, v ) -> pred k v)
+        |> List.any (\{a:k, b:v } -> pred k v)
 
 
-increment : comparable -> Dict comparable Int -> Dict comparable Int
+increment :: comparable -> Dict comparable Int -> Dict comparable Int
 increment key dict =
     dict
         |> Dict.update key

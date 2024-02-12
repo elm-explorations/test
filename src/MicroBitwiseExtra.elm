@@ -1,5 +1,4 @@
-module MicroBitwiseExtra exposing
-    ( int52FromTuple
+module MicroBitwiseExtra ( int52FromTuple
     , int52ToTuple
     , isBitSet
     , keepBits
@@ -7,12 +6,14 @@ module MicroBitwiseExtra exposing
     , reverseNBits
     , signedToUnsigned
     )
+ where
 
-import Array exposing (Array)
-import Bitwise
+import Array (Array)
+import Array as Array
+import Bitwise as Bitwise
 
 
-isBitSet : Int -> Int -> Bool
+isBitSet :: Int -> Int -> Bool
 isBitSet index num =
     if index >= 32 then
         -- let's move this into the realm of 32bit numbers and try again
@@ -26,8 +27,8 @@ isBitSet index num =
             == 1
 
 
-int52FromTuple : ( Int, Int ) -> Int
-int52FromTuple ( highBits, lowBits ) =
+int52FromTuple :: {a::Int, b::Int } -> Int
+int52FromTuple {a:highBits, b:lowBits } =
     (+)
         (highBits
             |> keepBits 20
@@ -41,7 +42,7 @@ int52FromTuple ( highBits, lowBits ) =
         )
 
 
-int52ToTuple : Int -> ( Int, Int )
+int52ToTuple :: Int -> {a::Int, b::Int }
 int52ToTuple n =
     ( -- Bitwise.shiftRightZfBy 32 would be buggy, so we do:
       (n // 0x0000000100000000)
@@ -53,7 +54,7 @@ int52ToTuple n =
     )
 
 
-ones : Int -> Int
+ones :: Int -> Int
 ones count =
     if count == 32 then
         -- edge case...
@@ -63,15 +64,15 @@ ones count =
         Bitwise.shiftLeftBy count 1 - 1
 
 
-keepBits : Int -> Int -> Int
+keepBits :: Int -> Int -> Int
 keepBits count num =
     Bitwise.and (ones count) num
 
 
-reverseByte : Int -> Int
+reverseByte :: Int -> Int
 reverseByte b_ =
     let
-        go : Int -> Int -> Int -> Int
+        go :: Int -> Int -> Int -> Int
         go result i b =
             if i <= 0 then
                 result
@@ -91,7 +92,7 @@ reverseByte b_ =
     go 0 8 b_
 
 
-reverseByteTable : Array Int
+reverseByteTable :: Array Int
 reverseByteTable =
     -- TODO PERF `Dict Int Int` or `IntDict Int` or `List` instead? Benchmark?
     List.range 0 255
@@ -99,14 +100,14 @@ reverseByteTable =
         |> Array.fromList
 
 
-memoizedReverseByte : Int -> Int
+memoizedReverseByte :: Int -> Int
 memoizedReverseByte b =
     Array.get b reverseByteTable
         -- shouldn't happen, we should only get values 0..255 here
         |> Maybe.withDefault 0
 
 
-reverse32Bits : Int -> Int
+reverse32Bits :: Int -> Int
 reverse32Bits n =
     Bitwise.shiftLeftBy 24 (memoizedReverseByte (Bitwise.and 0xFF (Bitwise.shiftRightBy 0 n)))
         |> Bitwise.or (Bitwise.shiftLeftBy 16 (memoizedReverseByte (Bitwise.and 0xFF (Bitwise.shiftRightBy 8 n))))
@@ -115,7 +116,7 @@ reverse32Bits n =
         |> signedToUnsigned
 
 
-signedToUnsigned : Int -> Int
+signedToUnsigned :: Int -> Int
 signedToUnsigned =
     Bitwise.shiftRightZfBy 0
 
@@ -126,7 +127,7 @@ signedToUnsigned =
   - `count` must be lower than the number of bits in `value`.
 
 -}
-reverseNBits : Int -> Int -> Int
+reverseNBits :: Int -> Int -> Int
 reverseNBits count value =
     value
         |> reverse32Bits
@@ -144,8 +145,8 @@ Simplified view of the bits:
      [ abcPONML ] [ KJIHGFED ]
 
 -}
-reverse52Bits : ( Int, Int ) -> ( Int, Int )
-reverse52Bits ( hi20, lo32 ) =
+reverse52Bits :: {a::Int, b::Int } -> {a::Int, b::Int }
+reverse52Bits {a:hi20, b:lo32 } =
     let
         reversedLo32 =
             reverse32Bits lo32
@@ -166,4 +167,4 @@ reverse52Bits ( hi20, lo32 ) =
                 |> Bitwise.or reversedHi20
                 |> signedToUnsigned
     in
-    ( newHi20, newLo32 )
+    {a:newHi20, b:newLo32 }

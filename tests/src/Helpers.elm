@@ -1,5 +1,4 @@
-module Helpers exposing
-    ( canGenerate
+module Helpers ( canGenerate
     , canGenerateSatisfying
     , canGenerateSatisfyingWith
     , canGenerateWith
@@ -20,30 +19,36 @@ module Helpers exposing
     , simplifiesTowardsWith
     , testStringLengthIsPreserved
     )
+ where
 
-import Expect exposing (Expectation)
-import Fuzz exposing (Fuzzer)
-import Random
-import Test exposing (Test)
-import Test.Runner exposing (Runner, SeededRunners)
-import Test.Runner.Failure exposing (Reason)
+import Expect (Expectation)
+import Expect as Expect
+import Fuzz (Fuzzer)
+import Fuzz as Fuzz
+import Random as Random
+import Test (Test)
+import Test as Test
+import Test.Runner {a::Runner, b::SeededRunners}
+import Test.Runner as Test.Runner
+import Test.Runner.Failure (Reason)
+import Test.Runner.Failure as Test.Runner.Failure
 
 
-defaultRuns : { runs : Int }
+defaultRuns :: { runs :: Int }
 defaultRuns =
-    { runs = 1000 }
+    { runs : 1000 }
 
 
 {-| To test simplifying, we have to fail some tests so we can simplify their inputs.
 The best place we found for storing the expected last state(s) of the simplifying procedure is the description field, which is why we have this function here.
 Previously, we (ab)used Expect.true for this, but since that was removed, here we are.
 -}
-expectSimplifiesTo : String -> Bool -> Expectation
+expectSimplifiesTo :: String -> Bool -> Expectation
 expectSimplifiesTo label a =
     Expect.equal True a |> Expect.onFail label
 
 
-testSimplifyingWith : { runs : Int } -> Test -> Test
+testSimplifyingWith :: { runs :: Int } -> Test -> Test
 testSimplifyingWith { runs } test =
     let
         handleFailure { given, description } =
@@ -51,17 +56,17 @@ testSimplifyingWith { runs } test =
                 Nothing ->
                     [ "Expected this test to have a given value!"
                     , "Description:"
-                    , "  " ++ description
+                    , "  " <> description
                     ]
                         |> String.join "\n"
                         |> Err
 
                 Just g ->
                     if String.contains g description then
-                        Ok ()
+                        Ok {}
 
                     else
-                        Err <| "Got simplified value " ++ g ++ " but expected " ++ description
+                        Err <| "Got simplified value " <> g <> " but expected " <> description
 
         seed =
             Random.initialSeed 2242652938
@@ -80,8 +85,8 @@ testSimplifyingWith { runs } test =
                         |> Maybe.withDefault "No labels??"
             in
             Test.test label <|
-                \() ->
-                    runner.run ()
+                \{} ->
+                    runner.run {}
                         |> List.head
                         |> Maybe.map (passToFail handleFailure)
                         |> Maybe.withDefault (Expect.fail "Somehow `testSimplifyingWith` had multiple tests inside")
@@ -90,7 +95,7 @@ testSimplifyingWith { runs } test =
             Debug.todo "Unexpected number of test runners in `testSimplifyingWith`"
 
 
-testFailingWith : { runs : Int } -> Test -> Test
+testFailingWith :: { runs :: Int } -> Test -> Test
 testFailingWith { runs } test =
     let
         handleFailure { given, description } =
@@ -98,13 +103,13 @@ testFailingWith { runs } test =
                 Nothing ->
                     [ "Expected this test to have a given value!"
                     , "Description:"
-                    , "  " ++ description
+                    , "  " <> description
                     ]
                         |> String.join "\n"
                         |> Err
 
                 Just _ ->
-                    Ok ()
+                    Ok {}
 
         seed =
             Random.initialSeed 2242652938
@@ -123,8 +128,8 @@ testFailingWith { runs } test =
                         |> Maybe.withDefault "No labels??"
             in
             Test.test label <|
-                \() ->
-                    runner.run ()
+                \{} ->
+                    runner.run {}
                         |> List.head
                         |> Maybe.map (passToFail handleFailure)
                         |> Maybe.withDefault (Expect.fail "Somehow `testFailingWith` had multiple tests inside")
@@ -133,20 +138,20 @@ testFailingWith { runs } test =
             Debug.todo "Unexpected number of test runners in `testFailingWith`"
 
 
-expectPass : a -> Expectation
+expectPass :: a -> Expectation
 expectPass _ =
     Expect.pass
 
 
-testStringLengthIsPreserved : List String -> Expectation
+testStringLengthIsPreserved :: List String -> Expectation
 testStringLengthIsPreserved strings =
     strings
         |> List.map String.length
         |> List.sum
-        |> Expect.equal (String.length (List.foldl (++) "" strings))
+        |> Expect.equal (String.length (List.foldl (<>) "" strings))
 
 
-expectToFail : Expectation -> Expectation
+expectToFail :: Expectation -> Expectation
 expectToFail expectation =
     case Test.Runner.getFailureReason expectation of
         Nothing ->
@@ -156,7 +161,7 @@ expectToFail expectation =
             Expect.pass
 
 
-expectTestToFail : Test -> Expectation
+expectTestToFail :: Test -> Expectation
 expectTestToFail test =
     let
         seed =
@@ -165,17 +170,17 @@ expectTestToFail test =
     test
         |> Test.Runner.fromTest 100 seed
         |> getRunners
-        |> List.concatMap (\{ run } -> run ())
-        |> List.map (\expectation () -> expectToFail expectation)
-        |> (\expectations -> Expect.all expectations ())
+        |> List.concatMap (\{ run } -> run {})
+        |> List.map (\expectation {} -> expectToFail expectation)
+        |> (\expectations -> Expect.all expectations {})
 
 
-passToFail :
-    ({ reason : Reason
-     , description : String
-     , given : Maybe String
+passToFail ::
+    ({ reason :: Reason
+     , description :: String
+     , given :: Maybe String
      }
-     -> Result String ()
+     -> Result String {}
     )
     -> Expectation
     -> Expectation
@@ -190,14 +195,14 @@ passToFail f expectation =
                     f record
     in
     case result of
-        Ok () ->
+        Ok {} ->
             Expect.pass
 
         Err message ->
             Expect.fail message
 
 
-getRunners : SeededRunners -> List Runner
+getRunners :: SeededRunners -> List Runner
 getRunners seededRunners =
     case seededRunners of
         Test.Runner.Plain runners ->
@@ -210,111 +215,111 @@ getRunners seededRunners =
             runners
 
         Test.Runner.Invalid _ ->
-            []
+            List.nil
 
 
 {-| get a good distribution of random seeds, and don't simplify our seeds!
 -}
-randomSeedFuzzer : Fuzzer Random.Seed
+randomSeedFuzzer :: Fuzzer Random.Seed
 randomSeedFuzzer =
     Fuzz.intRange 0 0xFFFFFFFF
         |> Fuzz.map Random.initialSeed
 
 
-same : Expectation -> Expectation -> Expectation
+same :: Expectation -> Expectation -> Expectation
 same a b =
-    case ( Test.Runner.getFailureReason a, Test.Runner.getFailureReason b ) of
-        ( Nothing, Nothing ) ->
+    case {a:Test.Runner.getFailureReason a, b:Test.Runner.getFailureReason b } of
+        {a::Nothing, b::Nothing } ->
             Expect.pass
 
-        ( Just _, Just _ ) ->
+        {a::Just _, b::Just _ } ->
             Expect.pass
 
-        ( reasonA, reasonB ) ->
+        {a:reasonA, b:reasonB } ->
             Expect.equal reasonA reasonB
                 |> Expect.onFail "expected both arguments to fail, or both to succeed"
 
 
-different : Expectation -> Expectation -> Expectation
+different :: Expectation -> Expectation -> Expectation
 different a b =
-    case ( Test.Runner.getFailureReason a, Test.Runner.getFailureReason b ) of
-        ( Nothing, Just _ ) ->
+    case {a:Test.Runner.getFailureReason a, b:Test.Runner.getFailureReason b } of
+        {a::Nothing, b::Just _ } ->
             Expect.pass
 
-        ( Just _, Nothing ) ->
+        {a::Just _, b::Nothing } ->
             Expect.pass
 
-        ( Nothing, Nothing ) ->
+        {a::Nothing, b::Nothing } ->
             Expect.fail "expected only one argument to fail, but both passed"
 
-        ( Just reasonA, Just reasonB ) ->
+        {a::Just reasonA, b::Just reasonB } ->
             [ reasonA, reasonB ]
-                |> Expect.equal []
+                |> Expect.equal List.nil
                 |> Expect.onFail "expected only one argument to fail"
 
 
-passes : String -> Fuzzer a -> (a -> Bool) -> Test
+passes :: String -> Fuzzer a -> (a -> Bool) -> Test
 passes label fuzzer fn =
     passesWith defaultRuns label fuzzer fn
 
 
-passesWith : { runs : Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
+passesWith :: { runs :: Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
 passesWith { runs } label fuzzer fn =
     Test.fuzzWith
-        { runs = runs
-        , distribution = Test.noDistribution
+        { runs : runs
+        , distribution : Test.noDistribution
         }
         fuzzer
         label
         (fn >> Expect.equal True)
 
 
-canGenerateSatisfying : String -> Fuzzer a -> (a -> Bool) -> Test
+canGenerateSatisfying :: String -> Fuzzer a -> (a -> Bool) -> Test
 canGenerateSatisfying label fuzzer fn =
     canGenerateSatisfyingWith defaultRuns label fuzzer fn
 
 
-canGenerateSatisfyingWith : { runs : Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
+canGenerateSatisfyingWith :: { runs :: Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
 canGenerateSatisfyingWith runs label fuzzer fn =
     testFailingWith runs <|
         Test.fuzz fuzzer
-            ("Can generate satisfying: " ++ label)
+            ("Can generate satisfying: " <> label)
             (\fuzzedValue ->
                 (not <| fn fuzzedValue)
                     |> Expect.equal True
             )
 
 
-cannotGenerateSatisfying : String -> Fuzzer a -> (a -> Bool) -> Test
+cannotGenerateSatisfying :: String -> Fuzzer a -> (a -> Bool) -> Test
 cannotGenerateSatisfying label fuzzer fn =
     cannotGenerateSatisfyingWith defaultRuns label fuzzer fn
 
 
-cannotGenerateSatisfyingWith : { runs : Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
+cannotGenerateSatisfyingWith :: { runs :: Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
 cannotGenerateSatisfyingWith runs label fuzzer fn =
     passesWith runs
-        ("Cannot generate satisfying: " ++ label)
+        ("Cannot generate satisfying: " <> label)
         fuzzer
         (not << fn)
 
 
-cannotGenerate : a -> Fuzzer a -> Test
+cannotGenerate :: a -> Fuzzer a -> Test
 cannotGenerate value fuzzer =
     let
         valueString =
             Debug.toString value
     in
-    passes ("Cannot generate " ++ valueString)
+    passes ("Cannot generate " <> valueString)
         fuzzer
         (\v -> v /= value)
 
 
-canGenerate : a -> Fuzzer a -> Test
+canGenerate :: a -> Fuzzer a -> Test
 canGenerate value fuzzer =
     canGenerateWith defaultRuns value fuzzer
 
 
-canGenerateWith : { runs : Int } -> a -> Fuzzer a -> Test
+canGenerateWith :: { runs :: Int } -> a -> Fuzzer a -> Test
 canGenerateWith runs value fuzzer =
     let
         valueString =
@@ -322,19 +327,19 @@ canGenerateWith runs value fuzzer =
     in
     testSimplifyingWith runs <|
         Test.fuzz fuzzer
-            ("Can generate " ++ valueString)
+            ("Can generate " <> valueString)
             (\fuzzedValue ->
                 (fuzzedValue /= value)
                     |> expectSimplifiesTo valueString
             )
 
 
-simplifiesTowards : String -> a -> Fuzzer a -> (a -> Bool) -> Test
+simplifiesTowards :: String -> a -> Fuzzer a -> (a -> Bool) -> Test
 simplifiesTowards =
     simplifiesTowardsWith defaultRuns
 
 
-simplifiesTowardsWith : { runs : Int } -> String -> a -> Fuzzer a -> (a -> Bool) -> Test
+simplifiesTowardsWith :: { runs :: Int } -> String -> a -> Fuzzer a -> (a -> Bool) -> Test
 simplifiesTowardsWith runs label value fuzzer fn =
     let
         valueString =
@@ -342,19 +347,19 @@ simplifiesTowardsWith runs label value fuzzer fn =
     in
     testSimplifyingWith runs <|
         Test.fuzz fuzzer
-            ("[" ++ label ++ "] Simplifies towards " ++ valueString)
+            ("[" <> label <> "] Simplifies towards " <> valueString)
             (\fuzzedValue ->
                 fn fuzzedValue
                     |> expectSimplifiesTo valueString
             )
 
 
-simplifiesTowardsMany : String -> List a -> Fuzzer a -> (a -> Bool) -> Test
+simplifiesTowardsMany :: String -> List a -> Fuzzer a -> (a -> Bool) -> Test
 simplifiesTowardsMany =
     simplifiesTowardsManyWith defaultRuns
 
 
-simplifiesTowardsManyWith : { runs : Int } -> String -> List a -> Fuzzer a -> (a -> Bool) -> Test
+simplifiesTowardsManyWith :: { runs :: Int } -> String -> List a -> Fuzzer a -> (a -> Bool) -> Test
 simplifiesTowardsManyWith runs label values fuzzer fn =
     let
         valuesString =
@@ -364,16 +369,16 @@ simplifiesTowardsManyWith runs label values fuzzer fn =
     in
     testSimplifyingWith runs <|
         Test.fuzz fuzzer
-            ("[" ++ label ++ "] Simplifies towards one of " ++ valuesString)
+            ("[" <> label <> "] Simplifies towards one of " <> valuesString)
             (\fuzzedValue ->
                 fn fuzzedValue
                     |> expectSimplifiesTo valuesString
             )
 
 
-rejects : String -> Fuzzer a -> String -> Test
+rejects :: String -> Fuzzer a -> String -> Test
 rejects label fuzzer expectedReason =
-    Test.fuzz randomSeedFuzzer ("Rejects: " ++ label) <|
+    Test.fuzz randomSeedFuzzer ("Rejects: " <> label) <|
         \seed ->
             case Random.step (Test.Runner.fuzz fuzzer) seed of
                 ( Err reason, _ ) ->
@@ -384,8 +389,8 @@ rejects label fuzzer expectedReason =
                     Expect.fail "Fuzzer generated a value instead of being marked as invalid"
 
 
-doesNotReject : String -> Fuzzer a -> Test
+doesNotReject :: String -> Fuzzer a -> Test
 doesNotReject label fuzzer =
-    passes ("Does not reject: " ++ label)
+    passes ("Does not reject: " <> label)
         fuzzer
         (\_ -> True)

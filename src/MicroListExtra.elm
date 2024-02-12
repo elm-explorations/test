@@ -1,5 +1,4 @@
-module MicroListExtra exposing
-    ( fastConcat
+module MicroListExtra ( fastConcat
     , fastConcatMap
     , find
     , getAt
@@ -7,9 +6,10 @@ module MicroListExtra exposing
     , splitWhen
     , transpose
     )
+ where
 
 
-getAt : Int -> List a -> Maybe a
+getAt :: Int -> List a -> Maybe a
 getAt index list =
     if index < 0 then
         Nothing
@@ -20,34 +20,34 @@ getAt index list =
             |> List.head
 
 
-setAt : Int -> a -> Int -> List a -> List a
+setAt :: Int -> a -> Int -> List a -> List a
 setAt index value length list =
     if length <= index || index < 0 then
         list
 
     else
         List.take index list
-            ++ value
-            :: List.drop (index + 1) list
+            <> value
+            List.: List.drop (index + 1) list
 
 
-fastConcat : List (List a) -> List a
+fastConcat :: List (List a) -> List a
 fastConcat =
-    List.foldr (++) []
+    List.foldr (<>) List.nil
 
 
-fastConcatMap : (a -> List b) -> List a -> List b
+fastConcatMap :: (a -> List b) -> List a -> List b
 fastConcatMap f =
-    List.foldr (f >> (++)) []
+    List.foldr (f >> (<>)) List.nil
 
 
-find : (a -> Bool) -> List a -> Maybe a
+find :: (a -> Bool) -> List a -> Maybe a
 find predicate list =
     case list of
-        [] ->
+        List.nil ->
             Nothing
 
-        first :: rest ->
+        first List.: rest ->
             if predicate first then
                 Just first
 
@@ -55,24 +55,24 @@ find predicate list =
                 find predicate rest
 
 
-splitWhen : (a -> Bool) -> List a -> Maybe ( List a, List a )
+splitWhen :: (a -> Bool) -> List a -> Maybe {a::List a, b::List a }
 splitWhen predicate list =
     findIndex predicate list
         |> Maybe.map (\i -> splitAt i list)
 
 
-findIndex : (a -> Bool) -> List a -> Maybe Int
+findIndex :: (a -> Bool) -> List a -> Maybe Int
 findIndex =
     findIndexHelp 0
 
 
-findIndexHelp : Int -> (a -> Bool) -> List a -> Maybe Int
+findIndexHelp :: Int -> (a -> Bool) -> List a -> Maybe Int
 findIndexHelp index predicate list =
     case list of
-        [] ->
+        List.nil ->
             Nothing
 
-        x :: xs ->
+        x List.: xs ->
             if predicate x then
                 Just index
 
@@ -80,21 +80,21 @@ findIndexHelp index predicate list =
                 findIndexHelp (index + 1) predicate xs
 
 
-splitAt : Int -> List a -> ( List a, List a )
+splitAt :: Int -> List a -> {a::List a, b::List a }
 splitAt n xs =
-    ( List.take n xs, List.drop n xs )
+    {a:List.take n xs, b:List.drop n xs }
 
 
-transpose : List (List a) -> List (List a)
+transpose :: List (List a) -> List (List a)
 transpose listOfLists =
-    List.foldr (List.map2 (::)) (List.repeat (rowsLength listOfLists) []) listOfLists
+    List.foldr (List.map2 (List.:)) (List.repeat (rowsLength listOfLists) List.nil) listOfLists
 
 
-rowsLength : List (List a) -> Int
+rowsLength :: List (List a) -> Int
 rowsLength listOfLists =
     case listOfLists of
-        [] ->
+        List.nil ->
             0
 
-        x :: _ ->
+        x List.: _ ->
             List.length x

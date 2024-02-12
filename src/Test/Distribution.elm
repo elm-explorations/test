@@ -1,7 +1,7 @@
-module Test.Distribution exposing
-    ( ExpectedDistribution, atLeast, zero, moreThanZero
+module Test.Distribution ( ExpectedDistribution, atLeast, zero, moreThanZero
     , DistributionReport(..), distributionReportTable
     )
+ where
 
 {-|
 
@@ -13,9 +13,10 @@ module Test.Distribution exposing
 
 -}
 
-import Dict exposing (Dict)
-import Test.Distribution.Internal
-import Test.Runner.Distribution
+import Dict (Dict)
+import Dict as Dict
+import Test.Distribution.Internal as Test.Distribution.Internal
+import Test.Runner.Distribution as Test.Runner.Distribution
 
 
 {-| Your input distribution requirement for the fuzzer used in a test.
@@ -24,13 +25,13 @@ For example, "this test shouldn't ever receive strings of length < 3 as an input
 or "at least 30% of the test input trees should be balanced".
 
 -}
-type alias ExpectedDistribution =
+type ExpectedDistribution =
     Test.Distribution.Internal.ExpectedDistribution
 
 
 {-| A requirement that a given value class should never happen in a given test.
 -}
-zero : ExpectedDistribution
+zero :: ExpectedDistribution
 zero =
     Test.Distribution.Internal.Zero
 
@@ -38,7 +39,7 @@ zero =
 {-| A requirement that a given value class should happen at least once in a given
 test.
 -}
-moreThanZero : ExpectedDistribution
+moreThanZero :: ExpectedDistribution
 moreThanZero =
     Test.Distribution.Internal.MoreThanZero
 
@@ -58,7 +59,7 @@ multiples of 3.
         }
 
 -}
-atLeast : Float -> ExpectedDistribution
+atLeast :: Float -> ExpectedDistribution
 atLeast =
     Test.Distribution.Internal.AtLeast
 
@@ -68,37 +69,37 @@ atLeast =
 Get it from your `Expectation` with `Test.Runner.getDistributionReport`.
 
 -}
-type DistributionReport
+data DistributionReport
     = NoDistribution
     | DistributionToReport
-        { distributionCount : Dict (List String) Int
-        , runsElapsed : Int
+        { distributionCount :: Dict (List String) Int
+        , runsElapsed :: Int
         }
     | DistributionCheckSucceeded
-        { distributionCount : Dict (List String) Int
-        , runsElapsed : Int
+        { distributionCount :: Dict (List String) Int
+        , runsElapsed :: Int
         }
     | DistributionCheckFailed
-        { distributionCount : Dict (List String) Int
-        , runsElapsed : Int
-        , badLabel : String
-        , badLabelPercentage : Float
+        { distributionCount :: Dict (List String) Int
+        , runsElapsed :: Int
+        , badLabel :: String
+        , badLabelPercentage :: Float
         , {- Would be great to return ExpectedDistribution here but it's defined (and
              used) in an internal module. The only way from this dependency cycle
              I can see involves exposing the constructors and having a duplicate
              definition of this type + conversion functions between them.
              ~janiczek
           -}
-          expectedDistribution : String
+          expectedDistribution :: String
         }
 
 
 {-| Prettyprints the record inside `DistributionReport` into a table with histograms.
 -}
-distributionReportTable :
+distributionReportTable ::
     { a
-        | runsElapsed : Int
-        , distributionCount : Dict (List String) Int
+        | runsElapsed :: Int
+        , distributionCount :: Dict (List String) Int
     }
     -> String
 distributionReportTable r =

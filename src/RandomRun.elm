@@ -1,5 +1,4 @@
-module RandomRun exposing
-    ( Chunk
+module RandomRun ( Chunk
     , RandomRun
     , append
     , compare
@@ -19,38 +18,41 @@ module RandomRun exposing
     , toList
     , update
     )
+ where
 
 import MicroListExtra as List
-import Queue exposing (Queue)
+
+import Queue (Queue)
+import Queue as Queue
 
 
-type alias RandomRun =
-    { data : Queue Int
+type RandomRun =
+    { data :: Queue Int
 
     -- derived precomputed data:
-    , length : Int
+    , length :: Int
     }
 
 
-type alias Chunk =
-    { size : Int
-    , startIndex : Int
+type Chunk =
+    { size :: Int
+    , startIndex :: Int
     }
 
 
-empty : RandomRun
+empty :: RandomRun
 empty =
-    { data = Queue.empty
-    , length = 0
+    { data : Queue.empty
+    , length : 0
     }
 
 
-isEmpty : RandomRun -> Bool
+isEmpty :: RandomRun -> Bool
 isEmpty run =
     run.length == 0
 
 
-nextChoice : RandomRun -> Maybe ( Int, RandomRun )
+nextChoice :: RandomRun -> Maybe {a::Int, b::RandomRun }
 nextChoice run =
     case Queue.dequeue run.data of
         ( Nothing, _ ) ->
@@ -61,30 +63,30 @@ nextChoice run =
                 ( first
                 , { run
                     | length = run.length - 1
-                    , data = rest
+                    , data : rest
                   }
                 )
 
 
-append : Int -> RandomRun -> RandomRun
+append :: Int -> RandomRun -> RandomRun
 append n run =
     { run
         | length = run.length + 1
-        , data = Queue.enqueue n run.data
+        , data : Queue.enqueue n run.data
     }
 
 
-isInBounds : Chunk -> RandomRun -> Bool
+isInBounds :: Chunk -> RandomRun -> Bool
 isInBounds { startIndex, size } run =
     startIndex + size <= run.length
 
 
-length : RandomRun -> Int
+length :: RandomRun -> Int
 length run =
     run.length
 
 
-getChunk : Chunk -> RandomRun -> Maybe (List Int)
+getChunk :: Chunk -> RandomRun -> Maybe (List Int)
 getChunk chunk run =
     if isInBounds chunk run then
         run.data
@@ -97,7 +99,7 @@ getChunk chunk run =
         Nothing
 
 
-deleteChunk : Chunk -> RandomRun -> RandomRun
+deleteChunk :: Chunk -> RandomRun -> RandomRun
 deleteChunk chunk run =
     if isInBounds chunk run then
         let
@@ -107,9 +109,9 @@ deleteChunk chunk run =
             result =
                 { run
                     | length = run.length - chunk.size
-                    , data =
+                    , data :
                         (List.take chunk.startIndex list
-                            ++ List.drop (chunk.startIndex + chunk.size) list
+                            <> List.drop (chunk.startIndex + chunk.size) list
                         )
                             |> Queue.fromList
                 }
@@ -120,7 +122,7 @@ deleteChunk chunk run =
         run
 
 
-replaceChunkWithZero : Chunk -> RandomRun -> RandomRun
+replaceChunkWithZero :: Chunk -> RandomRun -> RandomRun
 replaceChunkWithZero chunk run =
     if isInBounds chunk run then
         -- TODO PERF: maybe `replace [...] run` would be faster?
@@ -128,21 +130,20 @@ replaceChunkWithZero chunk run =
             list =
                 Queue.toList run.data
         in
-        { run
-            | data =
+        ( run { data =
                 List.fastConcat
                     [ List.take chunk.startIndex list
                     , List.repeat chunk.size 0
                     , List.drop (chunk.startIndex + chunk.size) list
                     ]
                     |> Queue.fromList
-        }
+         })
 
     else
         run
 
 
-sortChunk : Chunk -> RandomRun -> RandomRun
+sortChunk :: Chunk -> RandomRun -> RandomRun
 sortChunk chunk run =
     case getChunk chunk run of
         Nothing ->
@@ -150,17 +151,17 @@ sortChunk chunk run =
 
         Just chunkData ->
             let
-                sortedIndexed : List ( Int, Int )
+                sortedIndexed :: List {a::Int, b::Int }
                 sortedIndexed =
                     chunkData
                         |> List.sort
                         |> List.indexedMap
-                            (\i value -> ( chunk.startIndex + i, value ))
+                            (\i value -> {a:chunk.startIndex + i, b:value })
             in
             replace sortedIndexed run
 
 
-replace : List ( Int, Int ) -> RandomRun -> RandomRun
+replace :: List {a::Int, b::Int } -> RandomRun -> RandomRun
 replace values run =
     replaceInList values run.length (Queue.toList run.data)
 
@@ -171,12 +172,12 @@ Expects `list == Queue.toList run.data`
 and `len == Queue.size run.data`
 
 -}
-replaceInList : List ( Int, Int ) -> Int -> List Int -> RandomRun
+replaceInList :: List {a::Int, b::Int } -> Int -> List Int -> RandomRun
 replaceInList values len list =
-    { length = len
-    , data =
+    { length : len
+    , data :
         List.foldl
-            (\( index, newValue ) accList ->
+            (\{a:index, b:newValue } accList ->
                 if newValue < 0 then
                     accList
 
@@ -189,8 +190,8 @@ replaceInList values len list =
     }
 
 
-swapChunks :
-    { leftChunk : Chunk, rightChunk : Chunk }
+swapChunks ::
+    { leftChunk :: Chunk, rightChunk :: Chunk }
     -> RandomRun
     -> Maybe RandomRun
 swapChunks { leftChunk, rightChunk } run =
@@ -202,8 +203,8 @@ swapChunks { leftChunk, rightChunk } run =
         (\lefts rights ->
             replaceInList
                 (List.concat
-                    [ List.indexedMap (\i n -> ( rightChunk.startIndex + i, n )) lefts
-                    , List.indexedMap (\i n -> ( leftChunk.startIndex + i, n )) rights
+                    [ List.indexedMap (\i n -> {a:rightChunk.startIndex + i, b:n }) lefts
+                    , List.indexedMap (\i n -> {a:leftChunk.startIndex + i, b:n }) rights
                     ]
                 )
                 run.length
@@ -217,14 +218,14 @@ swapChunks { leftChunk, rightChunk } run =
         (getChunk rightChunk run)
 
 
-swapIfOutOfOrder :
-    { leftIndex : Int, rightIndex : Int }
+swapIfOutOfOrder ::
+    { leftIndex :: Int, rightIndex :: Int }
     -> RandomRun
     ->
         Maybe
-            { newRun : RandomRun
-            , newLeftValue : Int
-            , newRightValue : Int
+            { newRun :: RandomRun
+            , newLeftValue :: Int
+            , newRightValue :: Int
             }
 swapIfOutOfOrder { leftIndex, rightIndex } run =
     let
@@ -234,76 +235,75 @@ swapIfOutOfOrder { leftIndex, rightIndex } run =
     Maybe.map2
         (\left right ->
             if left > right then
-                { newRun =
+                { newRun :
                     replaceInList
-                        [ ( leftIndex, right )
-                        , ( rightIndex, left )
+                        [ {a:leftIndex, b:right }
+                        , {a:rightIndex, b:left }
                         ]
                         run.length
                         list
-                , newLeftValue = right
-                , newRightValue = left
+                , newLeftValue : right
+                , newRightValue : left
                 }
 
             else
-                { newRun = run
-                , newLeftValue = left
-                , newRightValue = right
+                { newRun : run
+                , newLeftValue : left
+                , newRightValue : right
                 }
         )
         (List.getAt leftIndex list)
         (List.getAt rightIndex list)
 
 
-get : Int -> RandomRun -> Maybe Int
+get :: Int -> RandomRun -> Maybe Int
 get index run =
     run.data
         |> Queue.toList
         |> List.getAt index
 
 
-set : Int -> Int -> RandomRun -> RandomRun
+set :: Int -> Int -> RandomRun -> RandomRun
 set index value run =
     if run.length <= index then
         run
 
     else
-        { run
-            | data =
+        ( run { data =
                 run.data
                     |> Queue.toList
                     |> List.setAt index value run.length
                     |> Queue.fromList
-        }
+         })
 
 
-sortKey : RandomRun -> ( Int, List Int )
+sortKey :: RandomRun -> {a::Int, b::List Int }
 sortKey run =
-    ( run.length
-    , toList run
-    )
+    {a:run.length
+    , b:toList run
+    }
 
 
-compare : RandomRun -> RandomRun -> Order
+compare :: RandomRun -> RandomRun -> Order
 compare a b =
     Basics.compare (sortKey a) (sortKey b)
 
 
-toList : RandomRun -> List Int
+toList :: RandomRun -> List Int
 toList run =
     Queue.toList run.data
 
 
-update : Int -> (Int -> Int) -> RandomRun -> RandomRun
+update :: Int -> (Int -> Int) -> RandomRun -> RandomRun
 update index fn run =
     case get index run of
         Nothing ->
             run
 
         Just value ->
-            replace [ ( index, fn value ) ] run
+            replace [ {a:index, b:fn value } ] run
 
 
-equal : RandomRun -> RandomRun -> Bool
+equal :: RandomRun -> RandomRun -> Bool
 equal run1 run2 =
     toList run1 == toList run2

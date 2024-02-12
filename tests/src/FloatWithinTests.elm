@@ -1,12 +1,16 @@
-module FloatWithinTests exposing (floatWithinTests)
+module FloatWithinTests (floatWithinTests) where
 
-import Expect exposing (FloatingPointTolerance(..))
-import Fuzz exposing (..)
-import Helpers exposing (..)
-import Test exposing (..)
+import Expect (FloatingPointTolerance(..))
+import Expect as Expect
+import Fuzz (..)
+import Fuzz as Fuzz
+import Helpers (..)
+import Helpers as Helpers
+import Test (..)
+import Test as Test
 
 
-floatWithinTests : Test
+floatWithinTests :: Test
 floatWithinTests =
     describe "Expect.within"
         [ describe "use-cases"
@@ -27,14 +31,14 @@ floatWithinTests =
                         |> Expect.within (Absolute 0.001) pi
                         |> expectToFail
             , test "too high absolute tolerance of circle circumference using pi approximation" <|
-                \() ->
+                \{} ->
                     expectTestToFail <|
                         fuzz (floatRange 0.000001 100000) "x" <|
                             \radius ->
                                 (radius * pi)
                                     |> Expect.within (Absolute 0.001) (radius * 3.14)
             , test "too high relative tolerance of circle circumference using pi approximation" <|
-                \() ->
+                \{} ->
                     expectTestToFail <|
                         fuzz (floatRange 0.000001 100000) "x" <|
                             \radius ->
@@ -130,7 +134,7 @@ floatWithinTests =
                     in
                     different withinTest notWithinTest
             , fuzz2 (pair niceFloat niceFloat) (pair niceFloat niceFloat) "within and notWithin should never agree on absolute or relative tolerance" <|
-                \( absoluteEpsilon, relativeEpsilon ) ( a, b ) ->
+                \{a:absoluteEpsilon, b:relativeEpsilon } {a:a, b:b } ->
                     let
                         withinTest =
                             a |> Expect.within (AbsoluteOrRelative (abs absoluteEpsilon) (abs relativeEpsilon)) b

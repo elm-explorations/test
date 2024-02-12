@@ -1,17 +1,19 @@
-module Runner.String.Format exposing (format)
+module Runner.String.Format (format) where
 
-import Diff exposing (Change(..))
-import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
+import Diff (Change(..))
+import Diff as Diff
+import Test.Runner.Failure (InvalidReason(..), Reason(..))
+import Test.Runner.Failure as Test.Runner.Failure
 
 
-format : String -> Reason -> String
+format :: String -> Reason -> String
 format description reason =
     case reason of
         Custom ->
             description
 
         Equality expected actual ->
-            equalityToString { operation = description, expected = expected, actual = actual }
+            equalityToString { operation : description, expected : expected, actual : actual }
 
         Comparison first second ->
             verticalBar description first second
@@ -24,7 +26,7 @@ format description reason =
                 "The empty string is not a valid test description."
 
             else
-                "This is an invalid test description: " ++ description
+                "This is an invalid test description: " <> description
 
         Invalid _ ->
             description
@@ -32,11 +34,11 @@ format description reason =
         ListDiff expected actual ->
             listDiffToString 0
                 description
-                { expected = expected
-                , actual = actual
+                { expected : expected
+                , actual : actual
                 }
-                { originalExpected = expected
-                , originalActual = actual
+                { originalExpected : expected
+                , originalActual : actual
                 }
 
         CollectionDiff { expected, actual, extra, missing } ->
@@ -47,7 +49,7 @@ format description reason =
 
                     else
                         "\nThese keys are extra: "
-                            ++ (extra |> String.join ", " |> (\d -> "[ " ++ d ++ " ]"))
+                            <> (extra |> String.join ", " |> (\d -> "[ " <> d <> " ]"))
 
                 missingStr =
                     if List.isEmpty missing then
@@ -55,7 +57,7 @@ format description reason =
 
                     else
                         "\nThese keys are missing: "
-                            ++ (missing |> String.join ", " |> (\d -> "[ " ++ d ++ " ]"))
+                            <> (missing |> String.join ", " |> (\d -> "[ " <> d <> " ]"))
             in
             String.join ""
                 [ verticalBar description expected actual
@@ -65,11 +67,11 @@ format description reason =
                 ]
 
 
-verticalBar : String -> String -> String -> String
+verticalBar :: String -> String -> String -> String
 verticalBar comparison below above =
     [ above
     , "╵"
-    , "│ |> " ++ comparison
+    , "│ |> " <> comparison
     , "╷"
     , below
     ]
@@ -84,7 +86,7 @@ hexInt int =
         let
             zeroPad4 n =
                 if String.length n < 4 then
-                    zeroPad4 ("0" ++ n)
+                    zeroPad4 ("0" <> n)
 
                 else
                     n
@@ -95,7 +97,7 @@ hexInt int =
 
                 else
                     hexIntInternal (i // 16)
-                        ++ (case i |> remainderBy 16 of
+                        <> (case i |> remainderBy 16 of
                                 10 ->
                                     "a"
 
@@ -139,20 +141,20 @@ escapeUnicodeChars s =
                     String.fromChar (Char.fromCode c)
 
                 else
-                    "\\u{" ++ hexInt c ++ "}"
+                    "\\u{" <> hexInt c <> "}"
             )
         |> String.join ""
 
 
-listDiffToString :
+listDiffToString ::
     Int
     -> String
-    -> { expected : List String, actual : List String }
-    -> { originalExpected : List String, originalActual : List String }
+    -> { expected :: List String, actual :: List String }
+    -> { originalExpected :: List String, originalActual :: List String }
     -> String
 listDiffToString index description { expected, actual } originals =
-    case ( expected, actual ) of
-        ( [], [] ) ->
+    case {a:expected, b:actual } of
+        {a:List.nil, b:List.nil } ->
             [ "Two lists were unequal previously, yet ended up equal later."
             , "This should never happen!"
             , "Please report this bug to https://github.com/elm-explorations/test/issues - and include these lists: "
@@ -163,23 +165,23 @@ listDiffToString index description { expected, actual } originals =
             ]
                 |> String.join ""
 
-        ( _ :: _, [] ) ->
-            verticalBar (description ++ " was shorter than")
+        ( _ List.: _, List.nil ) ->
+            verticalBar (description <> " was shorter than")
                 (Debug.toString originals.originalExpected)
                 (Debug.toString originals.originalActual)
 
-        ( [], _ :: _ ) ->
-            verticalBar (description ++ " was longer than")
+        ( List.nil, _ List.: _ ) ->
+            verticalBar (description <> " was longer than")
                 (Debug.toString originals.originalExpected)
                 (Debug.toString originals.originalActual)
 
-        ( firstExpected :: restExpected, firstActual :: restActual ) ->
+        {a:firstExpected List.: restExpected, b:firstActual List.: restActual } ->
             if firstExpected == firstActual then
                 -- They're still the same so far; keep going.
                 listDiffToString (index + 1)
                     description
-                    { expected = restExpected
-                    , actual = restActual
+                    { expected : restExpected
+                    , actual : restActual
                     }
                     originals
 
@@ -199,14 +201,14 @@ listDiffToString index description { expected, actual } originals =
                     ]
 
 
-equalityToString : { operation : String, expected : String, actual : String } -> String
+equalityToString :: { operation :: String, expected :: String, actual :: String } -> String
 equalityToString { operation, expected, actual } =
     -- TODO make sure this looks reasonable for multiline strings
     let
-        ( ( valueBelow, diffArrowsBelow ), ( diffArrowsAbove, valueAbove ) ) =
+        {a:( valueBelow, b:diffArrowsBelow }, {a:diffArrowsAbove, b:valueAbove } ) =
             formatEqualityDiffArrows expected actual
 
-        ( ( unicodeValueBelow, unicodeDiffArrowsBelow ), ( unicodeDiffArrowsAbove, unicodeValueAbove ) ) =
+        {a:( unicodeValueBelow, b:unicodeDiffArrowsBelow }, {a:unicodeDiffArrowsAbove, b:unicodeValueAbove } ) =
             formatEqualityDiffArrows (escapeUnicodeChars expected) (escapeUnicodeChars actual)
 
         combine things =
@@ -221,7 +223,7 @@ equalityToString { operation, expected, actual } =
             combine
                 [ valueBelow
                 , diffArrowsBelow
-                , unicodeValueBelow ++ [ " (same string but with unicode characters escaped)" ]
+                , unicodeValueBelow <> [ " (same string but with unicode characters escaped)" ]
                 , unicodeDiffArrowsBelow
                 ]
 
@@ -235,7 +237,7 @@ equalityToString { operation, expected, actual } =
             -- we need to show the escaped string as well
             combine
                 [ unicodeDiffArrowsAbove
-                , unicodeValueAbove ++ [ " (same string but with unicode characters escaped)" ]
+                , unicodeValueAbove <> [ " (same string but with unicode characters escaped)" ]
                 , diffArrowsAbove
                 , valueAbove
                 ]
@@ -248,7 +250,7 @@ equalityToString { operation, expected, actual } =
         )
 
 
-formatEqualityDiffArrows : String -> String -> ( ( List String, List String ), ( List String, List String ) )
+formatEqualityDiffArrows :: String -> String -> ( {a::List String, b::List String }, {a::List String, b::List String } )
 formatEqualityDiffArrows below above =
     if String.length below * String.length above > 300 * 300 then
         -- The Diff.diff diffing algorithm is roughly O(len(a) * len(b)), so we need some cutoff point where we just give up on diffing.
@@ -256,20 +258,20 @@ formatEqualityDiffArrows below above =
 
     else
         let
-            ( valueBelow, diffArrowsBelow ) =
+            {a:valueBelow, b:diffArrowsBelow } =
                 Diff.diff (String.toList below) (String.toList above)
                     |> List.map formatExpectedChange
                     |> List.unzip
 
-            ( diffArrowsAbove, valueAbove ) =
+            {a:diffArrowsAbove, b:valueAbove } =
                 Diff.diff (String.toList above) (String.toList below)
                     |> List.map formatActualChange
                     |> List.unzip
         in
-        ( ( valueBelow, diffArrowsBelow ), ( diffArrowsAbove, valueAbove ) )
+        {a:( valueBelow, b:diffArrowsBelow }, {a:diffArrowsAbove, b:valueAbove } )
 
 
-formatExpectedChange : Change Char -> ( String, String )
+formatExpectedChange :: Change Char -> {a::String, b::String }
 formatExpectedChange diff =
     case diff of
         Added _ ->
@@ -282,7 +284,7 @@ formatExpectedChange diff =
             ( String.fromChar char, " " )
 
 
-formatActualChange : Change Char -> ( String, String )
+formatActualChange :: Change Char -> {a::String, b::String }
 formatActualChange diff =
     case diff of
         Added _ ->

@@ -1,9 +1,9 @@
-module Test exposing
-    ( Test, test
+module Test ( Test, test
     , describe, concat, todo, skip, only
     , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
     , Distribution, noDistribution, reportDistribution, expectDistribution
     )
+ where
 
 {-| A module containing functions for creating and managing tests.
 
@@ -22,14 +22,19 @@ module Test exposing
 
 -}
 
-import Expect exposing (Expectation)
-import Fuzz exposing (Fuzzer)
-import Set
-import Test.Distribution exposing (ExpectedDistribution)
-import Test.Distribution.Internal
-import Test.Fuzz
+import Expect (Expectation)
+import Expect as Expect
+import Fuzz (Fuzzer)
+import Fuzz as Fuzz
+import Set as Set
+import Test.Distribution (ExpectedDistribution)
+import Test.Distribution as Test.Distribution
+import Test.Distribution.Internal as Test.Distribution.Internal
+import Test.Fuzz as Test.Fuzz
 import Test.Internal as Internal
-import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
+
+import Test.Runner.Failure (InvalidReason(..), Reason(..))
+import Test.Runner.Failure as Test.Runner.Failure
 
 
 {-| A test which has yet to be evaluated. When evaluated, it produces one
@@ -38,7 +43,7 @@ or more [`Expectation`](../Expect#Expectation)s.
 See [`test`](#test) and [`fuzz`](#fuzz) for some ways to create a `Test`.
 
 -}
-type alias Test =
+type Test =
     Internal.Test
 
 
@@ -47,12 +52,12 @@ type alias Test =
     concat [ testDecoder, testSorting ]
 
 -}
-concat : List Test -> Test
+concat :: List Test -> Test
 concat tests =
     if List.isEmpty tests then
         Internal.failNow
-            { description = "This `concat` has no tests in it. Let's give it some!"
-            , reason = Invalid EmptyList
+            { description : "This `concat` has no tests in it. Let's give it some!"
+            , reason : Invalid EmptyList
             }
 
     else
@@ -60,11 +65,11 @@ concat tests =
             Err dups ->
                 let
                     dupDescription duped =
-                        "A test group contains multiple tests named '" ++ duped ++ "'. Do some renaming so that tests have unique names."
+                        "A test group contains multiple tests named '" <> duped <> "'. Do some renaming so that tests have unique names."
                 in
                 Internal.failNow
-                    { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
-                    , reason = Invalid DuplicatedName
+                    { description : String.join "\n" (List.map dupDescription <| Set.toList dups)
+                    , reason : Invalid DuplicatedName
                     }
 
             Ok _ ->
@@ -95,7 +100,7 @@ Passing an empty list will result in a failing test, because you either made a
 mistake or are creating a placeholder.
 
 -}
-describe : String -> List Test -> Test
+describe :: String -> List Test -> Test
 describe untrimmedDesc tests =
     let
         desc =
@@ -103,14 +108,14 @@ describe untrimmedDesc tests =
     in
     if String.isEmpty desc then
         Internal.failNow
-            { description = "This `describe` has a blank description. Let's give it a useful one!"
-            , reason = Invalid BadDescription
+            { description : "This `describe` has a blank description. Let's give it a useful one!"
+            , reason : Invalid BadDescription
             }
 
     else if List.isEmpty tests then
         Internal.failNow
-            { description = "This `describe " ++ desc ++ "` has no tests in it. Let's give it some!"
-            , reason = Invalid EmptyList
+            { description : "This `describe " <> desc <> "` has no tests in it. Let's give it some!"
+            , reason : Invalid EmptyList
             }
 
     else
@@ -118,20 +123,20 @@ describe untrimmedDesc tests =
             Err dups ->
                 let
                     dupDescription duped =
-                        "Contains multiple tests named '" ++ duped ++ "'. Let's rename them so we know which is which."
+                        "Contains multiple tests named '" <> duped <> "'. Let's rename them so we know which is which."
                 in
                 Internal.ElmTestVariant__Labeled desc <|
                     Internal.failNow
-                        { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
-                        , reason = Invalid DuplicatedName
+                        { description : String.join "\n" (List.map dupDescription <| Set.toList dups)
+                        , reason : Invalid DuplicatedName
                         }
 
             Ok childrenNames ->
                 if Set.member desc childrenNames then
                     Internal.ElmTestVariant__Labeled desc <|
                         Internal.failNow
-                            { description = "The test '" ++ desc ++ "' contains a child test of the same name. Let's rename them so we know which is which."
-                            , reason = Invalid DuplicatedName
+                            { description : "The test '" <> desc <> "' contains a child test of the same name. Let's rename them so we know which is which."
+                            , reason : Invalid DuplicatedName
                             }
 
                 else
@@ -151,7 +156,7 @@ describe untrimmedDesc tests =
                 |> Expect.equal 0
 
 -}
-test : String -> (() -> Expectation) -> Test
+test :: String -> ({} -> Expectation) -> Test
 test untrimmedDesc thunk =
     let
         desc =
@@ -161,7 +166,7 @@ test untrimmedDesc thunk =
         Internal.blankDescriptionFailure
 
     else
-        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk () ]))
+        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\{} -> [ thunk {} ]))
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests
@@ -184,11 +189,11 @@ This functionality is similar to "pending" tests in other frameworks, except
 that a TODO test is considered failing but a pending test often is not.
 
 -}
-todo : String -> Test
+todo :: String -> Test
 todo desc =
     Internal.failNow
-        { description = desc
-        , reason = TODO
+        { description : desc
+        , reason : TODO
         }
 
 
@@ -228,7 +233,7 @@ an `only` inside a `skip`, it will also get skipped.
         ]
 
 -}
-only : Test -> Test
+only :: Test -> Test
 only =
     Internal.ElmTestVariant__Only
 
@@ -264,7 +269,7 @@ an `only` inside a `skip`, it will also get skipped.
         ]
 
 -}
-skip : Test -> Test
+skip :: Test -> Test
 skip =
     Internal.ElmTestVariant__Skipped
 
@@ -318,9 +323,9 @@ A way to report/enforce a statistical distribution of your input values.
                 |> Expect.greaterThan (average xs)
 
 -}
-type alias FuzzOptions a =
-    { runs : Int
-    , distribution : Distribution a
+type FuzzOptions a =
+    { runs :: Int
+    , distribution :: Distribution a
     }
 
 
@@ -343,19 +348,19 @@ for example like this:
                     |> Expect.equal (List.member target nums)
 
 -}
-fuzzWith : FuzzOptions a -> Fuzzer a -> String -> (a -> Expectation) -> Test
+fuzzWith :: FuzzOptions a -> Fuzzer a -> String -> (a -> Expectation) -> Test
 fuzzWith options fuzzer desc getTest =
     if options.runs < 1 then
         Internal.failNow
-            { description = "Fuzz tests must have a run count of at least 1, not " ++ String.fromInt options.runs ++ "."
-            , reason = Invalid NonpositiveFuzzCount
+            { description : "Fuzz tests must have a run count of at least 1, not " <> String.fromInt options.runs <> "."
+            , reason : Invalid NonpositiveFuzzCount
             }
 
     else
         fuzzWithHelp options (Test.Fuzz.fuzzTest options.distribution fuzzer desc getTest)
 
 
-fuzzWithHelp : FuzzOptions a -> Test -> Test
+fuzzWithHelp :: FuzzOptions a -> Test -> Test
 fuzzWithHelp options aTest =
     case aTest of
         Internal.ElmTestVariant__UnitTest _ ->
@@ -407,7 +412,7 @@ You may find them elsewhere called [property-based tests](http://blog.jessitron.
                 |> Expect.atLeast 0
 
 -}
-fuzz :
+fuzz ::
     Fuzzer a
     -> String
     -> (a -> Expectation)
@@ -432,7 +437,7 @@ See [`fuzzWith`](#fuzzWith) for an example of writing this using tuples.
                 |> Expect.equal (List.member target nums)
 
 -}
-fuzz2 :
+fuzz2 ::
     Fuzzer a
     -> Fuzzer b
     -> String
@@ -443,7 +448,7 @@ fuzz2 fuzzA fuzzB desc =
         fuzzer =
             Fuzz.pair fuzzA fuzzB
     in
-    (\f ( a, b ) -> f a b) >> fuzz fuzzer desc
+    (\f {a:a, b:b } -> f a b) >> fuzz fuzzer desc
 
 
 {-| Run a [fuzz test](#fuzz) using three random inputs.
@@ -451,7 +456,7 @@ fuzz2 fuzzA fuzzB desc =
 This is a convenience function that lets you skip calling [`Fuzz.triple`](Fuzz#triple).
 
 -}
-fuzz3 :
+fuzz3 ::
     Fuzzer a
     -> Fuzzer b
     -> Fuzzer c
@@ -517,13 +522,13 @@ distribution information for values produced by this fuzzer, you need to provide
 which will in turn produce a `Distribution String`.
 
 -}
-type alias Distribution a =
+type Distribution a =
     Test.Distribution.Internal.Distribution a
 
 
 {-| Opts out of the test input distribution checking.
 -}
-noDistribution : Distribution a
+noDistribution :: Distribution a
 noDistribution =
     Test.Distribution.Internal.NoDistributionNeeded
 
@@ -531,7 +536,7 @@ noDistribution =
 {-| Collects statistics and reports them after the test runs (both when it passes
 and fails).
 -}
-reportDistribution : List ( String, a -> Bool ) -> Distribution a
+reportDistribution :: List ( String, a -> Bool ) -> Distribution a
 reportDistribution =
     Test.Distribution.Internal.ReportDistribution
 
@@ -553,7 +558,7 @@ Currently the statistical test is tuned to allow a false positive/negative in
 1 in every 10^9 tests.
 
 -}
-expectDistribution : List ( ExpectedDistribution, String, a -> Bool ) -> Distribution a
+expectDistribution :: List ( ExpectedDistribution, String, a -> Bool ) -> Distribution a
 expectDistribution =
     Test.Distribution.Internal.ExpectDistribution
 
@@ -562,6 +567,6 @@ expectDistribution =
 -- INTERNAL HELPERS --
 
 
-uncurry3 : (a -> b -> c -> d) -> ( a, b, c ) -> d
-uncurry3 fn ( a, b, c ) =
+uncurry3 :: (a -> b -> c -> d) -> {a:a, b:b, c:c } -> d
+uncurry3 fn {a:a, b:b, c:c } =
     fn a b c

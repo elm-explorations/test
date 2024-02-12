@@ -1,19 +1,23 @@
-module Main exposing (main)
+module Main (main) where
 
-import Benchmark exposing (..)
+import Benchmark (..)
+import Benchmark as Benchmark
 import Benchmark.Runner as Runner
-import Expect exposing (Expectation)
-import Random
-import Snippets
-import Test.Internal exposing (Test(..))
+
+import Expect (Expectation)
+import Expect as Expect
+import Random as Random
+import Snippets as Snippets
+import Test.Internal (Test(..))
+import Test.Internal as Test.Internal
 
 
-main : Runner.BenchmarkProgram
+main :: Runner.BenchmarkProgram
 main =
     Runner.program suite
 
 
-suite : Benchmark
+suite :: Benchmark
 suite =
     describe "Fuzz"
         [ describe "int"
@@ -67,7 +71,7 @@ suite =
         ]
 
 
-benchTest : Test -> (() -> List Expectation)
+benchTest :: Test -> ({} -> List Expectation)
 benchTest test =
     case test of
         ElmTestVariant__FuzzTest fn ->
@@ -77,4 +81,4 @@ benchTest test =
             benchTest test_
 
         test_ ->
-            Debug.todo <| "No support for benchmarking this type of test: " ++ Debug.toString test_
+            Debug.todo <| "No support for benchmarking this type of test: " <> Debug.toString test_

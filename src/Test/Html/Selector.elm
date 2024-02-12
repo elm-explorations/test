@@ -1,8 +1,8 @@
-module Test.Html.Selector exposing
-    ( Selector
+module Test.Html.Selector ( Selector
     , tag, text, exactText, containing, attribute, all
     , id, class, classes, exactClassName, style, checked, selected, disabled
     )
+ where
 
 {-| Selecting HTML elements.
 
@@ -20,16 +20,21 @@ module Test.Html.Selector exposing
 
 -}
 
-import Html exposing (Attribute)
-import Json.Decode
+import Html (Attribute)
+import Html as Html
+import Json.Decode as Json.Decode
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes
+
 import Test.Html.Internal.Inert as Inert
-import Test.Html.Selector.Internal as Internal exposing (..)
+
+import Test.Html.Selector.Internal
+import Test.Html.Selector.Internal as Internal
+
 
 
 {-| A selector used to filter sets of elements.
 -}
-type alias Selector =
+type Selector =
     Internal.Selector
 
 
@@ -54,7 +59,7 @@ type alias Selector =
                 |> Query.has [ replyBtnSelector ]
 
 -}
-all : List Selector -> Selector
+all :: List Selector -> Selector
 all =
     All
 
@@ -80,7 +85,7 @@ To match the element's exact class attribute string, use [`exactClassName`](#exa
                 |> Query.has [ classes [ "btn", "btn-large" ] ]
 
 -}
-classes : List String -> Selector
+classes :: List String -> Selector
 classes =
     Classes
 
@@ -105,7 +110,7 @@ To match the element's exact class attribute string, use [`exactClassName`](#exa
                 |> Query.has [ class "btn-large" ]
 
 -}
-class : String -> Selector
+class :: String -> Selector
 class =
     Class
 
@@ -130,7 +135,7 @@ to matching the entire class attribute exactly.
                 |> Query.has [ exactClassName "btn btn-large" ]
 
 -}
-exactClassName : String -> Selector
+exactClassName :: String -> Selector
 exactClassName =
     namedAttr "className"
 
@@ -153,7 +158,7 @@ exactClassName =
                 |> Query.has [ text "Hello!" ]
 
 -}
-id : String -> Selector
+id :: String -> Selector
 id =
     namedAttr "id"
 
@@ -176,7 +181,7 @@ id =
                 |> Query.has [ text "Hello!" ]
 
 -}
-tag : String -> Selector
+tag :: String -> Selector
 tag name =
     Tag name
 
@@ -184,7 +189,7 @@ tag name =
 {-| Matches elements that have the given attribute in a way that makes sense
 given their semantics in `Html`.
 -}
-attribute : Attribute Never -> Selector
+attribute :: Attribute Never -> Selector
 attribute attr =
     case Inert.parseAttribute attr of
         Ok (InternalTypes.Attribute { key, value }) ->
@@ -201,7 +206,7 @@ attribute attr =
                 value
                     |> Json.Decode.decodeValue Json.Decode.string
                     |> Result.map (String.split " ")
-                    |> Result.withDefault []
+                    |> Result.withDefault List.nil
                     |> Classes
 
             else
@@ -209,7 +214,7 @@ attribute attr =
                     |> Json.Decode.decodeValue Json.Decode.string
                     |> Result.map (namedAttr key)
                     |> orElseLazy
-                        (\() ->
+                        (\{} ->
                             value
                                 |> Json.Decode.decodeValue Json.Decode.bool
                                 |> Result.map (namedBoolAttr key)
@@ -217,7 +222,7 @@ attribute attr =
                     |> Result.withDefault Invalid
 
         Ok (InternalTypes.Style { key, value }) ->
-            Style { key = key, value = value }
+            Style { key : key, value : value }
 
         _ ->
             Invalid
@@ -242,9 +247,9 @@ attribute attr =
                 |> Query.has [ style "color" "red" ]
 
 -}
-style : String -> String -> Selector
+style :: String -> String -> Selector
 style key value =
-    Style { key = key, value = value }
+    Style { key : key, value : value }
 
 
 {-| Matches elements that have a
@@ -256,7 +261,7 @@ attribute _containing_ the given value.
 If you need an exact match, take a look at [`exactText`](#exactText).
 
 -}
-text : String -> Selector
+text :: String -> Selector
 text =
     Internal.Text
 
@@ -275,7 +280,7 @@ checking them):
 If you need a partial match, take a look at [`text`](#text).
 
 -}
-exactText : String -> Selector
+exactText :: String -> Selector
 exactText =
     Internal.ExactText
 
@@ -310,7 +315,7 @@ text somewhere in their descendants.
                 |> Event.expect ClickedMsg
 
 -}
-containing : List Selector -> Selector
+containing :: List Selector -> Selector
 containing =
     Internal.Containing
 
@@ -319,7 +324,7 @@ containing =
 [`selected`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#selected)
 attribute with the given value.
 -}
-selected : Bool -> Selector
+selected :: Bool -> Selector
 selected =
     namedBoolAttr "selected"
 
@@ -328,7 +333,7 @@ selected =
 [`disabled`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#disabled)
 attribute with the given value.
 -}
-disabled : Bool -> Selector
+disabled :: Bool -> Selector
 disabled =
     namedBoolAttr "disabled"
 
@@ -337,7 +342,7 @@ disabled =
 [`checked`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#checked)
 attribute with the given value.
 -}
-checked : Bool -> Selector
+checked :: Bool -> Selector
 checked =
     namedBoolAttr "checked"
 
@@ -346,11 +351,11 @@ checked =
 -- HELPERS
 
 
-orElseLazy : (() -> Result x a) -> Result x a -> Result x a
+orElseLazy :: ({} -> Result x a) -> Result x a -> Result x a
 orElseLazy fma mb =
     case mb of
         Err _ ->
-            fma ()
+            fma {}
 
         Ok _ ->
             mb

@@ -1,16 +1,18 @@
-module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString)
+module Test.Html.Selector.Internal (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString) where
 
-import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
+import Test.Html.Internal.ElmHtml.InternalTypes (ElmHtml)
+import Test.Html.Internal.ElmHtml.InternalTypes as Test.Html.Internal.ElmHtml.InternalTypes
 import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
 
 
-type Selector
+
+data Selector
     = All (List Selector)
     | Classes (List String)
     | Class String
-    | Attribute { name : String, value : String }
-    | BoolAttribute { name : String, value : Bool }
-    | Style { key : String, value : String }
+    | Attribute { name :: String, value :: String }
+    | BoolAttribute { name :: String, value :: Bool }
+    | Style { key :: String, value :: String }
     | Tag String
     | Text String
     | ExactText String
@@ -18,11 +20,11 @@ type Selector
     | Invalid
 
 
-selectorToString : Selector -> String
+selectorToString :: Selector -> String
 selectorToString criteria =
     let
         quoteString s =
-            "\"" ++ s ++ "\""
+            "\"" <> s <> "\""
 
         boolToString b =
             case b of
@@ -39,34 +41,34 @@ selectorToString criteria =
                 |> String.join " "
 
         Classes list ->
-            "classes " ++ quoteString (String.join " " list)
+            "classes " <> quoteString (String.join " " list)
 
         Class class ->
-            "class " ++ quoteString class
+            "class " <> quoteString class
 
         Attribute { name, value } ->
             "attribute "
-                ++ quoteString name
-                ++ " "
-                ++ quoteString value
+                <> quoteString name
+                <> " "
+                <> quoteString value
 
         BoolAttribute { name, value } ->
             "attribute "
-                ++ quoteString name
-                ++ " "
-                ++ boolToString value
+                <> quoteString name
+                <> " "
+                <> boolToString value
 
         Style style ->
-            "styles " ++ styleToString style
+            "styles " <> styleToString style
 
         Tag name ->
-            "tag " ++ quoteString name
+            "tag " <> quoteString name
 
         Text text ->
-            "text " ++ quoteString text
+            "text " <> quoteString text
 
         ExactText text ->
-            "exact text " ++ quoteString text
+            "exact text " <> quoteString text
 
         Containing list ->
             let
@@ -75,24 +77,24 @@ selectorToString criteria =
                         |> List.map selectorToString
                         |> String.join ", "
             in
-            "containing [ " ++ selectors ++ " ] "
+            "containing [ " <> selectors <> " ] "
 
         Invalid ->
             "invalid"
 
 
-styleToString : { key : String, value : String } -> String
+styleToString :: { key :: String, value :: String } -> String
 styleToString { key, value } =
-    key ++ ":" ++ value
+    key <> ":" <> value
 
 
-hasAll : List Selector -> List (ElmHtml msg) -> Bool
+hasAll :: List Selector -> List (ElmHtml msg) -> Bool
 hasAll selectors elems =
     case selectors of
-        [] ->
+        List.nil ->
             True
 
-        selector :: rest ->
+        selector List.: rest ->
             if List.isEmpty (queryAll [ selector ] elems) then
                 False
 
@@ -100,29 +102,29 @@ hasAll selectors elems =
                 hasAll rest elems
 
 
-queryAll : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+queryAll :: List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
 queryAll selectors list =
     case selectors of
-        [] ->
+        List.nil ->
             list
 
-        selector :: rest ->
+        selector List.: rest ->
             query ElmHtmlQuery.query queryAll selector list
                 |> queryAll rest
 
 
-queryAllChildren : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+queryAllChildren :: List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
 queryAllChildren selectors list =
     case selectors of
-        [] ->
+        List.nil ->
             list
 
-        selector :: rest ->
+        selector List.: rest ->
             query ElmHtmlQuery.queryChildren queryAllChildren selector list
                 |> queryAllChildren rest
 
 
-query :
+query ::
     (ElmHtmlQuery.Selector -> ElmHtml msg -> List (ElmHtml msg))
     -> (List Selector -> List (ElmHtml msg) -> List (ElmHtml msg))
     -> Selector
@@ -130,7 +132,7 @@ query :
     -> List (ElmHtml msg)
 query fn fnAll selector list =
     case list of
-        [] ->
+        List.nil ->
             list
 
         elems ->
@@ -166,39 +168,39 @@ query fn fnAll selector list =
                     let
                         anyDescendantsMatch elem =
                             case ElmHtmlQuery.getChildren elem of
-                                [] ->
+                                List.nil ->
                                     -- We have no children;
                                     -- no descendants can possibly match.
                                     False
 
                                 children ->
                                     case query fn fnAll (All selectors) children of
-                                        [] ->
+                                        List.nil ->
                                             -- None of our children matched,
                                             -- but their descendants might!
                                             List.any anyDescendantsMatch children
 
-                                        _ :: _ ->
+                                        _ List.: _ ->
                                             -- At least one child matched. Yay!
                                             True
                     in
                     List.filter anyDescendantsMatch elems
 
                 Invalid ->
-                    []
+                    List.nil
 
 
-namedAttr : String -> String -> Selector
+namedAttr :: String -> String -> Selector
 namedAttr name value =
     Attribute
-        { name = name
-        , value = value
+        { name : name
+        , value : value
         }
 
 
-namedBoolAttr : String -> Bool -> Selector
+namedBoolAttr :: String -> Bool -> Selector
 namedBoolAttr name value =
     BoolAttribute
-        { name = name
-        , value = value
+        { name : name
+        , value : value
         }

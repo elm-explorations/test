@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Main (main) where
 
 {-| HOW TO RUN THESE TESTS
 
@@ -8,27 +8,28 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 
 -}
 
-import Platform
-import Runner.Log
-import Runner.String exposing (Summary)
-import SeedTests
-import Tests
+import Platform as Platform
+import Runner.Log as Runner.Log
+import Runner.String (Summary)
+import Runner.String as Runner.String
+import SeedTests as SeedTests
+import Tests as Tests
 
 
-main : Program () () msg
+main :: Program {} {} msg
 main =
     let
         program =
             Platform.worker
-                { init = \() -> ( (), Cmd.none )
-                , update = \_ () -> ( (), Cmd.none )
-                , subscriptions = \() -> Sub.none
+                { init : \{} -> ( {}, Cmd.none )
+                , update : \_ {} -> ( {}, Cmd.none )
+                , subscriptions : \{} -> Sub.none
                 }
     in
     runAllTests program
 
 
-runAllTests : a -> a
+runAllTests :: a -> a
 runAllTests a =
     let
         runSeedTest =
@@ -46,27 +47,27 @@ runAllTests a =
     a
 
 
-emptySummary : Summary
+emptySummary :: Summary
 emptySummary =
-    { output = "", passed = 0, failed = 0, autoFail = Nothing }
+    { output : "", passed : 0, failed : 0, autoFail : Nothing }
 
 
 {-| Considers autoFail as pass so we can actually write tests about Test.skip
 and Test.only which do not automatically fail.
 -}
-removeAutoFail : Summary -> Summary
+removeAutoFail :: Summary -> Summary
 removeAutoFail summary =
-    { summary | autoFail = Nothing }
+    ( summary { autoFail = Nothing  })
 
 
-combineSummaries : Summary -> Summary -> Summary
+combineSummaries :: Summary -> Summary -> Summary
 combineSummaries first second =
-    { output = first.output ++ second.output
-    , passed = first.passed + second.passed
-    , failed = first.failed + second.failed
-    , autoFail =
-        case ( first.autoFail, second.autoFail ) of
-            ( Nothing, Nothing ) ->
+    { output : first.output <> second.output
+    , passed : first.passed + second.passed
+    , failed : first.failed + second.failed
+    , autoFail :
+        case {a:first.autoFail, b:second.autoFail } of
+            {a::Nothing, b::Nothing } ->
                 Nothing
 
             ( Nothing, secondAutoFail ) ->
@@ -75,7 +76,7 @@ combineSummaries first second =
             ( firstAutoFail, Nothing ) ->
                 firstAutoFail
 
-            ( Just firstAutoFail, Just secondAutoFail ) ->
+            {a::Just firstAutoFail, b::Just secondAutoFail } ->
                 [ firstAutoFail, secondAutoFail ]
                     |> String.join "\n"
                     |> Just

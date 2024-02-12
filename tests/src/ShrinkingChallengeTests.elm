@@ -1,15 +1,18 @@
-module ShrinkingChallengeTests exposing (shrinkingChallenges)
+module ShrinkingChallengeTests (shrinkingChallenges) where
 
-import Fuzz exposing (..)
-import Helpers exposing (..)
-import Random
-import Set
-import Test exposing (..)
+import Fuzz (..)
+import Fuzz as Fuzz
+import Helpers (..)
+import Helpers as Helpers
+import Random as Random
+import Set as Set
+import Test (..)
+import Test as Test
 
 
 {-| <https://github.com/jlink/shrinking-challenge>
 -}
-shrinkingChallenges : Test
+shrinkingChallenges :: Test
 shrinkingChallenges =
     describe "Shrinking challenges"
         [ reverse
@@ -29,7 +32,7 @@ shrinkingChallenges =
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/reverse.md>
 -}
-reverse : Test
+reverse :: Test
 reverse =
     simplifiesTowards
         "reverse"
@@ -43,7 +46,7 @@ reverse =
 Tests that we are able to shrink `[[1],[1],[-1],[2],[-2]]` into `[[0,1,-1,2,-2]]` - manipulate nested lists.
 
 -}
-largeUnionList : Test
+largeUnionList :: Test
 largeUnionList =
     simplifiesTowards
         "large union list"
@@ -54,10 +57,10 @@ largeUnionList =
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/calculator.md>
 -}
-calculator : Test
+calculator :: Test
 calculator =
     let
-        exprFuzzer : Int -> Fuzzer CalcExpr
+        exprFuzzer :: Int -> Fuzzer CalcExpr
         exprFuzzer maxDepth =
             if maxDepth <= 0 then
                 Fuzz.map Int Fuzz.int
@@ -73,7 +76,7 @@ calculator =
                     , Fuzz.map2 Div subExprFuzzer subExprFuzzer
                     ]
 
-        noDivisionByLiteralZero : CalcExpr -> Bool
+        noDivisionByLiteralZero :: CalcExpr -> Bool
         noDivisionByLiteralZero expr =
             case expr of
                 Div _ (Int 0) ->
@@ -90,7 +93,7 @@ calculator =
                     noDivisionByLiteralZero a
                         && noDivisionByLiteralZero b
 
-        eval : CalcExpr -> Maybe Int
+        eval :: CalcExpr -> Maybe Int
         eval expr =
             case expr of
                 Int i ->
@@ -126,7 +129,7 @@ calculator =
         (\expr -> eval expr /= Nothing)
 
 
-type CalcExpr
+data CalcExpr
     = Int Int
     | Add CalcExpr CalcExpr
     | Div CalcExpr CalcExpr
@@ -134,7 +137,7 @@ type CalcExpr
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/lengthlist.md>
 -}
-lengthList : Test
+lengthList :: Test
 lengthList =
     simplifiesTowards
         "lengthList"
@@ -155,30 +158,30 @@ lengthList =
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/7f8f46f192fbbd25bfe003db1cefdbadf8b0a8ad/challenges/difference.md>
 -}
-difference1 : Test
+difference1 :: Test
 difference1 =
-    simplifiesTowardsWith { runs = 10000 }
+    simplifiesTowardsWith { runs : 10000 }
         "difference1"
-        ( 10, 10 )
+        {a:10, b:10 }
         (Fuzz.pair
             (Fuzz.intAtLeast 0)
             (Fuzz.intAtLeast 0)
         )
-        (\( x, y ) -> x < 10 || x /= y)
+        (\{a:x, b:y } -> x < 10 || x /= y)
 
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/7f8f46f192fbbd25bfe003db1cefdbadf8b0a8ad/challenges/difference.md>
 -}
-difference2 : Test
+difference2 :: Test
 difference2 =
-    simplifiesTowardsWith { runs = 5000 }
+    simplifiesTowardsWith { runs : 5000 }
         "difference2"
-        ( 10, 6 )
+        {a:10, b:6 }
         (Fuzz.pair
             (Fuzz.intAtLeast 0)
             (Fuzz.intAtLeast 0)
         )
-        (\( x, y ) ->
+        (\{a:x, b:y } ->
             let
                 absDiff =
                     abs (x - y)
@@ -189,24 +192,24 @@ difference2 =
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/7f8f46f192fbbd25bfe003db1cefdbadf8b0a8ad/challenges/difference.md>
 -}
-difference3 : Test
+difference3 :: Test
 difference3 =
-    simplifiesTowardsWith { runs = 5000 }
+    simplifiesTowardsWith { runs : 5000 }
         "difference3"
-        ( 10, 9 )
+        {a:10, b:9 }
         (Fuzz.pair
             (Fuzz.intAtLeast 0)
             (Fuzz.intAtLeast 0)
         )
-        (\( x, y ) -> x < 10 || abs (x - y) /= 1)
+        (\{a:x, b:y } -> x < 10 || abs (x - y) /= 1)
 
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/binheap.md>
 -}
-binHeap : Test
+binHeap :: Test
 binHeap =
     let
-        heapFuzzer : Int -> Fuzzer Heap
+        heapFuzzer :: Int -> Fuzzer Heap
         heapFuzzer depth =
             if depth <= 0 then
                 Fuzz.map (\i -> Heap i Nothing Nothing) Fuzz.int
@@ -217,35 +220,35 @@ binHeap =
                     (Fuzz.maybe (heapFuzzer (depth - 1)))
                     (Fuzz.maybe (heapFuzzer (depth - 1)))
 
-        toList : Heap -> List Int
+        toList :: Heap -> List Int
         toList heap =
             let
-                go : List Int -> List Heap -> List Int
+                go :: List Int -> List Heap -> List Int
                 go acc stack =
                     case stack of
-                        [] ->
+                        List.nil ->
                             List.reverse acc
 
-                        (Heap n left right) :: hs ->
+                        (Heap n left right) List.: hs ->
                             go
-                                (n :: acc)
+                                (n List.: acc)
                                 (List.filterMap identity [ left, right ]
-                                    ++ hs
+                                    <> hs
                                 )
             in
-            go [] [ heap ]
+            go List.nil [ heap ]
 
-        wrongToSortedList : Heap -> List Int
+        wrongToSortedList :: Heap -> List Int
         wrongToSortedList (Heap n left right) =
             n
-                :: (mergeHeaps left right
+                List.: (mergeHeaps left right
                         |> Maybe.map toList
-                        |> Maybe.withDefault []
+                        |> Maybe.withDefault List.nil
                    )
 
-        mergeHeaps : Maybe Heap -> Maybe Heap -> Maybe Heap
+        mergeHeaps :: Maybe Heap -> Maybe Heap -> Maybe Heap
         mergeHeaps left right =
-            case ( left, right ) of
+            case {a:left, b:right } of
                 ( Nothing, _ ) ->
                     right
 
@@ -283,16 +286,16 @@ binHeap =
         )
 
 
-type Heap
+data Heap
     = Heap Int (Maybe Heap) (Maybe Heap)
 
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/coupling.md>
 -}
-coupling : Test
+coupling :: Test
 coupling =
     let
-        getAt : Int -> List a -> Maybe a
+        getAt :: Int -> List a -> Maybe a
         getAt index list =
             if index < 0 then
                 Nothing
@@ -348,25 +351,25 @@ coupling =
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/deletion.md>
 -}
-deletion : Test
+deletion :: Test
 deletion =
     let
-        removeFirst : a -> List a -> List a
+        removeFirst :: a -> List a -> List a
         removeFirst badX xs =
-            go badX xs [] xs
+            go badX xs List.nil xs
 
-        go : a -> List a -> List a -> List a -> List a
+        go :: a -> List a -> List a -> List a -> List a
         go badX next prev orig =
             case next of
-                [] ->
+                List.nil ->
                     orig
 
-                x :: rest ->
+                x List.: rest ->
                     if x == badX then
-                        List.reverse prev ++ rest
+                        List.reverse prev <> rest
 
                     else
-                        go badX rest (x :: prev) orig
+                        go badX rest (x List.: prev) orig
     in
     simplifiesTowards
         "deletion"
@@ -379,12 +382,12 @@ deletion =
                         (Fuzz.oneOfValues list)
                 )
         )
-        (\( list, el ) -> not (List.member el (removeFirst el list)))
+        (\{a:list, b:el } -> not (List.member el (removeFirst el list)))
 
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/distinct.md>
 -}
-distinct : Test
+distinct :: Test
 distinct =
     -- ([1,0,0,  1,0,1,  1,0,2,  0],[0, 1, 2])
     -- ([1,0,0,  1,0,1,  1,1,0,  0],[0, 1,-1])
@@ -401,7 +404,7 @@ distinct =
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/nestedlists.md>
 -}
-nestedLists : Test
+nestedLists :: Test
 nestedLists =
     simplifiesTowards
         "nestedLists"

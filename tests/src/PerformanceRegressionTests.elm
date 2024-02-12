@@ -1,10 +1,11 @@
-module PerformanceRegressionTests exposing (all)
+module PerformanceRegressionTests (all) where
 
-import Expect
-import Test exposing (..)
+import Expect as Expect
+import Test (..)
+import Test as Test
 
 
-all : Test
+all :: Test
 all =
     describe "Performance regression tests"
         [ mediumListTest
@@ -15,7 +16,7 @@ all =
 mediumListTest =
     -- this list should be large but still small enough to get a char-by-char diff
     let
-        input : ( List String, Int )
+        input :: {a::List String, b::Int }
         input =
             ( [ "8000000000000000"
               , "CF935BDAA77581F6"
@@ -33,7 +34,7 @@ mediumListTest =
             , 312
             )
 
-        expected : ( List String, Int )
+        expected :: {a::List String, b::Int }
         expected =
             ( [ "8000000000000000"
               , "A53DA00C269CD27C"
@@ -61,7 +62,7 @@ mediumListTest =
 hugeListTest =
     -- this list should be too large to get a char-by-char diff
     let
-        input : ( List String, Int )
+        input :: {a::List String, b::Int }
         input =
             ( [ "8000000000000000"
               , "CF935BDAA77581F6"
@@ -379,7 +380,7 @@ hugeListTest =
             , 312
             )
 
-        expected : ( List String, Int )
+        expected :: {a::List String, b::Int }
         expected =
             ( [ "8000000000000000"
               , "A53DA00C269CD27C"

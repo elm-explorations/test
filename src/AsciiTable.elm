@@ -1,16 +1,17 @@
-module AsciiTable exposing (Align(..), Column, view)
+module AsciiTable (Align(..), Column, view) where
 
 import MicroListExtra as List
 
 
-type Align
+
+data Align
     = AlignLeft
     | AlignRight
 
 
-type alias Column a =
-    { toString : a -> String
-    , align : Align
+type Column a =
+    { toString :: a -> String
+    , align :: Align
     }
 
 
@@ -21,15 +22,15 @@ So we return the original item next to the rendered row which makes the
 postprocessing possible!
 
 -}
-view : List (Column a) -> List a -> List { item : a, renderedRow : String }
+view :: List (Column a) -> List a -> List { item :: a, renderedRow :: String }
 view columns items =
     let
-        columnData : List (List String)
+        columnData :: List (List String)
         columnData =
             columns
                 |> List.map (\col -> List.map col.toString items)
 
-        columnLengths : List Int
+        columnLengths :: List Int
         columnLengths =
             columnData
                 |> List.map
@@ -39,16 +40,16 @@ view columns items =
                             |> Maybe.withDefault 0
                     )
 
-        padFn : Int -> Align -> String -> String
+        padFn :: Int -> Align -> String -> String
         padFn length align string =
             case align of
                 AlignLeft ->
-                    String.padRight length ' ' string
+                    String.padRight length " " string
 
                 AlignRight ->
-                    String.padLeft length ' ' string
+                    String.padLeft length " " string
 
-        paddedColumnData : List (List String)
+        paddedColumnData :: List (List String)
         paddedColumnData =
             List.map3 (\col colLength colStrings -> List.map (padFn colLength col.align) colStrings)
                 columns
@@ -57,8 +58,8 @@ view columns items =
     in
     List.map2
         (\item rowCells ->
-            { item = item
-            , renderedRow = String.join "  " rowCells
+            { item : item
+            , renderedRow : String.join "  " rowCells
             }
         )
         items

@@ -1,7 +1,7 @@
-module Test.Html.Internal.ElmHtml.Constants exposing
-    ( propKey, styleKey, eventKey, attributeKey, attributeNamespaceKey
+module Test.Html.Internal.ElmHtml.Constants ( propKey, styleKey, eventKey, attributeKey, attributeNamespaceKey
     , knownKeys
     )
+ where
 
 {-| Constants for representing internal keys for Elm's vdom implementation
 
@@ -13,41 +13,41 @@ module Test.Html.Internal.ElmHtml.Constants exposing
 
 {-| Internal key for attribute properties
 -}
-propKey : String
+propKey :: String
 propKey =
     "a2"
 
 
 {-| Internal key for style
 -}
-styleKey : String
+styleKey :: String
 styleKey =
     "a1"
 
 
 {-| Internal key for style
 -}
-eventKey : String
+eventKey :: String
 eventKey =
     "a0"
 
 
 {-| Internal key for style
 -}
-attributeKey : String
+attributeKey :: String
 attributeKey =
     "a3"
 
 
 {-| Internal key for style
 -}
-attributeNamespaceKey : String
+attributeNamespaceKey :: String
 attributeNamespaceKey =
     "a4"
 
 
 {-| Keys that we are aware of and should pay attention to
 -}
-knownKeys : List String
+knownKeys :: List String
 knownKeys =
     [ styleKey, eventKey, attributeKey, attributeNamespaceKey ]

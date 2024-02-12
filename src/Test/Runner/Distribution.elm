@@ -1,37 +1,40 @@
-module Test.Runner.Distribution exposing (formatTable)
+module Test.Runner.Distribution (formatTable) where
 
-import AsciiTable
-import Dict exposing (Dict)
+import AsciiTable as AsciiTable
+import Dict (Dict)
+import Dict as Dict
 import MicroListExtra as List
-import Set exposing (Set)
+
+import Set (Set)
+import Set as Set
 
 
-bars : Int
+bars :: Int
 bars =
     30
 
 
-formatTable :
+formatTable ::
     { a
-        | runsElapsed : Int
-        , distributionCount : Dict (List String) Int
+        | runsElapsed :: Int
+        , distributionCount :: Dict (List String) Int
     }
     -> String
 formatTable { runsElapsed, distributionCount } =
     let
-        runsElapsed_ : Float
+        runsElapsed_ :: Float
         runsElapsed_ =
             toFloat runsElapsed
 
-        distributionList : List ( List String, Int )
+        distributionList :: List {a::List String, b::Int }
         distributionList =
             Dict.toList distributionCount
 
-        distribution : List ( List String, Int, Float )
+        distribution :: List {a::List String, b::Int, c::Float }
         distribution =
             distributionList
                 |> List.filter
-                    (\( labels, count ) ->
+                    (\{a:labels, b:count } ->
                         not
                             ((List.length labels == 1)
                                 && (count == 0)
@@ -39,31 +42,31 @@ formatTable { runsElapsed, distributionCount } =
                             )
                     )
                 |> List.map
-                    (\( labels, count ) ->
+                    (\{a:labels, b:count } ->
                         let
-                            percentage : Float
+                            percentage :: Float
                             percentage =
                                 toFloat (round (toFloat count / runsElapsed_ * 1000)) / 10
                         in
-                        ( labels
-                        , count
-                        , percentage
-                        )
+                        {a:labels
+                        , b:count
+                        , c:percentage
+                        }
                     )
 
-        ( baseRows, combinationsRows ) =
+        {a:baseRows, b:combinationsRows } =
             distribution
                 |> List.sortBy (\( _, count, _ ) -> negate count)
                 |> List.partition (\( labels, _, _ ) -> List.length labels <= 1)
 
         reorderedTable =
-            baseRows ++ combinationsRows
+            baseRows <> combinationsRows
 
-        rawTable : List { item : ( List String, Int, Float ), renderedRow : String }
+        rawTable :: List { item :: {a::List String, b::Int, c::Float }, renderedRow :: String }
         rawTable =
             formatAsciiTable runsElapsed_ reorderedTable
 
-        ( base, combinations ) =
+        {a:base, b:combinations } =
             rawTable
                 |> List.splitWhen
                     (\{ item } ->
@@ -73,7 +76,7 @@ formatTable { runsElapsed, distributionCount } =
                         in
                         List.length labels > 1
                     )
-                |> Maybe.withDefault ( rawTable, [] )
+                |> Maybe.withDefault {a:rawTable, b:List.nil }
 
         baseString =
             String.join "\n" (List.map .renderedRow base)
@@ -90,7 +93,7 @@ Combinations (included in the above base counts):
                     |> String.replace "{COMBINATIONS}" (String.join "\n" (List.map .renderedRow combinations))
 
         table =
-            baseString ++ combinationsString_
+            baseString <> combinationsString_
     in
     """Distribution report:
 ====================
@@ -98,18 +101,18 @@ Combinations (included in the above base counts):
         |> String.replace "{CATEGORIES}" table
 
 
-isStrictSubset : List ( List String, Int ) -> List String -> Bool
+isStrictSubset :: List {a::List String, b::Int } -> List String -> Bool
 isStrictSubset all combination =
     let
-        combinationSet : Set String
+        combinationSet :: Set String
         combinationSet =
             Set.fromList combination
 
-        allSets : List (Set String)
+        allSets :: List (Set String)
         allSets =
             List.map (Tuple.first >> Set.fromList) all
 
-        containsCombinationFully : Set String -> Bool
+        containsCombinationFully :: Set String -> Bool
         containsCombinationFully set =
             not (Set.isEmpty (Set.diff set combinationSet))
                 && Set.isEmpty (Set.diff combinationSet set)
@@ -117,48 +120,48 @@ isStrictSubset all combination =
     List.any containsCombinationFully allSets
 
 
-formatAsciiTable :
+formatAsciiTable ::
     Float
-    -> List ( List String, Int, Float )
-    -> List { item : ( List String, Int, Float ), renderedRow : String }
+    -> List {a::List String, b::Int, c::Float }
+    -> List { item :: {a::List String, b::Int, c::Float }, renderedRow :: String }
 formatAsciiTable runsElapsed items =
     AsciiTable.view
-        [ { toString = \( labels, _, _ ) -> "  " ++ viewLabels labels ++ ":"
-          , align = AsciiTable.AlignLeft
+        [ { toString : \( labels, _, _ ) -> "  " <> viewLabels labels <> ":"
+          , align : AsciiTable.AlignLeft
           }
-        , { toString = \( _, _, percentage ) -> String.fromFloat percentage ++ "%"
-          , align = AsciiTable.AlignRight
+        , { toString : \( _, _, percentage ) -> String.fromFloat percentage <> "%"
+          , align : AsciiTable.AlignRight
           }
-        , { toString = \( _, count, _ ) -> "(" ++ String.fromInt count ++ "x)"
-          , align = AsciiTable.AlignRight
+        , { toString : \( _, count, _ ) -> "(" <> String.fromInt count <> "x)"
+          , align : AsciiTable.AlignRight
           }
-        , { toString = \( _, count, _ ) -> barView { count = count, runsElapsed = runsElapsed }
-          , align = AsciiTable.AlignLeft
+        , { toString : \( _, count, _ ) -> barView { count : count, runsElapsed : runsElapsed }
+          , align : AsciiTable.AlignLeft
           }
         ]
         items
 
 
-barView : { count : Int, runsElapsed : Float } -> String
+barView :: { count :: Int, runsElapsed :: Float } -> String
 barView { count, runsElapsed } =
     let
-        percentage : Float
+        percentage :: Float
         percentage =
             toFloat count / runsElapsed
 
-        barsForPercentage : Float
+        barsForPercentage :: Float
         barsForPercentage =
             percentage * toFloat bars
 
-        fullBars : Int
+        fullBars :: Int
         fullBars =
             round barsForPercentage
     in
     String.repeat fullBars "█"
-        |> String.padRight bars '░'
+        |> String.padRight bars "░"
 
 
-viewLabels : List String -> String
+viewLabels :: List String -> String
 viewLabels labels =
     if List.isEmpty labels then
         "<uncategorized>"

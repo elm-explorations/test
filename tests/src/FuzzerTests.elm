@@ -1,16 +1,22 @@
-module FuzzerTests exposing (fuzzerTests)
+module FuzzerTests (fuzzerTests) where
 
-import Array
-import Expect exposing (Expectation)
-import Fuzz exposing (..)
-import Helpers exposing (..)
-import Random exposing (Generator)
-import Test exposing (..)
-import Test.Distribution
-import Test.Runner exposing (Simplifiable)
+import Array as Array
+import Expect (Expectation)
+import Expect as Expect
+import Fuzz (..)
+import Fuzz as Fuzz
+import Helpers (..)
+import Helpers as Helpers
+import Random (Generator)
+import Random as Random
+import Test (..)
+import Test as Test
+import Test.Distribution as Test.Distribution
+import Test.Runner (Simplifiable)
+import Test.Runner as Test.Runner
 
 
-fuzzerTests : Test
+fuzzerTests :: Test
 fuzzerTests =
     describe "Fuzzer tests"
         [ describe "FuzzN (uses use pair or triple) testing string length properties"
@@ -27,30 +33,30 @@ fuzzerTests =
         ]
 
 
-testRunnerModuleTests : Test
+testRunnerModuleTests :: Test
 testRunnerModuleTests =
     describe "Test.Runner.{fuzz,simplify}"
         [ fuzz randomSeedFuzzer "Claim there are no even numbers" <|
             \seed ->
                 let
                     -- fuzzer is guaranteed to produce an even number
-                    fuzzer : Fuzzer Int
+                    fuzzer :: Fuzzer Int
                     fuzzer =
                         Fuzz.intRange 1 10000
                             |> Fuzz.map ((*) 2)
 
-                    getExpectation : Int -> Expectation
+                    getExpectation :: Int -> Expectation
                     getExpectation n =
                         modBy 2 n
                             |> Expect.notEqual 0
 
-                    pair : Maybe ( Int, Simplifiable Int )
+                    pair :: Maybe {a::Int, b::Simplifiable Int }
                     pair =
                         Random.step (Test.Runner.fuzz fuzzer) seed
                             |> Tuple.first
                             |> Result.toMaybe
 
-                    finalValue : Maybe Int
+                    finalValue :: Maybe Int
                     finalValue =
                         (case pair |> Maybe.andThen (Test.Runner.simplify getExpectation) of
                             Nothing ->
@@ -68,11 +74,11 @@ testRunnerModuleTests =
             \seed ->
                 let
                     -- fuzzer is guaranteed to produce a string with the letter e
-                    fuzzer : Fuzzer String
+                    fuzzer :: Fuzzer String
                     fuzzer =
-                        map2 (\pre suf -> pre ++ "e" ++ suf) string string
+                        map2 (\pre suf -> pre <> "e" <> suf) string string
 
-                    getExpectation : String -> Expectation
+                    getExpectation :: String -> Expectation
                     getExpectation string =
                         if String.contains "e" string then
                             Expect.fail "String had 'e' in it"
@@ -80,13 +86,13 @@ testRunnerModuleTests =
                         else
                             Expect.pass
 
-                    pair : Maybe ( String, Simplifiable String )
+                    pair :: Maybe {a::String, b::Simplifiable String }
                     pair =
                         Random.step (Test.Runner.fuzz fuzzer) seed
                             |> Tuple.first
                             |> Result.toMaybe
 
-                    finalValue : Maybe String
+                    finalValue :: Maybe String
                     finalValue =
                         (case pair |> Maybe.andThen (Test.Runner.simplify getExpectation) of
                             Nothing ->
@@ -104,18 +110,18 @@ testRunnerModuleTests =
         ]
 
 
-fuzzerSpecificationTests : Test
+fuzzerSpecificationTests :: Test
 fuzzerSpecificationTests =
     Test.describe "Fuzz.*"
         [ describe "Tough examples"
-            [ simplifiesTowardsWith { runs = 5000 }
+            [ simplifiesTowardsWith { runs : 5000 }
                 "redistributed additive pair"
-                ( 1, 1000 )
+                {a:1, b:1000 }
                 (Fuzz.pair
                     (Fuzz.intRange 0 1000)
                     (Fuzz.intRange 0 1000)
                 )
-                (\( m, n ) -> m + n <= 1000)
+                (\{a:m, b:n } -> m + n <= 1000)
             , simplifiesTowards "list written in flip-a-coin way"
                 [ 1001 ]
                 (Fuzz.list (Fuzz.intRange 0 10000))
@@ -126,16 +132,16 @@ fuzzerSpecificationTests =
                     |> Fuzz.andThen
                         (\length ->
                             let
-                                go : Int -> List Int -> Fuzzer (List Int)
+                                go :: Int -> List Int -> Fuzzer (List Int)
                                 go left acc =
                                     if left <= 0 then
                                         Fuzz.constant (List.reverse acc)
 
                                     else
                                         Fuzz.intRange 0 10000
-                                            |> Fuzz.andThen (\item -> go (left - 1) (item :: acc))
+                                            |> Fuzz.andThen (\item -> go (left - 1) (item List.: acc))
                             in
-                            go length []
+                            go length List.nil
                         )
                 )
                 (\list -> List.sum list <= 1000)
@@ -155,8 +161,8 @@ fuzzerSpecificationTests =
                 , simplifiesTowards "next simplest" EQ Fuzz.order (\x -> x == LT)
                 ]
             , describe "unit"
-                [ canGenerate () Fuzz.unit
-                , simplifiesTowards "()" () Fuzz.unit fullySimplify
+                [ canGenerate {} Fuzz.unit
+                , simplifiesTowards "()" {} Fuzz.unit fullySimplify
                 ]
             , describe "constant"
                 [ passes "Returns what you give it - Int"
@@ -194,19 +200,19 @@ fuzzerSpecificationTests =
                 ]
             , describe "pair"
                 [ simplifiesTowards "Every pair of ints has a zero"
-                    ( 1, 1 )
+                    {a:1, b:1 }
                     (Fuzz.pair Fuzz.int Fuzz.int)
-                    (\( i, j ) -> (i == 0) || (j == 0))
+                    (\{a:i, b:j } -> (i == 0) || (j == 0))
                 ]
             , describe "triple"
                 [ simplifiesTowards "Every triple of ints has a zero"
-                    ( 1, 1, 1 )
+                    {a:1, b:1, c:1 }
                     (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
-                    (\( i, j, k ) -> (i == 0) || (j == 0) || (k == 0))
+                    (\{a:i, b:j, c:k } -> (i == 0) || (j == 0) || (k == 0))
                 ]
             , describe "map"
                 (let
-                    fuzzer : Fuzzer Int
+                    fuzzer :: Fuzzer Int
                     fuzzer =
                         Fuzz.int
                             |> Fuzz.map (\n -> n * 2)
@@ -218,21 +224,21 @@ fuzzerSpecificationTests =
                 )
             , describe "intRange"
                 [ describe "lo >= 0 (all non-negative)"
-                    [ canGenerateWith { runs = 3000 } 1 (Fuzz.intRange 1 20)
-                    , canGenerateWith { runs = 3000 } 10 (Fuzz.intRange 1 20)
-                    , canGenerateWith { runs = 3000 } 20 (Fuzz.intRange 1 20)
+                    [ canGenerateWith { runs : 3000 } 1 (Fuzz.intRange 1 20)
+                    , canGenerateWith { runs : 3000 } 10 (Fuzz.intRange 1 20)
+                    , canGenerateWith { runs : 3000 } 20 (Fuzz.intRange 1 20)
                     ]
                 , describe "hi <= 0 (all non-positive)"
-                    [ canGenerateWith { runs = 3000 } -20 (Fuzz.intRange -20 -1)
-                    , canGenerateWith { runs = 3000 } -10 (Fuzz.intRange -20 -1)
-                    , canGenerateWith { runs = 3000 } -1 (Fuzz.intRange -20 -1)
+                    [ canGenerateWith { runs : 3000 } -20 (Fuzz.intRange -20 -1)
+                    , canGenerateWith { runs : 3000 } -10 (Fuzz.intRange -20 -1)
+                    , canGenerateWith { runs : 3000 } -1 (Fuzz.intRange -20 -1)
                     ]
                 , describe "mixed case (lo < 0 && hi > 0)"
-                    [ canGenerateWith { runs = 3000 } -20 (Fuzz.intRange -20 20)
-                    , canGenerateWith { runs = 3000 } -10 (Fuzz.intRange -20 20)
-                    , canGenerateWith { runs = 3000 } 0 (Fuzz.intRange -20 20)
-                    , canGenerateWith { runs = 3000 } 10 (Fuzz.intRange -20 20)
-                    , canGenerateWith { runs = 3000 } 20 (Fuzz.intRange -20 20)
+                    [ canGenerateWith { runs : 3000 } -20 (Fuzz.intRange -20 20)
+                    , canGenerateWith { runs : 3000 } -10 (Fuzz.intRange -20 20)
+                    , canGenerateWith { runs : 3000 } 0 (Fuzz.intRange -20 20)
+                    , canGenerateWith { runs : 3000 } 10 (Fuzz.intRange -20 20)
+                    , canGenerateWith { runs : 3000 } 20 (Fuzz.intRange -20 20)
                     ]
                 , passes "Smaller range"
                     (Fuzz.intRange -5 5)
@@ -302,24 +308,24 @@ fuzzerSpecificationTests =
                 ]
             , describe "asciiChar"
                 [ passes "Range 32..126" Fuzz.asciiChar isAsciiChar
-                , simplifiesTowards "simplest" ' ' Fuzz.asciiChar fullySimplify
-                , simplifiesTowards "next simplest" '!' Fuzz.asciiChar (\c -> c == ' ')
-                , simplifiesTowards "above A" 'B' Fuzz.asciiChar (\c -> Char.toCode c <= Char.toCode 'A')
-                , cannotGenerate '🔥' Fuzz.asciiChar
+                , simplifiesTowards "simplest" " " Fuzz.asciiChar fullySimplify
+                , simplifiesTowards "next simplest" "!" Fuzz.asciiChar (\c -> c == " ")
+                , simplifiesTowards "above A" "B" Fuzz.asciiChar (\c -> Char.toCode c <= Char.toCode "A")
+                , cannotGenerate "🔥" Fuzz.asciiChar
                 ]
             , describe "char"
                 [ canGenerateSatisfying "Alpha" Fuzz.char Char.isAlpha
                 , canGenerateSatisfying "Digit" Fuzz.char Char.isDigit
                 , canGenerateSatisfying "ASCII" Fuzz.char isAsciiChar
-                , canGenerate '\t' Fuzz.char
+                , canGenerate "\t" Fuzz.char
                 , canGenerate (Char.fromCode 0x0303) Fuzz.char
-                , canGenerate '🔥' Fuzz.char
-                , canGenerateSatisfyingWith { runs = 3000 }
+                , canGenerate "🔥" Fuzz.char
+                , canGenerateSatisfyingWith { runs : 3000 }
                     "Unicode above the special cases"
                     Fuzz.char
                     (\c -> Char.toCode c > 0x0001F525)
-                , simplifiesTowards "simplest" ' ' Fuzz.char fullySimplify
-                , simplifiesTowards "next simplest" '!' Fuzz.char (\c -> c == ' ')
+                , simplifiesTowards "simplest" " " Fuzz.char fullySimplify
+                , simplifiesTowards "next simplest" "!" Fuzz.char (\c -> c == " ")
                 ]
             , describe "asciiString"
                 [ canGenerate "" Fuzz.asciiString
@@ -368,7 +374,7 @@ fuzzerSpecificationTests =
                     -- going a roundabout way about this to keep Vim from being confused about unclosed strings
                     (String.contains (String.fromChar (Char.fromCode 0x0303)))
                 , canGenerateSatisfying "emoji" Fuzz.string (String.contains "🔥")
-                , canGenerateSatisfyingWith { runs = 3000 }
+                , canGenerateSatisfyingWith { runs : 3000 }
                     "Unicode above the special cases"
                     Fuzz.string
                     (String.any (\c -> Char.toCode c > 0x0001F525))
@@ -385,19 +391,19 @@ fuzzerSpecificationTests =
                 , simplifiesTowards "simplest" 42 (Fuzz.oneOfValues [ 42, 1, 999 ]) fullySimplify
                 , simplifiesTowards "next simplest" 1 (Fuzz.oneOfValues [ 42, 1, 999 ]) (\x -> x == 42)
                 , rejects "empty list"
-                    (Fuzz.oneOfValues [])
+                    (Fuzz.oneOfValues List.nil)
                     "Fuzz.oneOfValues: You must provide at least one item."
                 ]
             , describe "oneOf"
                 (let
-                    fuzzer : Fuzzer Int
+                    fuzzer :: Fuzzer Int
                     fuzzer =
                         Fuzz.oneOf
                             [ Fuzz.intRange -2 0
                             , Fuzz.constant 2
                             ]
 
-                    constFuzzer : Fuzzer Int
+                    constFuzzer :: Fuzzer Int
                     constFuzzer =
                         Fuzz.oneOf
                             [ Fuzz.constant 42
@@ -418,25 +424,25 @@ fuzzerSpecificationTests =
                  , simplifiesTowards "simplest" 42 constFuzzer fullySimplify
                  , simplifiesTowards "next simplest" 1 constFuzzer (\x -> x == 42)
                  , rejects "empty list"
-                    (Fuzz.oneOf [])
+                    (Fuzz.oneOf List.nil)
                     "Fuzz.oneOf: You must provide at least one item."
                  ]
                 )
             , describe "frequencyValues"
                 (let
-                    fuzzer : Fuzzer Int
+                    fuzzer :: Fuzzer Int
                     fuzzer =
                         Fuzz.frequencyValues
-                            [ ( 0.3, 1 )
-                            , ( 0.7, 42 )
+                            [ {a:0.3, b:1 }
+                            , {a:0.7, b:42 }
                             ]
 
-                    simplifyFuzzer : Fuzzer Int
+                    simplifyFuzzer :: Fuzzer Int
                     simplifyFuzzer =
                         Fuzz.frequencyValues
-                            [ ( 1, 42 )
-                            , ( 2, 1 )
-                            , ( 3, 999 )
+                            [ {a:1, b:42 }
+                            , {a:2, b:1 }
+                            , {a:3, b:999 }
                             ]
                  in
                  [ canGenerate 1 fuzzer
@@ -445,42 +451,42 @@ fuzzerSpecificationTests =
                     fuzzer
                     (\n -> not <| List.member n [ 1, 42 ])
                  , passes "One value -> picks it"
-                    (Fuzz.frequencyValues [ ( 0.7, 42 ) ])
+                    (Fuzz.frequencyValues [ {a:0.7, b:42 } ])
                     (\n -> n == 42)
                  , simplifiesTowards "simplest" 42 simplifyFuzzer fullySimplify
                  , simplifiesTowards "next simplest" 1 simplifyFuzzer (\x -> x == 42)
                  , rejects "empty list"
-                    (Fuzz.frequencyValues [])
+                    (Fuzz.frequencyValues List.nil)
                     "Fuzz.frequencyValues: You must provide at least one frequency pair with weight greater than 0."
                  , rejects "zero weight"
-                    (Fuzz.frequencyValues [ ( 0, () ) ])
+                    (Fuzz.frequencyValues [ ( 0, {} ) ])
                     "Fuzz.frequencyValues: You must provide at least one frequency pair with weight greater than 0."
                  , doesNotReject "zero and non-zero weight"
                     (Fuzz.frequencyValues
-                        [ ( 0, () )
-                        , ( 1, () )
+                        [ ( 0, {} )
+                        , ( 1, {} )
                         ]
                     )
                  , rejects "negative weight"
-                    (Fuzz.frequencyValues [ ( -1, () ) ])
+                    (Fuzz.frequencyValues [ ( -1, {} ) ])
                     "Fuzz.frequencyValues: No frequency weights can be less than 0."
                  ]
                 )
             , describe "frequency"
                 (let
-                    fuzzer : Fuzzer Int
+                    fuzzer :: Fuzzer Int
                     fuzzer =
                         Fuzz.frequency
-                            [ ( 0.3, Fuzz.intRange -2 0 )
-                            , ( 0.7, Fuzz.constant 2 )
+                            [ {a:0.3, b:Fuzz.intRange -2 0 }
+                            , {a:0.7, b:Fuzz.constant 2 }
                             ]
 
-                    simplifyFuzzer : Fuzzer Int
+                    simplifyFuzzer :: Fuzzer Int
                     simplifyFuzzer =
                         Fuzz.frequency
-                            [ ( 1, Fuzz.constant 42 )
-                            , ( 2, Fuzz.constant 1 )
-                            , ( 3, Fuzz.constant 999 )
+                            [ {a:1, b:Fuzz.constant 42 }
+                            , {a:2, b:Fuzz.constant 1 }
+                            , {a:3, b:Fuzz.constant 999 }
                             ]
                  in
                  [ canGenerate -2 fuzzer
@@ -491,41 +497,41 @@ fuzzerSpecificationTests =
                     fuzzer
                     (\n -> not <| List.member n [ -2, -1, 0, 2 ])
                  , passes "One fuzzer -> picks it"
-                    (Fuzz.frequency [ ( 0.7, Fuzz.constant 42 ) ])
+                    (Fuzz.frequency [ {a:0.7, b:Fuzz.constant 42 } ])
                     (\n -> n == 42)
                  , passes "One of two dice"
                     (Fuzz.frequency
-                        [ ( 1, Fuzz.intRange 1 6 )
-                        , ( 1, Fuzz.intRange 1 20 )
+                        [ {a:1, b:Fuzz.intRange 1 6 }
+                        , {a:1, b:Fuzz.intRange 1 20 }
                         ]
                     )
                     (\n -> n > 0)
                  , simplifiesTowards "simplest" 42 simplifyFuzzer fullySimplify
                  , simplifiesTowards "next simplest" 1 simplifyFuzzer (\x -> x == 42)
                  , rejects "empty list"
-                    (Fuzz.frequency [])
+                    (Fuzz.frequency List.nil)
                     "Fuzz.frequency: You must provide at least one frequency pair with weight greater than 0."
                  , rejects "zero weight"
-                    (Fuzz.frequency [ ( 0, Fuzz.unit ) ])
+                    (Fuzz.frequency [ {a:0, b:Fuzz.unit } ])
                     "Fuzz.frequency: You must provide at least one frequency pair with weight greater than 0."
                  , doesNotReject "zero and non-zero weight"
                     (Fuzz.frequency
-                        [ ( 0, Fuzz.unit )
-                        , ( 1, Fuzz.unit )
+                        [ {a:0, b:Fuzz.unit }
+                        , {a:1, b:Fuzz.unit }
                         ]
                     )
                  , rejects "negative weight"
-                    (Fuzz.frequency [ ( -1, Fuzz.unit ) ])
+                    (Fuzz.frequency [ {a:-1, b:Fuzz.unit } ])
                     "Fuzz.frequency: No frequency weights can be less than 0."
                  ]
                 )
             , describe "list"
-                [ canGenerateWith { runs = 1000 } [] (Fuzz.list Fuzz.unit)
+                [ canGenerateWith { runs : 1000 } List.nil (Fuzz.list Fuzz.unit)
                 , canGenerateSatisfying "non-empty list"
                     (Fuzz.list Fuzz.unit)
                     (not << List.isEmpty)
-                , simplifiesTowards "simplest" [] (Fuzz.list Fuzz.int) fullySimplify
-                , simplifiesTowardsWith { runs = 2000 } "next simplest" [ 0 ] (Fuzz.list Fuzz.int) (\x -> x == [])
+                , simplifiesTowards "simplest" List.nil (Fuzz.list Fuzz.int) fullySimplify
+                , simplifiesTowardsWith { runs : 2000 } "next simplest" [ 0 ] (Fuzz.list Fuzz.int) (\x -> x == List.nil)
                 , simplifiesTowardsMany "All lists are sorted"
                     [ [ 0, -1 ]
                     , [ 1, 0 ]
@@ -558,7 +564,7 @@ fuzzerSpecificationTests =
                 , doesNotReject "swapped arguments" (Fuzz.listOfLengthBetween 5 -5 Fuzz.unit)
                 ]
             , describe "array"
-                [ canGenerateWith { runs = 1000 } Array.empty (Fuzz.array Fuzz.unit)
+                [ canGenerateWith { runs : 1000 } Array.empty (Fuzz.array Fuzz.unit)
                 , canGenerateSatisfying "non-empty array"
                     (Fuzz.array Fuzz.unit)
                     (not << Array.isEmpty)
@@ -636,8 +642,8 @@ fuzzerSpecificationTests =
                 , cannotGenerateSatisfying "non-ASCII" (Fuzz.asciiStringOfLengthBetween 2 5) (String.any (not << isAsciiChar))
                 ]
             , describe "lazy"
-                [ canGenerate () (Fuzz.lazy (\() -> Fuzz.unit))
-                , canGenerate 1 (Fuzz.lazy (\() -> Fuzz.constant 1))
+                [ canGenerate {} (Fuzz.lazy (\{} -> Fuzz.unit))
+                , canGenerate 1 (Fuzz.lazy (\{} -> Fuzz.constant 1))
                 ]
             , describe "shuffledList"
                 [ passes
@@ -650,7 +656,7 @@ fuzzerSpecificationTests =
                                     (Fuzz.shuffledList ints)
                             )
                     )
-                    (\( originalList, shuffledList ) ->
+                    (\{a:originalList, b:shuffledList } ->
                         List.sort originalList == List.sort shuffledList
                     )
                 , canGenerate [ 30, 80, 50 ] (Fuzz.shuffledList [ 50, 30, 80 ])
@@ -689,7 +695,7 @@ fuzzerSpecificationTests =
                 [ passes "behaves like andMap"
                     (Fuzz.pair Fuzz.int Fuzz.int
                         |> Fuzz.andThen
-                            (\( m, n ) ->
+                            (\{a:m, b:n } ->
                                 Fuzz.pair
                                     (Fuzz.map2 (+)
                                         (Fuzz.constant m)
@@ -701,13 +707,13 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "map3"
                 [ passes "behaves like andMap"
                     (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int
                         |> Fuzz.andThen
-                            (\( m, n, o ) ->
+                            (\{a:m, b:n, c:o } ->
                                 Fuzz.pair
                                     (Fuzz.map3 (\a b c -> a + b + c)
                                         (Fuzz.constant m)
@@ -721,7 +727,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "map4"
                 [ passes "behaves like andMap"
@@ -729,7 +735,7 @@ fuzzerSpecificationTests =
                         (Fuzz.pair Fuzz.int Fuzz.int)
                         (Fuzz.pair Fuzz.int Fuzz.int)
                         |> Fuzz.andThen
-                            (\( ( m, n ), ( o, p ) ) ->
+                            (\{a:( m, b:n }, {a:o, b:p } ) ->
                                 Fuzz.pair
                                     (Fuzz.map4 (\a b c d -> a + b + c + d)
                                         (Fuzz.constant m)
@@ -745,7 +751,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "map5"
                 [ passes "behaves like andMap"
@@ -753,7 +759,7 @@ fuzzerSpecificationTests =
                         (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
                         (Fuzz.pair Fuzz.int Fuzz.int)
                         |> Fuzz.andThen
-                            (\( ( m, n, o ), ( p, q ) ) ->
+                            (\{a:( m, b:n, c:o }, {a:p, b:q } ) ->
                                 Fuzz.pair
                                     (Fuzz.map5 (\a b c d e -> a + b + c + d + e)
                                         (Fuzz.constant m)
@@ -771,7 +777,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "map6"
                 [ passes "behaves like andMap"
@@ -779,7 +785,7 @@ fuzzerSpecificationTests =
                         (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
                         (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
                         |> Fuzz.andThen
-                            (\( ( m, n, o ), ( p, q, r ) ) ->
+                            (\{a:( m, b:n, c:o }, {a:p, b:q, c:r } ) ->
                                 Fuzz.pair
                                     (Fuzz.map6 (\a b c d e f -> a + b + c + d + e + f)
                                         (Fuzz.constant m)
@@ -799,7 +805,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "map7"
                 [ passes "behaves like andMap"
@@ -808,7 +814,7 @@ fuzzerSpecificationTests =
                         (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
                         Fuzz.int
                         |> Fuzz.andThen
-                            (\( ( m, n, o ), ( p, q, r ), s ) ->
+                            (\{a:( m, b:n, c:o }, {a:p, b:q, c:r }, s ) ->
                                 Fuzz.pair
                                     (Fuzz.map7 (\a b c d e f g -> a + b + c + d + e + f + g)
                                         (Fuzz.constant m)
@@ -830,7 +836,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "map8"
                 [ passes "behaves like andMap"
@@ -839,7 +845,7 @@ fuzzerSpecificationTests =
                         (Fuzz.triple Fuzz.int Fuzz.int Fuzz.int)
                         (Fuzz.pair Fuzz.int Fuzz.int)
                         |> Fuzz.andThen
-                            (\( ( m, n, o ), ( p, q, r ), ( s, t ) ) ->
+                            (\{a:( m, b:n, c:o }, {a:p, b:q, c:r }, {a:s, b:t } ) ->
                                 Fuzz.pair
                                     (Fuzz.map8 (\a b c d e f g h -> a + b + c + d + e + f + g + h)
                                         (Fuzz.constant m)
@@ -863,7 +869,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "andMap"
                 -- applicative functor laws
@@ -879,7 +885,7 @@ fuzzerSpecificationTests =
                                     (Fuzz.constant n)
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 , passes "homomorphism"
                     -- pure f <*> pure x = pure (f x)
                     (Fuzz.int
@@ -892,7 +898,7 @@ fuzzerSpecificationTests =
                                     (Fuzz.constant ((+) 1 n))
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 , passes "interchange"
                     -- u <*> pure y = pure ($ y) <*> u
                     (Fuzz.int
@@ -907,7 +913,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 , passes "composition"
                     -- pure (.) <*> u <*> v <*> w = u <*> (v <*> w)
                     (Fuzz.int
@@ -927,7 +933,7 @@ fuzzerSpecificationTests =
                                     )
                             )
                     )
-                    (\( left, right ) -> left == right)
+                    (\{a:left, b:right } -> left == right)
                 ]
             , describe "fromGenerator"
                 [ canGenerateSatisfying
@@ -945,7 +951,7 @@ fuzzerSpecificationTests =
                                     (Fuzz.intRange m (m + 10))
                             )
                     )
-                    (\( m, n ) -> m <= n && n <= m + 10)
+                    (\{a:m, b:n } -> m <= n && n <= m + 10)
                 , simplifiesTowards "list of booleans"
                     [ False, False, False ]
                     (Fuzz.bool
@@ -959,12 +965,12 @@ fuzzerSpecificationTests =
                     )
                     fullySimplify
                 , simplifiesTowards "RHS: list of ints"
-                    []
+                    List.nil
                     (Fuzz.int
                         |> Fuzz.andThen (\x -> Fuzz.list (Fuzz.constant x))
                     )
                     fullySimplify
-                , simplifiesTowardsWith { runs = 1000 }
+                , simplifiesTowardsWith { runs : 1000 }
                     "can ignore LHS"
                     [ 0, 0, 0 ]
                     (Fuzz.int
@@ -979,17 +985,17 @@ fuzzerSpecificationTests =
                     (\x -> List.length x < 3)
                 , simplifiesTowards
                     "rectangles"
-                    [ [ 'a', 'b' ] ]
+                    [ [ "a", "b" ] ]
                     (Fuzz.intRange 0 4
                         |> Fuzz.andThen
                             (\len ->
                                 Fuzz.list
                                     (Fuzz.listOfLength len
-                                        (Fuzz.oneOfValues [ 'a', 'b' ])
+                                        (Fuzz.oneOfValues [ "a", "b" ])
                                     )
                             )
                     )
-                    (\lists -> List.head lists /= Just [ 'a', 'b' ])
+                    (\lists -> List.head lists /= Just [ "a", "b" ])
                 ]
             , describe "weightedBool"
                 [ canGenerate False (Fuzz.weightedBool 0.5)
@@ -1113,11 +1119,11 @@ fuzzerSpecificationTests =
                        likely to randomly hit 15 even numbers in a row...
                        (that _has_ happened...)
                     -}
-                    isDivBy5 : Int -> Bool
+                    isDivBy5 :: Int -> Bool
                     isDivBy5 n =
                         modBy 5 n == 0
 
-                    intsNotDivBy5 : Fuzzer Int
+                    intsNotDivBy5 :: Fuzzer Int
                     intsNotDivBy5 =
                         Fuzz.int
                             |> Fuzz.filter (not << isDivBy5)
@@ -1128,19 +1134,19 @@ fuzzerSpecificationTests =
                 , passes "trivial predicate (always True) doesn't reject"
                     (Fuzz.int |> Fuzz.filter (\_ -> True))
                     (\_ -> True)
-                , canGenerateSatisfyingWith { runs = 5000 } "not divisible by 5" intsNotDivBy5 (not << isDivBy5)
-                , cannotGenerateSatisfyingWith { runs = 5000 } "divisible by 5" intsNotDivBy5 isDivBy5
+                , canGenerateSatisfyingWith { runs : 5000 } "not divisible by 5" intsNotDivBy5 (not << isDivBy5)
+                , cannotGenerateSatisfyingWith { runs : 5000 } "divisible by 5" intsNotDivBy5 isDivBy5
                 ]
             ]
         ]
 
 
-distributionTests : Test
+distributionTests :: Test
 distributionTests =
     Test.describe "distribution"
         [ Test.fuzzWith
-            { runs = 10000
-            , distribution =
+            { runs : 10000
+            , distribution :
                 Test.reportDistribution
                     [ ( "low", \n -> n == 1 )
                     , ( "high", \n -> n == 20 )
@@ -1152,8 +1158,8 @@ distributionTests =
             "Int range boundaries"
             (\n -> Expect.pass)
         , Test.fuzzWith
-            { runs = 10000
-            , distribution =
+            { runs : 10000
+            , distribution :
                 Test.reportDistribution
                     [ ( "fizz", \n -> (n |> modBy 3) == 0 )
                     , ( "buzz", \n -> (n |> modBy 5) == 0 )
@@ -1163,8 +1169,8 @@ distributionTests =
             "Fizz buzz"
             (\n -> Expect.pass)
         , Test.fuzzWith
-            { runs = 10000
-            , distribution =
+            { runs : 10000
+            , distribution :
                 Test.reportDistribution
                     [ ( "fizz", \n -> (n |> modBy 3) == 0 )
                     , ( "buzz", \n -> (n |> modBy 5) == 0 )
@@ -1176,8 +1182,8 @@ distributionTests =
             "Fizz buzz even odd"
             (\n -> Expect.pass)
         , Test.fuzzWith
-            { runs = 10000
-            , distribution =
+            { runs : 10000
+            , distribution :
                 Test.expectDistribution
                     [ ( Test.Distribution.atLeast 4, "low", \n -> n == 1 )
                     , ( Test.Distribution.atLeast 4, "high", \n -> n == 20 )
@@ -1194,12 +1200,12 @@ distributionTests =
 
 {-| An user test function that makes the simplifier simplify the value fully.
 -}
-fullySimplify : a -> Bool
+fullySimplify :: a -> Bool
 fullySimplify _ =
     False
 
 
-isAsciiChar : Char -> Bool
+isAsciiChar :: Char -> Bool
 isAsciiChar char =
     let
         code =

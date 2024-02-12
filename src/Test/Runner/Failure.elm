@@ -1,4 +1,4 @@
-module Test.Runner.Failure exposing (Reason(..), InvalidReason(..))
+module Test.Runner.Failure (Reason(..), InvalidReason(..)) where
 
 {-| The reason a test failed.
 
@@ -13,7 +13,7 @@ Test runners can use this to provide nice output, e.g. by doing diffs on the
 two parts of an `Expect.equal` failure.
 
 -}
-type Reason
+data Reason
     = Custom
     | Equality String String
     | Comparison String String
@@ -23,10 +23,10 @@ type Reason
          "Extra" and "missing" are relative to the actual value.
       -}
     | CollectionDiff
-        { expected : String
-        , actual : String
-        , extra : List String
-        , missing : List String
+        { expected :: String
+        , actual :: String
+        , extra :: List String
+        , missing :: List String
         }
     | TODO
     | Invalid InvalidReason
@@ -37,7 +37,7 @@ type Reason
 Test runners should report these to the user in whatever format is appropriate.
 
 -}
-type InvalidReason
+data InvalidReason
     = EmptyList
     | NonpositiveFuzzCount
     | InvalidFuzzer

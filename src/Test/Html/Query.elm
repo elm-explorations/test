@@ -1,8 +1,8 @@
-module Test.Html.Query exposing
-    ( Single, Multiple, fromHtml
+module Test.Html.Query ( Single, Multiple, fromHtml
     , find, findAll, children, first, index, keep
     , count, contains, has, hasNot, each
     )
+ where
 
 {-| Querying HTML structure.
 
@@ -20,12 +20,19 @@ module Test.Html.Query exposing
 
 -}
 
-import Expect exposing (Expectation)
-import Html exposing (Html)
+import Expect (Expectation)
+import Expect as Expect
+import Html (Html)
+import Html as Html
 import Test.Html.Internal.Inert as Inert
-import Test.Html.Query.Internal as Internal exposing (failWithQuery)
-import Test.Html.Selector exposing (Selector)
-import Test.Html.Selector.Internal exposing (selectorToString)
+
+import Test.Html.Query.Internal (failWithQuery)
+import Test.Html.Query.Internal as Internal
+
+import Test.Html.Selector (Selector)
+import Test.Html.Selector as Test.Html.Selector
+import Test.Html.Selector.Internal (selectorToString)
+import Test.Html.Selector.Internal as Test.Html.Selector.Internal
 
 
 
@@ -54,7 +61,7 @@ import Test.Html.Selector.Internal exposing (selectorToString)
 Contrast with [`Multiple`](#Multiple).
 
 -}
-type alias Single msg =
+type Single msg =
     Internal.Single msg
 
 
@@ -63,7 +70,7 @@ type alias Single msg =
 Contrast with [`Single`](#Single).
 
 -}
-type alias Multiple msg =
+type Multiple msg =
     Internal.Multiple msg
 
 
@@ -83,12 +90,12 @@ typically begin.
                 |> Query.has [ text "I'm a button!" ]
 
 -}
-fromHtml : Html msg -> Single msg
+fromHtml :: Html msg -> Single msg
 fromHtml html =
     Internal.Single True <|
         case Inert.fromHtml html of
             Ok node ->
-                Internal.Query node []
+                Internal.Query node List.nil
 
             Err message ->
                 Internal.InternalError message
@@ -122,7 +129,7 @@ fromHtml html =
                 |> Query.count (Expect.equal 3)
 
 -}
-findAll : List Selector -> Single msg -> Multiple msg
+findAll :: List Selector -> Single msg -> Multiple msg
 findAll selectors (Internal.Single showTrace query) =
     Internal.FindAll selectors
         |> Internal.prependSelector query
@@ -158,7 +165,7 @@ findAll selectors (Internal.Single showTrace query) =
                     ]
 
 -}
-keep : Selector -> Multiple msg -> Multiple msg
+keep :: Selector -> Multiple msg -> Multiple msg
 keep selector (Internal.Multiple showTrace query) =
     Internal.FindAll [ selector ]
         |> Internal.prependSelector query
@@ -189,7 +196,7 @@ keep selector (Internal.Multiple showTrace query) =
                 |> Query.count (Expect.equal 1)
 
 -}
-children : List Selector -> Single msg -> Multiple msg
+children :: List Selector -> Single msg -> Multiple msg
 children selectors (Internal.Single showTrace query) =
     Internal.Children selectors
         |> Internal.prependSelector query
@@ -220,7 +227,7 @@ If no descendants match, or if more than one matches, the test will fail.
                 |> Query.has [ classes [ "items", "active" ] ]
 
 -}
-find : List Selector -> Single msg -> Single msg
+find :: List Selector -> Single msg -> Single msg
 find selectors (Internal.Single showTrace query) =
     Internal.Find selectors
         |> Internal.prependSelector query
@@ -254,7 +261,7 @@ will fail.
                 |> Query.has [ text "first item" ]
 
 -}
-first : Multiple msg -> Single msg
+first :: Multiple msg -> Single msg
 first (Internal.Multiple showTrace query) =
     Internal.First
         |> Internal.prependSelector query
@@ -292,7 +299,7 @@ If the index falls outside the bounds of the match, the test will fail.
                 |> Query.has [ text "second item" ]
 
 -}
-index : Int -> Multiple msg -> Single msg
+index :: Int -> Multiple msg -> Single msg
 index position (Internal.Multiple showTrace query) =
     Internal.Index position
         |> Internal.prependSelector query
@@ -327,7 +334,7 @@ index position (Internal.Multiple showTrace query) =
                 |> Query.count (Expect.equal 3)
 
 -}
-count : (Int -> Expectation) -> Multiple msg -> Expectation
+count :: (Int -> Expectation) -> Multiple msg -> Expectation
 count expect ((Internal.Multiple showTrace query) as multiple) =
     (List.length >> expect >> failWithQuery showTrace "Query.count" query)
         |> Internal.multipleToExpectation multiple
@@ -359,7 +366,7 @@ count expect ((Internal.Multiple showTrace query) as multiple) =
                     ]
 
 -}
-contains : List (Html msg) -> Single msg -> Expectation
+contains :: List (Html msg) -> Single msg -> Expectation
 contains expectedHtml (Internal.Single showTrace query) =
     case
         List.map Inert.fromHtml expectedHtml
@@ -380,31 +387,31 @@ contains expectedHtml (Internal.Single showTrace query) =
                         ]
 
 
-collectResults : List (Result x a) -> Result (List x) (List a)
+collectResults :: List (Result x a) -> Result (List x) (List a)
 collectResults listOfResults =
     let
-        step : Result (List x) (List a) -> List (Result x a) -> Result (List x) (List a)
+        step :: Result (List x) (List a) -> List (Result x a) -> Result (List x) (List a)
         step acc list =
-            case ( acc, list ) of
-                ( Err errors, [] ) ->
+            case {a:acc, b:list } of
+                {a::Err errors, b::List.nil } ->
                     Err (List.reverse errors)
 
-                ( Ok values, [] ) ->
+                {a::Ok values, b::List.nil } ->
                     Ok (List.reverse values)
 
-                ( Err errors, (Err x) :: rest ) ->
-                    step (Err (x :: errors)) rest
+                ( Err errors, (Err x) List.: rest ) ->
+                    step (Err (x List.: errors)) rest
 
-                ( Ok _, (Err x) :: rest ) ->
+                ( Ok _, (Err x) List.: rest ) ->
                     step (Err [ x ]) rest
 
-                ( Err errors, (Ok _) :: rest ) ->
+                ( Err errors, (Ok _) List.: rest ) ->
                     step (Err errors) rest
 
-                ( Ok values, (Ok a) :: rest ) ->
-                    step (Ok (a :: values)) rest
+                ( Ok values, (Ok a) List.: rest ) ->
+                    step (Ok (a List.: values)) rest
     in
-    step (Ok []) listOfResults
+    step (Ok List.nil) listOfResults
 
 
 {-| Expect the element to match all of the given selectors.
@@ -430,10 +437,10 @@ collectResults listOfResults =
                 |> Query.has [ tag "ul", classes [ "items", "active" ] ]
 
 -}
-has : List Selector -> Single msg -> Expectation
+has :: List Selector -> Single msg -> Expectation
 has selectors (Internal.Single showTrace query) =
     Internal.has selectors query
-        |> failWithQuery showTrace ("Query.has " ++ Internal.joinAsList selectorToString selectors) query
+        |> failWithQuery showTrace ("Query.has " <> Internal.joinAsList selectorToString selectors) query
 
 
 {-| Expect the element to **not** match all of the given selectors.
@@ -453,11 +460,11 @@ has selectors (Internal.Single showTrace query) =
                 |> Query.hasNot [ tag "div", class "progress-bar" ]
 
 -}
-hasNot : List Selector -> Single msg -> Expectation
+hasNot :: List Selector -> Single msg -> Expectation
 hasNot selectors (Internal.Single showTrace query) =
     let
         queryName =
-            "Query.hasNot " ++ Internal.joinAsList selectorToString selectors
+            "Query.hasNot " <> Internal.joinAsList selectorToString selectors
     in
     Internal.hasNot selectors query
         |> failWithQuery showTrace queryName query
@@ -492,7 +499,7 @@ hasNot selectors (Internal.Single showTrace query) =
                     )
 
 -}
-each : (Single msg -> Expectation) -> Multiple msg -> Expectation
+each :: (Single msg -> Expectation) -> Multiple msg -> Expectation
 each check (Internal.Multiple showTrace query) =
     Internal.expectAll check query
         |> failWithQuery showTrace "Query.each" query

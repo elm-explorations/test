@@ -1,87 +1,98 @@
-module Test.Html.QueryTests exposing (all)
+module Test.Html.QueryTests (all) where
 
-import Expect exposing (Expectation)
-import Fuzz
-import Html exposing (Html, a, div, footer, h1, header, img, li, section, span, ul)
-import Html.Attributes as Attr exposing (href)
+import Expect (Expectation)
+import Expect as Expect
+import Fuzz as Fuzz
+import Html (Html, a, div, footer, h1, header, img, li, section, span, ul)
+import Html as Html
+import Html.Attributes (href)
+import Html.Attributes as Attr
+
 import Html.Keyed as Keyed
+
 import Html.Lazy as Lazy
+
 import Json.Encode as Encode
-import Test exposing (..)
-import Test.Html.Query as Query exposing (Single)
-import Test.Html.Selector exposing (..)
-import Test.Runner
+
+import Test (..)
+import Test as Test
+import Test.Html.Query (Single)
+import Test.Html.Query as Query
+
+import Test.Html.Selector (..)
+import Test.Html.Selector as Test.Html.Selector
+import Test.Runner as Test.Runner
 
 
-all : Test
+all :: Test
 all =
     describe "Test.Html.Query"
         [ htmlTests
         , lazyTests
         , testHas
         , test "lazy nodes inside of keyed nodes are instantiated" <|
-            \() ->
+            \{} ->
                 Keyed.node "div"
-                    []
-                    [ ( "first", Lazy.lazy (\() -> Html.text "first text") () )
+                    List.nil
+                    [ ( "first", Lazy.lazy (\{} -> Html.text "first text") {} )
                     ]
                     |> Query.fromHtml
                     |> Query.has [ text "first text" ]
         , test "lazy nodes inside of lazy are instantiated" <|
             -- From https://github.com/elm-explorations/test/issues/78
-            \() ->
+            \{} ->
                 Lazy.lazy
-                    (\() ->
-                        Html.div []
-                            [ Lazy.lazy (\() -> Html.text "first text") ()
+                    (\{} ->
+                        Html.div List.nil
+                            [ Lazy.lazy (\{} -> Html.text "first text") {}
                             ]
                     )
-                    ()
+                    {}
                     |> Query.fromHtml
                     |> Query.has [ text "first text" ]
         , describe "parsing attributes" <|
             let
                 divWithAttribute attr =
-                    Html.div [ attr ] []
+                    Html.div [ attr ] List.nil
             in
             [ test "matching a string attribute" <|
-                \() ->
+                \{} ->
                     divWithAttribute (Attr.title "test")
                         |> Query.fromHtml
                         |> Query.has [ attribute (Attr.title "test") ]
             , test "matching an int attribute" <|
-                \() ->
+                \{} ->
                     divWithAttribute (Attr.colspan 1)
                         |> Query.fromHtml
                         |> Query.has [ attribute (Attr.colspan 1) ]
             , test "matching an bool attribute" <|
-                \() ->
+                \{} ->
                     divWithAttribute (Attr.checked True)
                         |> Query.fromHtml
                         |> Query.has [ attribute (Attr.checked True) ]
             , test "matching a bool property" <|
-                \() ->
+                \{} ->
                     divWithAttribute (Attr.disabled True)
                         |> Query.fromHtml
                         |> Query.has [ attribute (Attr.disabled True) ]
             , test "matching a string property" <|
-                \() ->
+                \{} ->
                     divWithAttribute (Attr.value "test")
                         |> Query.fromHtml
                         |> Query.has [ attribute (Attr.value "test") ]
             , test "matching a style attribute" <|
-                \() ->
+                \{} ->
                     divWithAttribute (Attr.style "margin" "0")
                         |> Query.fromHtml
                         |> Query.has [ attribute (Attr.style "margin" "0") ]
             , describe "matching class attributes"
                 [ test "matches a single class" <|
-                    \() ->
+                    \{} ->
                         divWithAttribute (Attr.class "hello")
                             |> Query.fromHtml
                             |> Query.has [ class "hello" ]
                 , test "matches a node with multiple classes" <|
-                    \() ->
+                    \{} ->
                         divWithAttribute (Attr.class "hello world")
                             |> Query.fromHtml
                             |> Expect.all
@@ -91,22 +102,22 @@ all =
                                 , Query.has [ class "world", class "hello" ]
                                 ]
                 , test "matches a class using Selector.attribute" <|
-                    \() ->
+                    \{} ->
                         divWithAttribute (Attr.class "hello world")
                             |> Query.fromHtml
                             |> Query.has [ attribute (Attr.attribute "class" "hello world") ]
                 , test "matches a class using Selector.attribute with different case" <|
-                    \() ->
+                    \{} ->
                         divWithAttribute (Attr.class "hello world")
                             |> Query.fromHtml
                             |> Query.has [ attribute (Attr.attribute "CLASS" "hello world") ]
                 , test "matches a class using Selector.attribute with a property attribute" <|
-                    \() ->
+                    \{} ->
                         divWithAttribute (Attr.class "hello")
                             |> Query.fromHtml
                             |> Query.has [ attribute (Attr.property "className" (Encode.string "hello")) ]
                 , test "matches a class using Selector.attribute with a property attribute only by exact match" <|
-                    \() ->
+                    \{} ->
                         divWithAttribute (Attr.class "hello world")
                             |> Query.fromHtml
                             |> Expect.all
@@ -117,7 +128,7 @@ all =
             ]
         , describe "Query.contains" <|
             let
-                doesContain : Html msg -> Html msg -> Bool
+                doesContain :: Html msg -> Html msg -> Bool
                 doesContain potentialDescendant html =
                     html
                         |> Query.fromHtml
@@ -125,49 +136,49 @@ all =
                         |> expectationToIsPassing
             in
             [ test "returns true if it contains the expected html once" <|
-                \() ->
-                    div [] [ h1 [] [ Html.text "foo" ] ]
-                        |> doesContain (h1 [] [ Html.text "foo" ])
+                \{} ->
+                    div List.nil [ h1 List.nil [ Html.text "foo" ] ]
+                        |> doesContain (h1 List.nil [ Html.text "foo" ])
                         |> Expect.equal True
             , test "returns true if it contains the expected html more than once" <|
-                \() ->
-                    div []
-                        [ h1 [] [ Html.text "foo" ]
-                        , h1 [] [ Html.text "foo" ]
+                \{} ->
+                    div List.nil
+                        [ h1 List.nil [ Html.text "foo" ]
+                        , h1 List.nil [ Html.text "foo" ]
                         ]
-                        |> doesContain (h1 [] [ Html.text "foo" ])
+                        |> doesContain (h1 List.nil [ Html.text "foo" ])
                         |> Expect.equal True
             , test "return true if the node is a nested descendant" <|
-                \() ->
-                    div []
-                        [ div []
-                            [ div [] [ h1 [] [ Html.text "foo" ] ]
+                \{} ->
+                    div List.nil
+                        [ div List.nil
+                            [ div List.nil [ h1 List.nil [ Html.text "foo" ] ]
                             ]
                         ]
-                        |> doesContain (h1 [] [ Html.text "foo" ])
+                        |> doesContain (h1 List.nil [ Html.text "foo" ])
                         |> Expect.equal True
             , test "returns false if it does not contain the node" <|
-                \() ->
-                    div [] [ h1 [] [ Html.text "foo" ] ]
-                        |> doesContain (img [] [])
+                \{} ->
+                    div List.nil [ h1 List.nil [ Html.text "foo" ] ]
+                        |> doesContain (img List.nil List.nil)
                         |> Expect.equal False
             ]
         ]
 
 
-htmlTests : Test
+htmlTests :: Test
 htmlTests =
     describe "Html" <|
         List.map (\toTest -> toTest (Query.fromHtml sampleHtml)) testers
 
 
-lazyTests : Test
+lazyTests :: Test
 lazyTests =
     describe "lazy Html" <|
         List.map (\toTest -> toTest (Query.fromHtml sampleLazyHtml)) testers
 
 
-testers : List (Single msg -> Test)
+testers :: List (Single msg -> Test)
 testers =
     [ testFindAll
     , testKeep
@@ -180,129 +191,129 @@ testers =
     ]
 
 
-testRoot : Single msg -> Test
+testRoot :: Single msg -> Test
 testRoot output =
     describe "root query without find or findAll"
         [ describe "finds itself" <|
             [ test "sees it's a <section class='root'>" <|
-                \() ->
+                \{} ->
                     output
                         |> Expect.all
                             [ Query.has [ class "root" ]
                             , Query.has [ tag "section" ]
                             ]
             , test "recognizes its exact className" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.has [ exactClassName "root" ]
             , test "recognizes its class by classes" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.has [ classes [ "root" ] ]
             , test "recognizes its style by a single css property" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.has [ style "color" "red" ]
             , test "recognizes its style by multiple css properties" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.has
                             [ style "color" "red"
                             , style "background" "purple"
                             ]
             , test "recognizes its style does not include a css property" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.hasNot [ style "color" "green" ]
             , test "recognizes if is has a specific descendant" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.contains [ someView "Such a title !" ]
             ]
         ]
 
 
-testFind : Single msg -> Test
+testFind :: Single msg -> Test
 testFind output =
     describe "Query.find []"
         [ describe "finds the one child" <|
             [ test "sees it's a <div class='container'>" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.find []
+                        |> Query.find List.nil
                         |> Expect.all
                             [ Query.has [ class "container" ]
                             , Query.has [ tag "div" ]
                             ]
             , test "recognizes its exact className" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.find []
+                        |> Query.find List.nil
                         |> Query.has [ exactClassName "container" ]
             , test "recognizes its class by classes" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.find []
+                        |> Query.find List.nil
                         |> Query.has [ classes [ "container" ] ]
             , test "recognizes its style by style list" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.has [ style "color" "blue" ]
             , test "recognizes if is has a specific descendant" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.find []
+                        |> Query.find List.nil
                         |> Query.contains [ someView "Such a title !" ]
             ]
         ]
 
 
-testFindAll : Single msg -> Test
+testFindAll :: Single msg -> Test
 testFindAll output =
     describe "Query.findAll []"
         [ describe "finds the one child" <|
             [ test "and only the one child" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.count (Expect.equal 1)
             , test "sees it's a <div class='container'>" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Expect.all
                             [ Query.each (Query.has [ class "container" ])
                             , Query.each (Query.has [ tag "div" ])
                             ]
             , test "recognizes its exact className" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.each (Query.has [ exactClassName "container" ])
             , test "recognizes its class by classes" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.each (Query.has [ classes [ "container" ] ])
             ]
         , describe "finds multiple descendants"
             [ test "with tag selectors that return one match at the start" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "header" ]
                         |> Query.count (Expect.equal 1)
             , test "with tag selectors that return multiple matches" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "section" ]
                         |> Query.count (Expect.equal 2)
             , test "with tag selectors that return one match at the end" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.find [ tag "footer" ]
                         |> Query.has [ text "this is the footer" ]
             , test "sees the nested div" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "div" ]
                         |> Query.count (Expect.equal 2)
@@ -310,11 +321,11 @@ testFindAll output =
         ]
 
 
-testKeep : Single msg -> Test
+testKeep :: Single msg -> Test
 testKeep output =
     describe "Query.keep"
         [ test "only keep a subsect of a result" <|
-            \() ->
+            \{} ->
                 output
                     |> Query.findAll [ tag "section" ]
                     |> Query.keep (tag "ul")
@@ -324,14 +335,14 @@ testKeep output =
                         , Query.first >> Query.has [ text "first item" ]
                         ]
         , test "keep from the second section as well" <|
-            \() ->
+            \{} ->
                 output
                     |> Query.findAll [ tag "section" ]
                     |> Query.keep (class "nested-div")
                     |> Query.first
                     |> Query.has [ text "boring section" ]
         , test "keep elements from both matches" <|
-            \() ->
+            \{} ->
                 output
                     |> Query.findAll [ tag "section" ]
                     |> Query.keep (class "tooltip-questions")
@@ -339,94 +350,94 @@ testKeep output =
         ]
 
 
-testFirst : Single msg -> Test
+testFirst :: Single msg -> Test
 testFirst output =
     describe "Query.first"
         [ describe "finds the one child" <|
             [ test "sees it's a <div class='container'>" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.first
                         |> Query.has [ tag "div", class "container" ]
             ]
         ]
 
 
-testIndex : Single msg -> Test
+testIndex :: Single msg -> Test
 testIndex output =
     describe "Query.index"
         [ describe "only 1 element"
             [ test "index -1 matches" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.index -1
                         |> Query.has [ tag "div", class "container" ]
             , test "index 0 matches" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.index 0
                         |> Query.has [ tag "div", class "container" ]
             , test "index -2 too low" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.index -2
                         |> Query.hasNot [ tag "div" ]
             , test "index 1 too high" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.findAll []
+                        |> Query.findAll List.nil
                         |> Query.index 1
                         |> Query.hasNot [ tag "div" ]
             ]
         , describe "3 element"
             [ test "index 0 matches" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index 0
                         |> Query.has [ tag "a", text "home" ]
             , test "index 1 matches" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index 1
                         |> Query.has [ tag "a", text "examples" ]
             , test "index 2 matches" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index 2
                         |> Query.has [ tag "a", text "docs" ]
             , test "index -3 matches" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index -3
                         |> Query.has [ tag "a", text "home" ]
             , test "index -2 matches" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index -2
                         |> Query.has [ tag "a", text "examples" ]
             , test "index -1 matches" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index -1
                         |> Query.has [ tag "a", text "docs" ]
             , test "index -4  too low" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index -4
                         |> Query.hasNot [ tag "a" ]
             , test "index 3 too high" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index 3
@@ -435,25 +446,25 @@ testIndex output =
         ]
 
 
-testChildren : Single msg -> Test
+testChildren :: Single msg -> Test
 testChildren output =
     describe "Query.children"
         [ describe "on the root" <|
             [ test "sees the root has one child" <|
-                \() ->
+                \{} ->
                     output
-                        |> Query.children []
+                        |> Query.children List.nil
                         |> Expect.all
                             [ Query.count (Expect.equal 1)
                             , Query.each (Query.hasNot [ class "root" ])
                             ]
             , test "doesn't see the nested div" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.children [ class "nested-div" ]
                         |> Query.count (Expect.equal 0)
             , test "only children which match the selector get returned" <|
-                \() ->
+                \{} ->
                     output
                         |> Query.find [ class "some-list" ]
                         |> Query.children [ class "selected" ]
@@ -462,11 +473,11 @@ testChildren output =
         ]
 
 
-testContaining : Single msg -> Test
+testContaining :: Single msg -> Test
 testContaining output =
     describe "Selector.containing"
         [ test "when it's a child" <|
-            \() ->
+            \{} ->
                 output
                     |> Query.findAll
                         [ tag "button"
@@ -477,7 +488,7 @@ testContaining output =
                         , Query.first >> Query.has [ class "super-button" ]
                         ]
         , test "when it's a grandchild" <|
-            \() ->
+            \{} ->
                 output
                     |> Query.findAll
                         [ tag "header"
@@ -485,7 +496,7 @@ testContaining output =
                         ]
                     |> Query.count (Expect.equal 1)
         , test "when it matches more than one element" <|
-            \() ->
+            \{} ->
                 output
                     |> Query.findAll
                         [ tag "section"
@@ -495,7 +506,7 @@ testContaining output =
         ]
 
 
-sampleHtml : Html msg
+sampleHtml :: Html msg
 sampleHtml =
     section
         [ Attr.class "root"
@@ -519,13 +530,13 @@ sampleHtml =
                     , span [ Attr.class "tooltip-questions" ] [ Html.text "?" ]
                     ]
                 ]
-            , section []
+            , section List.nil
                 [ div [ Attr.class "nested-div" ] [ Html.text "boring section" ]
                 , Html.button [ Attr.class "super-button" ] [ Html.text "click me" ]
                 , Html.button [ Attr.class "other-button" ] [ Html.text "the other button" ]
                 , span [ Attr.class "tooltip-questions" ] [ Html.text "?" ]
                 ]
-            , footer []
+            , footer List.nil
                 [ Html.text "this is the footer"
                 , span [ Attr.class "tooltip-questions" ] [ Html.text "?" ]
                 ]
@@ -533,7 +544,7 @@ sampleHtml =
         ]
 
 
-sampleLazyHtml : Html msg
+sampleLazyHtml :: Html msg
 sampleLazyHtml =
     section
         [ Attr.class "root"
@@ -557,7 +568,7 @@ sampleLazyHtml =
                     , Lazy.lazy (\str -> span [ Attr.class "tooltip-questions" ] [ Html.text str ]) "?"
                     ]
                 ]
-            , section []
+            , section List.nil
                 [ div [ Attr.class "nested-div" ]
                     [ Html.text "boring section"
                     , Lazy.lazy (\str -> Html.button [ Attr.class "super-button" ] [ Html.text str ]) "click me"
@@ -565,31 +576,31 @@ sampleLazyHtml =
                     , Lazy.lazy (\str -> span [ Attr.class "tooltip-questions" ] [ Html.text str ]) "?"
                     ]
                 ]
-            , footer []
-                [ Lazy.lazy2 (\a b -> Html.text <| a ++ b) "this is " "the footer"
+            , footer List.nil
+                [ Lazy.lazy2 (\a b -> Html.text <| a <> b) "this is " "the footer"
                 , Lazy.lazy (\str -> span [ Attr.class "tooltip-questions" ] [ Html.text str ]) "?"
                 ]
             ]
         ]
 
 
-someView : String -> Html msg
+someView :: String -> Html msg
 someView str =
-    Html.h1 [] [ Html.text str ]
+    Html.h1 List.nil [ Html.text str ]
 
 
-testHas : Test
+testHas :: Test
 testHas =
     describe "Query.has"
         [ fuzz (Fuzz.list Fuzz.string) "Passes for empty selector list" <|
             \strings ->
-                Html.div [] (List.map Html.text strings)
+                Html.div List.nil (List.map Html.text strings)
                     |> Query.fromHtml
-                    |> Query.has []
+                    |> Query.has List.nil
         ]
 
 
-expectationToIsPassing : Expectation -> Bool
+expectationToIsPassing :: Expectation -> Bool
 expectationToIsPassing expectation =
     case Test.Runner.getFailureReason expectation of
         Nothing ->

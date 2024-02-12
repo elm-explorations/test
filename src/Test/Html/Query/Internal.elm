@@ -1,22 +1,29 @@
-module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError(..), SelectorQuery(..), Single(..), addQueryFromHtmlLine, baseIndentation, contains, expectAll, expectAllHelp, failWithQuery, getChildren, getElementAt, getElementAtHelp, getHtmlContext, has, hasNot, isElement, joinAsList, missingDescendants, multipleToExpectation, prefixOutputLine, prependSelector, prettyPrint, printIndented, queryErrorToString, showSelectorOutcome, showSelectorOutcomeInverse, toLines, toLinesHelp, toOutputLine, traverse, traverseSelector, traverseSelectors, verifySingle, withHtmlContext)
+module Test.Html.Query.Internal (Multiple(..), Query(..), QueryError(..), SelectorQuery(..), Single(..), addQueryFromHtmlLine, baseIndentation, contains, expectAll, expectAllHelp, failWithQuery, getChildren, getElementAt, getElementAtHelp, getHtmlContext, has, hasNot, isElement, joinAsList, missingDescendants, multipleToExpectation, prefixOutputLine, prependSelector, prettyPrint, printIndented, queryErrorToString, showSelectorOutcome, showSelectorOutcomeInverse, toLines, toLinesHelp, toOutputLine, traverse, traverseSelector, traverseSelectors, verifySingle, withHtmlContext) where
 
-import Expect exposing (Expectation)
+import Expect (Expectation)
+import Expect as Expect
 import Test.Html.Descendant as Descendant
-import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..))
-import Test.Html.Internal.ElmHtml.ToString exposing (nodeToStringWithOptions)
+
+import Test.Html.Internal.ElmHtml.InternalTypes (ElmHtml(..))
+import Test.Html.Internal.ElmHtml.InternalTypes as Test.Html.Internal.ElmHtml.InternalTypes
+import Test.Html.Internal.ElmHtml.ToString (nodeToStringWithOptions)
+import Test.Html.Internal.ElmHtml.ToString as Test.Html.Internal.ElmHtml.ToString
 import Test.Html.Internal.Inert as Inert
-import Test.Html.Selector.Internal as InternalSelector exposing (Selector, selectorToString)
-import Test.Runner
+
+import Test.Html.Selector.Internal (Selector, selectorToString)
+import Test.Html.Selector.Internal as InternalSelector
+
+import Test.Runner as Test.Runner
 
 
 {-| Note: the selectors are stored in reverse order for better prepending perf.
 -}
-type Query msg
+data Query msg
     = Query (Inert.Node msg) (List SelectorQuery)
     | InternalError String
 
 
-type SelectorQuery
+data SelectorQuery
     = Find (List Selector)
     | FindAll (List Selector)
     | Children (List Selector)
@@ -33,27 +40,27 @@ fromHtml printed twice - once at the very top, then again for the nested
 expectation that Query.each delegated to.
 
 -}
-type Single msg
+data Single msg
     = Single Bool (Query msg)
 
 
 {-| The Bool is `showTrace` - see `Single` for more info.
 -}
-type Multiple msg
+data Multiple msg
     = Multiple Bool (Query msg)
 
 
-type QueryError
+data QueryError
     = NoResultsForSingle String
     | MultipleResultsForSingle String Int
     | OtherInternalError String
 
 
-toLines : String -> Query msg -> String -> List String
+toLines :: String -> Query msg -> String -> List String
 toLines expectationFailure query queryName =
     case query of
         Query node selectors ->
-            toLinesHelp expectationFailure [ Inert.toElmHtml node ] (List.reverse selectors) queryName []
+            toLinesHelp expectationFailure [ Inert.toElmHtml node ] (List.reverse selectors) queryName List.nil
                 |> List.reverse
 
         InternalError message ->
@@ -62,12 +69,12 @@ toLines expectationFailure query queryName =
             ]
 
 
-prettyPrint : ElmHtml msg -> String
+prettyPrint :: ElmHtml msg -> String
 prettyPrint =
-    nodeToStringWithOptions { indent = 4, newLines = True }
+    nodeToStringWithOptions { indent : 4, newLines : True }
 
 
-toOutputLine : Query msg -> String
+toOutputLine :: Query msg -> String
 toOutputLine query =
     case query of
         Query node _ ->
@@ -75,17 +82,17 @@ toOutputLine query =
 
         InternalError message ->
             "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>.  "
-                ++ message
+                <> message
 
 
-toLinesHelp : String -> List (ElmHtml msg) -> List SelectorQuery -> String -> List String -> List String
+toLinesHelp :: String -> List (ElmHtml msg) -> List SelectorQuery -> String -> List String -> List String
 toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
     let
         bailOut result =
             -- Bail out early so the last error message the user
             -- sees is Query.find rather than something like
             -- Query.has, to reflect how we didn't make it that far.
-            String.join "\n\n\n✗ " [ result, expectationFailure ] :: results
+            String.join "\n\n\n✗ " [ result, expectationFailure ] List.: results
 
         recurse newElmHtmlList rest result =
             toLinesHelp
@@ -93,13 +100,13 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                 newElmHtmlList
                 rest
                 queryName
-                (result :: results)
+                (result List.: results)
     in
     case selectorQueries of
-        [] ->
-            String.join "\n\n" [ queryName, expectationFailure ] :: results
+        List.nil ->
+            String.join "\n\n" [ queryName, expectationFailure ] List.: results
 
-        selectorQuery :: rest ->
+        selectorQuery List.: rest ->
             case selectorQuery of
                 FindAll selectors ->
                     let
@@ -108,7 +115,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                                 |> List.concatMap getChildren
                                 |> InternalSelector.queryAll selectors
                     in
-                    ("Query.findAll " ++ joinAsList selectorToString selectors)
+                    ("Query.findAll " <> joinAsList selectorToString selectors)
                         |> withHtmlContext (getHtmlContext elements)
                         |> recurse elements rest
 
@@ -120,7 +127,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                                 |> InternalSelector.queryAll selectors
 
                         result =
-                            ("Query.find " ++ joinAsList selectorToString selectors)
+                            ("Query.find " <> joinAsList selectorToString selectors)
                                 |> withHtmlContext (getHtmlContext elements)
                     in
                     if List.length elements == 1 then
@@ -136,7 +143,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                                 |> List.concatMap getChildren
                                 |> InternalSelector.queryAllChildren selectors
                     in
-                    ("Query.children " ++ joinAsList selectorToString selectors)
+                    ("Query.children " <> joinAsList selectorToString selectors)
                         |> withHtmlContext (getHtmlContext elements)
                         |> recurse elements rest
 
@@ -146,7 +153,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                             elmHtmlList
                                 |> List.head
                                 |> Maybe.map (\elem -> [ elem ])
-                                |> Maybe.withDefault []
+                                |> Maybe.withDefault List.nil
 
                         result =
                             "Query.first"
@@ -165,7 +172,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                                 |> getElementAt index
 
                         result =
-                            ("Query.index " ++ String.fromInt index)
+                            ("Query.index " <> String.fromInt index)
                                 |> withHtmlContext (getHtmlContext elements)
                     in
                     if List.length elements == 1 then
@@ -175,12 +182,12 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                         bailOut result
 
 
-withHtmlContext : String -> String -> String
+withHtmlContext :: String -> String -> String
 withHtmlContext htmlStr str =
     String.join "\n\n" [ str, htmlStr ]
 
 
-getHtmlContext : List (ElmHtml msg) -> String
+getHtmlContext :: List (ElmHtml msg) -> String
 getHtmlContext elmHtmlList =
     if List.isEmpty elmHtmlList then
         "0 matches found for this query."
@@ -198,47 +205,47 @@ getHtmlContext elmHtmlList =
             |> String.join "\n\n"
 
 
-joinAsList : (a -> String) -> List a -> String
+joinAsList :: (a -> String) -> List a -> String
 joinAsList toStr list =
     if List.isEmpty list then
         "[]"
 
     else
-        "[ " ++ String.join ", " (List.map toStr list) ++ " ]"
+        "[ " <> String.join ", " (List.map toStr list) <> " ]"
 
 
-printIndented : Int -> Int -> ElmHtml msg -> String
+printIndented :: Int -> Int -> ElmHtml msg -> String
 printIndented maxDigits index elmHtml =
     let
         caption =
-            (String.fromInt (index + 1) ++ ")")
-                |> String.padRight (maxDigits + 3) ' '
+            (String.fromInt (index + 1) <> ")")
+                |> String.padRight (maxDigits + 3) " "
                 |> String.append baseIndentation
 
         indentation =
             String.repeat (String.length caption) " "
     in
     case String.split "\n" (prettyPrint elmHtml) of
-        [] ->
+        List.nil ->
             ""
 
-        first :: rest ->
+        first List.: rest ->
             rest
                 |> List.map (String.append indentation)
-                |> (::) (caption ++ first)
+                |> (List.:) (caption <> first)
                 |> String.join "\n"
 
 
-baseIndentation : String
+baseIndentation :: String
 baseIndentation =
     "    "
 
 
-prependSelector : Query msg -> SelectorQuery -> Query msg
+prependSelector :: Query msg -> SelectorQuery -> Query msg
 prependSelector query selector =
     case query of
         Query node selectors ->
-            Query node (selector :: selectors)
+            Query node (selector List.: selectors)
 
         InternalError message ->
             InternalError message
@@ -256,7 +263,7 @@ It also supports negative indeces, e.g. passing -1 for an index
 gets you the last element.
 
 -}
-getElementAt : Int -> List a -> List a
+getElementAt :: Int -> List a -> List a
 getElementAt index list =
     let
         length =
@@ -270,20 +277,20 @@ getElementAt index list =
             -- don't wrap around if index is too low
             || (index < 0 && abs index > length)
     then
-        []
+        List.nil
 
     else
         -- Support wraparound, e.g. passing -1 to get the last element.
         getElementAtHelp (modBy length index) list
 
 
-getElementAtHelp : Int -> List a -> List a
+getElementAtHelp :: Int -> List a -> List a
 getElementAtHelp index list =
     case list of
-        [] ->
-            []
+        List.nil ->
+            List.nil
 
-        first :: rest ->
+        first List.: rest ->
             if index == 0 then
                 [ first ]
 
@@ -291,7 +298,7 @@ getElementAtHelp index list =
                 getElementAtHelp (index - 1) rest
 
 
-traverse : Query msg -> Result QueryError (List (ElmHtml msg))
+traverse :: Query msg -> Result QueryError (List (ElmHtml msg))
 traverse query =
     case query of
         Query node selectorQueries ->
@@ -301,7 +308,7 @@ traverse query =
             Err (OtherInternalError message)
 
 
-traverseSelectors : List SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
+traverseSelectors :: List SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
 traverseSelectors selectorQueries elmHtmlList =
     List.foldr
         (traverseSelector >> Result.andThen)
@@ -309,7 +316,7 @@ traverseSelectors selectorQueries elmHtmlList =
         selectorQueries
 
 
-traverseSelector : SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
+traverseSelector :: SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
 traverseSelector selectorQuery elmHtmlList =
     case selectorQuery of
         Find selectors ->
@@ -347,20 +354,20 @@ traverseSelector selectorQuery elmHtmlList =
                 Ok elements
 
             else
-                Err (NoResultsForSingle ("Query.index " ++ String.fromInt index))
+                Err (NoResultsForSingle ("Query.index " <> String.fromInt index))
 
 
-getChildren : ElmHtml msg -> List (ElmHtml msg)
+getChildren :: ElmHtml msg -> List (ElmHtml msg)
 getChildren elmHtml =
     case elmHtml of
         NodeEntry { children } ->
             children
 
         _ ->
-            []
+            List.nil
 
 
-isElement : ElmHtml msg -> Bool
+isElement :: ElmHtml msg -> Bool
 isElement elmHtml =
     case elmHtml of
         NodeEntry _ ->
@@ -370,20 +377,20 @@ isElement elmHtml =
             False
 
 
-verifySingle : String -> List a -> Result QueryError a
+verifySingle :: String -> List a -> Result QueryError a
 verifySingle queryName list =
     case list of
-        [] ->
+        List.nil ->
             Err (NoResultsForSingle queryName)
 
-        singleton :: [] ->
+        singleton List.: List.nil ->
             Ok singleton
 
         multiples ->
             Err (MultipleResultsForSingle queryName (List.length multiples))
 
 
-expectAll : (Single msg -> Expectation) -> Query msg -> Expectation
+expectAll :: (Single msg -> Expectation) -> Query msg -> Expectation
 expectAll check query =
     case traverse query of
         Ok list ->
@@ -393,16 +400,16 @@ expectAll check query =
             Expect.fail (queryErrorToString error)
 
 
-expectAllHelp : Int -> (Single msg -> Expectation) -> List (ElmHtml msg) -> Expectation
+expectAllHelp :: Int -> (Single msg -> Expectation) -> List (ElmHtml msg) -> Expectation
 expectAllHelp successes check list =
     case list of
-        [] ->
+        List.nil ->
             Expect.pass
 
-        elmHtml :: rest ->
+        elmHtml List.: rest ->
             let
                 expectation =
-                    Query (Inert.fromElmHtml elmHtml) []
+                    Query (Inert.fromElmHtml elmHtml) List.nil
                         |> Single False
                         |> check
             in
@@ -411,7 +418,7 @@ expectAllHelp successes check list =
                     let
                         prefix =
                             if successes > 0 then
-                                "Element #" ++ String.fromInt (successes + 1) ++ " failed this test:"
+                                "Element #" <> String.fromInt (successes + 1) <> " failed this test:"
 
                             else
                                 "The first element failed this test:"
@@ -424,7 +431,7 @@ expectAllHelp successes check list =
                     expectAllHelp (successes + 1) check rest
 
 
-multipleToExpectation : Multiple msg -> (List (ElmHtml msg) -> Expectation) -> Expectation
+multipleToExpectation :: Multiple msg -> (List (ElmHtml msg) -> Expectation) -> Expectation
 multipleToExpectation (Multiple _ query) check =
     case traverse query of
         Ok list ->
@@ -434,26 +441,26 @@ multipleToExpectation (Multiple _ query) check =
             Expect.fail (queryErrorToString error)
 
 
-queryErrorToString : QueryError -> String
+queryErrorToString :: QueryError -> String
 queryErrorToString error =
     case error of
         NoResultsForSingle queryName ->
-            queryName ++ " always expects to find 1 element, but it found 0 instead."
+            queryName <> " always expects to find 1 element, but it found 0 instead."
 
         MultipleResultsForSingle queryName resultCount ->
             queryName
-                ++ " always expects to find 1 element, but it found "
-                ++ String.fromInt resultCount
-                ++ " instead.\n\n\nHINT: If you actually expected "
-                ++ String.fromInt resultCount
-                ++ " elements, use Query.findAll instead of Query.find."
+                <> " always expects to find 1 element, but it found "
+                <> String.fromInt resultCount
+                <> " instead.\n\n\nHINT: If you actually expected "
+                <> String.fromInt resultCount
+                <> " elements, use Query.findAll instead of Query.find."
 
         OtherInternalError message ->
             "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>.  "
-                ++ message
+                <> message
 
 
-contains : List (ElmHtml msg) -> Query msg -> Expectation
+contains :: List (ElmHtml msg) -> Query msg -> Expectation
 contains expectedDescendants query =
     case traverse query of
         Ok elmHtmlList ->
@@ -486,7 +493,7 @@ contains expectedDescendants query =
             Expect.fail (queryErrorToString error)
 
 
-missingDescendants : List (ElmHtml msg) -> List (ElmHtml msg) -> List (ElmHtml msg)
+missingDescendants :: List (ElmHtml msg) -> List (ElmHtml msg) -> List (ElmHtml msg)
 missingDescendants elmHtmlList expected =
     let
         isMissing =
@@ -496,7 +503,7 @@ missingDescendants elmHtmlList expected =
     List.filter isMissing expected
 
 
-has : List Selector -> Query msg -> Expectation
+has :: List Selector -> Query msg -> Expectation
 has selectors query =
     case traverse query of
         Ok elmHtmlList ->
@@ -513,15 +520,15 @@ has selectors query =
             Expect.fail (queryErrorToString error)
 
 
-hasNot : List Selector -> Query msg -> Expectation
+hasNot :: List Selector -> Query msg -> Expectation
 hasNot selectors query =
     case traverse query of
-        Ok [] ->
+        Ok List.nil ->
             Expect.pass
 
         Ok elmHtmlList ->
             case InternalSelector.queryAll selectors elmHtmlList of
-                [] ->
+                List.nil ->
                     Expect.pass
 
                 _ ->
@@ -534,12 +541,12 @@ hasNot selectors query =
             Expect.pass
 
 
-showSelectorOutcome : List (ElmHtml msg) -> Selector -> String
+showSelectorOutcome :: List (ElmHtml msg) -> Selector -> String
 showSelectorOutcome elmHtmlList selector =
     let
         outcome =
             case InternalSelector.queryAll [ selector ] elmHtmlList of
-                [] ->
+                List.nil ->
                     "✗"
 
                 _ ->
@@ -548,12 +555,12 @@ showSelectorOutcome elmHtmlList selector =
     String.join " " [ outcome, "has", selectorToString selector ]
 
 
-showSelectorOutcomeInverse : List (ElmHtml msg) -> Selector -> String
+showSelectorOutcomeInverse :: List (ElmHtml msg) -> Selector -> String
 showSelectorOutcomeInverse elmHtmlList selector =
     let
         outcome =
             case InternalSelector.queryAll [ selector ] elmHtmlList of
-                [] ->
+                List.nil ->
                     "✓"
 
                 _ ->
@@ -566,7 +573,7 @@ showSelectorOutcomeInverse elmHtmlList selector =
 -- HELPERS --
 
 
-failWithQuery : Bool -> String -> Query msg -> Expectation -> Expectation
+failWithQuery :: Bool -> String -> Query msg -> Expectation -> Expectation
 failWithQuery showTrace queryName query expectation =
     case Test.Runner.getFailureReason expectation of
         Just { description } ->
@@ -577,7 +584,7 @@ failWithQuery showTrace queryName query expectation =
 
                 tracedLines =
                     if showTrace then
-                        addQueryFromHtmlLine query :: lines
+                        addQueryFromHtmlLine query List.: lines
 
                     else
                         lines
@@ -590,17 +597,17 @@ failWithQuery showTrace queryName query expectation =
             expectation
 
 
-addQueryFromHtmlLine : Query msg -> String
+addQueryFromHtmlLine :: Query msg -> String
 addQueryFromHtmlLine query =
     String.join "\n\n"
         [ prefixOutputLine "Query.fromHtml"
         , toOutputLine query
             |> String.split "\n"
-            |> List.map ((++) baseIndentation)
+            |> List.map ((<>) baseIndentation)
             |> String.join "\n"
         ]
 
 
-prefixOutputLine : String -> String
+prefixOutputLine :: String -> String
 prefixOutputLine =
-    (++) "▼ "
+    (<>) "▼ "

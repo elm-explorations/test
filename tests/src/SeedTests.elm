@@ -1,9 +1,11 @@
-module SeedTests exposing (fixedSeed, noAutoFail, tests)
+module SeedTests {a:fixedSeed, b:noAutoFail, c:tests} where
 
-import Expect
-import Fuzz exposing (..)
-import Random
-import Test exposing (..)
+import Expect as Expect
+import Fuzz (..)
+import Fuzz as Fuzz
+import Random as Random
+import Test (..)
+import Test as Test
 
 
 
@@ -13,17 +15,17 @@ import Test exposing (..)
 -}
 
 
-expectedNum : Int
+expectedNum :: Int
 expectedNum =
     2
 
 
-oneSeedAlreadyDistributed : Int
+oneSeedAlreadyDistributed :: Int
 oneSeedAlreadyDistributed =
     70
 
 
-fixedSeed : Random.Seed
+fixedSeed :: Random.Seed
 fixedSeed =
     Random.initialSeed 133742
 
@@ -35,19 +37,19 @@ exact number they will get when the description around this fuzz test is
 exactly the string "Seed test".
 
 -}
-fuzzTest : Test
+fuzzTest :: Test
 fuzzTest =
     fuzz int "It receives the expected number" <|
         \num -> Expect.equal num expectedNum
 
 
-fuzzTestAfterOneDistributed : Test
+fuzzTestAfterOneDistributed :: Test
 fuzzTestAfterOneDistributed =
     fuzz int "This should be different than expectedNum, because there is a fuzz test before it." <|
         \num -> Expect.equal num oneSeedAlreadyDistributed
 
 
-tests : List Test
+tests :: List Test
 tests =
     [ describe "Seed test"
         [ fuzzTest ]
@@ -112,7 +114,7 @@ tests =
     ]
 
 
-noAutoFail : List Test
+noAutoFail :: List Test
 noAutoFail =
     [ -- Test.skip does not affect seed distribution
       Test.concat
@@ -144,7 +146,7 @@ noAutoFail =
                     \num ->
                         Expect.equal num expectedNum
             , test "This should never get run" <|
-                \() ->
+                \{} ->
                     Expect.fail "Test.only is broken! This should not have been run."
             ]
         ]
@@ -170,7 +172,7 @@ noAutoFail =
                 \num ->
                     Expect.equal num expectedNum
         , test "this should never get run" <|
-            \() ->
+            \{} ->
                 Expect.fail "Test.only is broken! This should not have been run."
         ]
     , -- Test.only does not affect seed distribution

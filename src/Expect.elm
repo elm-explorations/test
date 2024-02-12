@@ -1,10 +1,10 @@
-module Expect exposing
-    ( Expectation, equal, notEqual, all
+module Expect ( Expectation, equal, notEqual, all
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
     , pass, fail, onFail
     )
+ where
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
 
@@ -102,18 +102,22 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 
 -}
 
-import Dict exposing (Dict)
-import Set exposing (Set)
-import Test.Distribution
-import Test.Expectation
+import Dict (Dict)
+import Dict as Dict
+import Set (Set)
+import Set as Set
+import Test.Distribution as Test.Distribution
+import Test.Expectation as Test.Expectation
 import Test.Internal as Internal
-import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
+
+import Test.Runner.Failure (InvalidReason(..), Reason(..))
+import Test.Runner.Failure as Test.Runner.Failure
 
 
 {-| The result of a single test run: either a [`pass`](#pass) or a
 [`fail`](#fail).
 -}
-type alias Expectation =
+type Expectation =
     Test.Expectation.Expectation
 
 
@@ -143,7 +147,7 @@ which argument is which:
 Do not equate `Float` values; use [`within`](#within) instead.
 
 -}
-equal : a -> a -> Expectation
+equal :: a -> a -> Expectation
 equal =
     equateWith "Expect.equal" (==)
 
@@ -170,7 +174,7 @@ equal =
     -}
 
 -}
-notEqual : a -> a -> Expectation
+notEqual :: a -> a -> Expectation
 notEqual =
     equateWith "Expect.notEqual" (/=)
 
@@ -202,7 +206,7 @@ which argument is which:
 Do not equate `Float` values; use [`notWithin`](#notWithin) instead.
 
 -}
-lessThan : comparable -> comparable -> Expectation
+lessThan :: comparable -> comparable -> Expectation
 lessThan =
     compareWith "Expect.lessThan" (<)
 
@@ -231,7 +235,7 @@ which argument is which:
     -}
 
 -}
-atMost : comparable -> comparable -> Expectation
+atMost :: comparable -> comparable -> Expectation
 atMost =
     compareWith "Expect.atMost" (<=)
 
@@ -260,7 +264,7 @@ which argument is which:
     -}
 
 -}
-greaterThan : comparable -> comparable -> Expectation
+greaterThan :: comparable -> comparable -> Expectation
 greaterThan =
     compareWith "Expect.greaterThan" (>)
 
@@ -289,7 +293,7 @@ which argument is which:
     -}
 
 -}
-atLeast : comparable -> comparable -> Expectation
+atLeast :: comparable -> comparable -> Expectation
 atLeast =
     compareWith "Expect.atLeast" (>=)
 
@@ -301,7 +305,7 @@ specified as absolute or relative.
 want a logical AND, use [`Expect.all`](#all).
 
 -}
-type FloatingPointTolerance
+data FloatingPointTolerance
     = Absolute Float
     | Relative Float
     | AbsoluteOrRelative Float Float
@@ -334,10 +338,10 @@ which argument is which:
     -}
 
 -}
-within : FloatingPointTolerance -> Float -> Float -> Expectation
+within :: FloatingPointTolerance -> Float -> Float -> Expectation
 within tolerance lower upper =
     nonNegativeToleranceError tolerance "within" <|
-        compareWith ("Expect.within " ++ Internal.toString tolerance)
+        compareWith ("Expect.within " <> Internal.toString tolerance)
             (withinCompare tolerance)
             lower
             upper
@@ -345,10 +349,10 @@ within tolerance lower upper =
 
 {-| Passes if (and only if) a call to `within` with the same arguments would have failed.
 -}
-notWithin : FloatingPointTolerance -> Float -> Float -> Expectation
+notWithin :: FloatingPointTolerance -> Float -> Float -> Expectation
 notWithin tolerance lower upper =
     nonNegativeToleranceError tolerance "notWithin" <|
-        compareWith ("Expect.notWithin " ++ Internal.toString tolerance)
+        compareWith ("Expect.notWithin " <> Internal.toString tolerance)
             (\a b -> not <| withinCompare tolerance a b)
             lower
             upper
@@ -385,15 +389,15 @@ any `Ok`.
     -}
 
 -}
-ok : Result a b -> Expectation
+ok :: Result a b -> Expectation
 ok result =
     case result of
         Ok _ ->
             pass
 
         Err _ ->
-            { description = "Expect.ok"
-            , reason = Comparison "Ok _" (Internal.toString result)
+            { description : "Expect.ok"
+            , reason : Comparison "Ok _" (Internal.toString result)
             }
                 |> Test.Expectation.fail
 
@@ -429,12 +433,12 @@ any `Err`.
     -}
 
 -}
-err : Result a b -> Expectation
+err :: Result a b -> Expectation
 err result =
     case result of
         Ok _ ->
-            { description = "Expect.err"
-            , reason = Comparison "Err _" (Internal.toString result)
+            { description : "Expect.err"
+            , reason : Comparison "Err _" (Internal.toString result)
             }
                 |> Test.Expectation.fail
 
@@ -469,14 +473,14 @@ differed at or which list was longer:
     -}
 
 -}
-equalLists : List a -> List a -> Expectation
+equalLists :: List a -> List a -> Expectation
 equalLists expected actual =
     if expected == actual then
         pass
 
     else
-        { description = "Expect.equalLists"
-        , reason = ListDiff (List.map Internal.toString expected) (List.map Internal.toString actual)
+        { description : "Expect.equalLists"
+        , reason : ListDiff (List.map Internal.toString expected) (List.map Internal.toString actual)
         }
             |> Test.Expectation.fail
 
@@ -508,7 +512,7 @@ or added to each dict:
     -}
 
 -}
-equalDicts : Dict comparable a -> Dict comparable a -> Expectation
+equalDicts :: Dict comparable a -> Dict comparable a -> Expectation
 equalDicts expected actual =
     if Dict.toList expected == Dict.toList actual then
         pass
@@ -520,13 +524,13 @@ equalDicts expected actual =
                     diffs
 
                 else
-                    ( k, v ) :: diffs
+                    {a:k, b:v } List.: diffs
 
             missingKeys =
-                Dict.foldr (differ actual) [] expected
+                Dict.foldr (differ actual) List.nil expected
 
             extraKeys =
-                Dict.foldr (differ expected) [] actual
+                Dict.foldr (differ expected) List.nil actual
         in
         reportCollectionFailure "Expect.equalDicts" expected actual missingKeys extraKeys
 
@@ -558,7 +562,7 @@ or added to each set:
     -}
 
 -}
-equalSets : Set comparable -> Set comparable -> Expectation
+equalSets :: Set comparable -> Set comparable -> Expectation
 equalSets expected actual =
     if Set.toList expected == Set.toList actual then
         pass
@@ -593,9 +597,9 @@ equalSets expected actual =
                     Expect.fail err
 
 -}
-pass : Expectation
+pass :: Expectation
 pass =
-    Test.Expectation.Pass { distributionReport = Test.Distribution.NoDistribution }
+    Test.Expectation.Pass { distributionReport : Test.Distribution.NoDistribution }
 
 
 {-| Fails with the given message.
@@ -615,9 +619,9 @@ pass =
                     Expect.fail err
 
 -}
-fail : String -> Expectation
+fail :: String -> Expectation
 fail str =
-    Test.Expectation.fail { description = str, reason = Custom }
+    Test.Expectation.fail { description : str, reason : Custom }
 
 
 {-| If the given expectation fails, replace its failure message with a custom one.
@@ -627,14 +631,14 @@ fail str =
         |> Expect.onFail "thought those two strings would be the same"
 
 -}
-onFail : String -> Expectation -> Expectation
+onFail :: String -> Expectation -> Expectation
 onFail str expectation =
     case expectation of
         Test.Expectation.Pass _ ->
             expectation
 
         Test.Expectation.Fail failure ->
-            Test.Expectation.Fail { failure | description = str, reason = Custom }
+            Test.Expectation.Fail { failure | description = str, reason : Custom }
 
 
 {-| Passes if each of the given functions passes when applied to the subject.
@@ -668,25 +672,25 @@ which argument is which:
     -}
 
 -}
-all : List (subject -> Expectation) -> subject -> Expectation
+all :: List (subject -> Expectation) -> subject -> Expectation
 all list query =
     if List.isEmpty list then
         Test.Expectation.fail
-            { reason = Invalid EmptyList
-            , description = "Expect.all was given an empty list. You must make at least one expectation to have a valid test!"
+            { reason : Invalid EmptyList
+            , description : "Expect.all was given an empty list. You must make at least one expectation to have a valid test!"
             }
 
     else
         allHelp list query
 
 
-allHelp : List (subject -> Expectation) -> subject -> Expectation
+allHelp :: List (subject -> Expectation) -> subject -> Expectation
 allHelp list query =
     case list of
-        [] ->
+        List.nil ->
             pass
 
-        check :: rest ->
+        check List.: rest ->
             case check query of
                 Test.Expectation.Pass _ ->
                     allHelp rest query
@@ -699,14 +703,14 @@ allHelp list query =
 {---- Private helper functions ----}
 
 
-reportCollectionFailure : String -> a -> b -> List c -> List d -> Expectation
+reportCollectionFailure :: String -> a -> b -> List c -> List d -> Expectation
 reportCollectionFailure comparison expected actual missingKeys extraKeys =
-    { description = comparison
-    , reason =
-        { expected = Internal.toString expected
-        , actual = Internal.toString actual
-        , extra = List.map Internal.toString extraKeys
-        , missing = List.map Internal.toString missingKeys
+    { description : comparison
+    , reason :
+        { expected : Internal.toString expected
+        , actual : Internal.toString actual
+        , extra : List.map Internal.toString extraKeys
+        , missing : List.map Internal.toString missingKeys
         }
             |> CollectionDiff
     }
@@ -715,7 +719,7 @@ reportCollectionFailure comparison expected actual missingKeys extraKeys =
 
 {-| String arg is label, e.g. "Expect.equal".
 -}
-equateWith : String -> (a -> b -> Bool) -> b -> a -> Expectation
+equateWith :: String -> (a -> b -> Bool) -> b -> a -> Expectation
 equateWith reason comparison b a =
     let
         isJust x =
@@ -746,19 +750,19 @@ equateWith reason comparison b a =
         testWith Equality reason comparison b a
 
 
-compareWith : String -> (a -> b -> Bool) -> b -> a -> Expectation
+compareWith :: String -> (a -> b -> Bool) -> b -> a -> Expectation
 compareWith =
     testWith Comparison
 
 
-testWith : (String -> String -> Reason) -> String -> (a -> b -> Bool) -> b -> a -> Expectation
+testWith :: (String -> String -> Reason) -> String -> (a -> b -> Bool) -> b -> a -> Expectation
 testWith makeReason label runTest expected actual =
     if runTest actual expected then
         pass
 
     else
-        { description = label
-        , reason = makeReason (Internal.toString expected) (Internal.toString actual)
+        { description : label
+        , reason : makeReason (Internal.toString expected) (Internal.toString actual)
         }
             |> Test.Expectation.fail
 
@@ -767,7 +771,7 @@ testWith makeReason label runTest expected actual =
 {---- Private *floating point* helper functions ----}
 
 
-absolute : FloatingPointTolerance -> Float
+absolute :: FloatingPointTolerance -> Float
 absolute tolerance =
     case tolerance of
         Absolute val ->
@@ -780,7 +784,7 @@ absolute tolerance =
             0
 
 
-relative : FloatingPointTolerance -> Float
+relative :: FloatingPointTolerance -> Float
 relative tolerance =
     case tolerance of
         Relative val ->
@@ -793,22 +797,22 @@ relative tolerance =
             0
 
 
-nonNegativeToleranceError : FloatingPointTolerance -> String -> Expectation -> Expectation
+nonNegativeToleranceError :: FloatingPointTolerance -> String -> Expectation -> Expectation
 nonNegativeToleranceError tolerance name result =
     if absolute tolerance < 0 && relative tolerance < 0 then
-        Test.Expectation.fail { description = "Expect." ++ name ++ " was given negative absolute and relative tolerances", reason = Custom }
+        Test.Expectation.fail { description : "Expect." <> name <> " was given negative absolute and relative tolerances", reason : Custom }
 
     else if absolute tolerance < 0 then
-        Test.Expectation.fail { description = "Expect." ++ name ++ " was given a negative absolute tolerance", reason = Custom }
+        Test.Expectation.fail { description : "Expect." <> name <> " was given a negative absolute tolerance", reason : Custom }
 
     else if relative tolerance < 0 then
-        Test.Expectation.fail { description = "Expect." ++ name ++ " was given a negative relative tolerance", reason = Custom }
+        Test.Expectation.fail { description : "Expect." <> name <> " was given a negative relative tolerance", reason : Custom }
 
     else
         result
 
 
-withinCompare : FloatingPointTolerance -> Float -> Float -> Bool
+withinCompare :: FloatingPointTolerance -> Float -> Float -> Bool
 withinCompare tolerance a b =
     let
         withinAbsoluteTolerance =

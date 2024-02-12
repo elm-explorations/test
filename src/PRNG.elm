@@ -1,4 +1,4 @@
-module PRNG exposing (PRNG(..), getRun, getSeed, hardcoded, random)
+module PRNG (PRNG(..), getRun, getSeed, hardcoded, random) where
 
 {-| A way to draw values. There are two ways:
 
@@ -11,38 +11,39 @@ module PRNG exposing (PRNG(..), getRun, getSeed, hardcoded, random)
 
 -}
 
-import Random
-import RandomRun exposing (RandomRun)
+import Random as Random
+import RandomRun (RandomRun)
+import RandomRun as RandomRun
 
 
-type PRNG
+data PRNG
     = Random
-        { run : RandomRun
-        , seed : Random.Seed
+        { run :: RandomRun
+        , seed :: Random.Seed
         }
     | Hardcoded
-        { wholeRun : RandomRun
-        , unusedPart : RandomRun
+        { wholeRun :: RandomRun
+        , unusedPart :: RandomRun
         }
 
 
-random : Random.Seed -> PRNG
+random :: Random.Seed -> PRNG
 random seed =
     Random
-        { run = RandomRun.empty
-        , seed = seed
+        { run : RandomRun.empty
+        , seed : seed
         }
 
 
-hardcoded : RandomRun -> PRNG
+hardcoded :: RandomRun -> PRNG
 hardcoded run =
     Hardcoded
-        { wholeRun = run
-        , unusedPart = run
+        { wholeRun : run
+        , unusedPart : run
         }
 
 
-getRun : PRNG -> RandomRun
+getRun :: PRNG -> RandomRun
 getRun prng =
     case prng of
         Random { run } ->
@@ -52,7 +53,7 @@ getRun prng =
             wholeRun
 
 
-getSeed : PRNG -> Maybe Random.Seed
+getSeed :: PRNG -> Maybe Random.Seed
 getSeed prng =
     case prng of
         Random { seed } ->

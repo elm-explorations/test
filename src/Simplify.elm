@@ -1,4 +1,4 @@
-module Simplify exposing (State, simplify)
+module Simplify (State, simplify) where
 
 {-| In this module we're interpreting `SimplifyCmd`s.
 
@@ -23,43 +23,48 @@ those cases you can do `andThen`:
 
 -}
 
-import Fuzz.Float
-import Fuzz.Internal exposing (Fuzzer)
-import GenResult exposing (GenResult(..))
-import PRNG
-import RandomRun exposing (Chunk, RandomRun)
-import Simplify.Cmd exposing (SimplifyCmd, SimplifyCmdType(..))
-import Test.Expectation exposing (Expectation(..))
+import Fuzz.Float as Fuzz.Float
+import Fuzz.Internal (Fuzzer)
+import Fuzz.Internal as Fuzz.Internal
+import GenResult (GenResult(..))
+import GenResult as GenResult
+import PRNG as PRNG
+import RandomRun {a::Chunk, b::RandomRun}
+import RandomRun as RandomRun
+import Simplify.Cmd (SimplifyCmd, SimplifyCmdType(..))
+import Simplify.Cmd as Simplify.Cmd
+import Test.Expectation (Expectation(..))
+import Test.Expectation as Test.Expectation
 
 
-type alias State a =
-    { getExpectation : a -> Expectation
-    , fuzzer : Fuzzer a
-    , value : a
-    , randomRun : RandomRun
-    , expectation : Expectation
+type State a =
+    { getExpectation :: a -> Expectation
+    , fuzzer :: Fuzzer a
+    , value :: a
+    , randomRun :: RandomRun
+    , expectation :: Expectation
     }
 
 
-type alias SimplifyResult a =
-    { wasImprovement : Bool
-    , newState : State a
+type SimplifyResult a =
+    { wasImprovement :: Bool
+    , newState :: State a
     }
 
 
-noImprovement : State a -> SimplifyResult a
+noImprovement :: State a -> SimplifyResult a
 noImprovement state =
-    { wasImprovement = False
-    , newState = state
+    { wasImprovement : False
+    , newState : state
     }
 
 
-andThen : (State a -> SimplifyResult a) -> SimplifyResult a -> SimplifyResult a
+andThen :: (State a -> SimplifyResult a) -> SimplifyResult a -> SimplifyResult a
 andThen fn { newState } =
     fn newState
 
 
-simplify : State a -> ( a, RandomRun, Expectation )
+simplify :: State a -> ( a, RandomRun, Expectation )
 simplify state =
     {-
        let
@@ -69,13 +74,13 @@ simplify state =
     -}
     if RandomRun.isEmpty state.randomRun then
         -- We can't do any better
-        ( state.value, state.randomRun, state.expectation )
+        {a:state.value, b:state.randomRun, c:state.expectation }
 
     else
         simplifyWhileProgress state
 
 
-simplifyWhileProgress : State a -> ( a, RandomRun, Expectation )
+simplifyWhileProgress :: State a -> ( a, RandomRun, Expectation )
 simplifyWhileProgress state =
     {-
        let
@@ -88,26 +93,26 @@ simplifyWhileProgress state =
             simplifyOnce state
     in
     if RandomRun.equal nextState.randomRun state.randomRun then
-        ( nextState.value, nextState.randomRun, nextState.expectation )
+        {a:nextState.value, b:nextState.randomRun, c:nextState.expectation }
 
     else
         simplifyWhileProgress nextState
 
 
-simplifyOnce : State a -> State a
+simplifyOnce :: State a -> State a
 simplifyOnce state =
     runCmds
         (Simplify.Cmd.cmdsForRun state.randomRun)
         state
 
 
-runCmds : List SimplifyCmd -> State a -> State a
+runCmds :: List SimplifyCmd -> State a -> State a
 runCmds cmds state =
     case cmds of
-        [] ->
+        List.nil ->
             state
 
-        cmd :: rest ->
+        cmd List.: rest ->
             let
                 { wasImprovement, newState } =
                     runCmd cmd state
@@ -126,7 +131,7 @@ runCmds cmds state =
             runCmds newRest newState
 
 
-logRun : String -> RandomRun -> RandomRun
+logRun :: String -> RandomRun -> RandomRun
 logRun label run =
     let
         _ =
@@ -135,7 +140,7 @@ logRun label run =
     run
 
 
-logState : String -> State a -> State a
+logState :: String -> State a -> State a
 logState label state =
     let
         runString =
@@ -147,17 +152,17 @@ logState label state =
                 Generated { value } ->
                     let
                         _ =
-                            Debug.log (label ++ " - " ++ runString ++ " --->") value
+                            Debug.log (label <> " - " <> runString <> " --->") value
                     in
-                    ()
+                    {}
 
                 _ ->
-                    ()
+                    {}
     in
     state
 
 
-runCmd : SimplifyCmd -> State a -> SimplifyResult a
+runCmd :: SimplifyCmd -> State a -> SimplifyResult a
 runCmd cmd state =
     let
         {-
@@ -207,7 +212,7 @@ runCmd cmd state =
 generates a value which fails the test, save it as the currently best
 counterexample.
 -}
-keepIfBetter : RandomRun -> State a -> SimplifyResult a
+keepIfBetter :: RandomRun -> State a -> SimplifyResult a
 keepIfBetter newRandomRun state =
     if RandomRun.equal state.randomRun newRandomRun then
         noImprovement state
@@ -221,12 +226,12 @@ keepIfBetter newRandomRun state =
 
                     Fail fail ->
                         if RandomRun.compare state.randomRun newRandomRun == GT then
-                            { wasImprovement = True
-                            , newState =
+                            { wasImprovement : True
+                            , newState :
                                 { state
                                     | value = value
-                                    , randomRun = newRandomRun
-                                    , expectation = Fail fail
+                                    , randomRun : newRandomRun
+                                    , expectation : Fail fail
                                 }
                             }
 
@@ -241,15 +246,15 @@ keepIfBetter newRandomRun state =
 -- SIMPLIFY CMD IMPLEMENTATIONS
 
 
-deleteChunkAndMaybeDecrementPrevious : Chunk -> State a -> SimplifyResult a
+deleteChunkAndMaybeDecrementPrevious :: Chunk -> State a -> SimplifyResult a
 deleteChunkAndMaybeDecrementPrevious chunk state =
     let
-        runWithDelete : RandomRun
+        runWithDelete :: RandomRun
         runWithDelete =
             state.randomRun
                 |> RandomRun.deleteChunk chunk
 
-        runWithDeleteAndDecrement : RandomRun
+        runWithDeleteAndDecrement :: RandomRun
         runWithDeleteAndDecrement =
             runWithDelete
                 |> RandomRun.update (chunk.startIndex - 1) (\x -> x - 1)
@@ -264,45 +269,45 @@ deleteChunkAndMaybeDecrementPrevious chunk state =
         keepIfBetter runWithDelete state
 
 
-replaceChunkWithZero : Chunk -> State a -> SimplifyResult a
+replaceChunkWithZero :: Chunk -> State a -> SimplifyResult a
 replaceChunkWithZero chunk state =
     let
-        simplifiedRun : RandomRun
+        simplifiedRun :: RandomRun
         simplifiedRun =
             RandomRun.replaceChunkWithZero chunk state.randomRun
     in
     keepIfBetter simplifiedRun state
 
 
-sortChunk : Chunk -> State a -> SimplifyResult a
+sortChunk :: Chunk -> State a -> SimplifyResult a
 sortChunk chunk state =
     let
-        simplifiedRun : RandomRun
+        simplifiedRun :: RandomRun
         simplifiedRun =
             RandomRun.sortChunk chunk state.randomRun
     in
     keepIfBetter simplifiedRun state
 
 
-swapChunkWithNeighbour : Chunk -> State a -> SimplifyResult a
+swapChunkWithNeighbour :: Chunk -> State a -> SimplifyResult a
 swapChunkWithNeighbour chunk state =
     let
-        otherChunk : Chunk
+        otherChunk :: Chunk
         otherChunk =
-            { size = chunk.size
-            , startIndex = chunk.startIndex + chunk.size
+            { size : chunk.size
+            , startIndex : chunk.startIndex + chunk.size
             }
     in
     state.randomRun
         |> RandomRun.swapChunks
-            { leftChunk = chunk
-            , rightChunk = otherChunk
+            { leftChunk : chunk
+            , rightChunk : otherChunk
             }
         |> Maybe.map (\simplifiedRun -> keepIfBetter simplifiedRun state)
         |> Maybe.withDefault (noImprovement state)
 
 
-minimizeFloat : { leftIndex : Int } -> State a -> SimplifyResult a
+minimizeFloat :: { leftIndex :: Int } -> State a -> SimplifyResult a
 minimizeFloat { leftIndex } state =
     case RandomRun.get leftIndex state.randomRun of
         Nothing ->
@@ -311,7 +316,7 @@ minimizeFloat { leftIndex } state =
         Just hi_ ->
             if Fuzz.Float.isFractional hi_ then
                 let
-                    minimizeExponentPart : State a -> SimplifyResult a
+                    minimizeExponentPart :: State a -> SimplifyResult a
                     minimizeExponentPart state_ =
                         case
                             Maybe.map2 Tuple.pair
@@ -321,28 +326,28 @@ minimizeFloat { leftIndex } state =
                             Nothing ->
                                 noImprovement state_
 
-                            Just ( hi, lo ) ->
+                            Just {a:hi, b:lo } ->
                                 let
-                                    exponent : Int
+                                    exponent :: Int
                                     exponent =
-                                        Fuzz.Float.getExponent ( hi, lo )
+                                        Fuzz.Float.getExponent {a:hi, b:lo }
                                 in
                                 binarySearchShrink
-                                    { low = 0
-                                    , high = exponent
-                                    , state = state_
-                                    , updateRun =
+                                    { low : 0
+                                    , high : exponent
+                                    , state : state_
+                                    , updateRun :
                                         \newExponent accRun ->
                                             let
-                                                ( newHi, newLo ) =
-                                                    Fuzz.Float.setExponent newExponent ( hi, lo )
+                                                {a:newHi, b:newLo } =
+                                                    Fuzz.Float.setExponent newExponent {a:hi, b:lo }
                                             in
                                             accRun
                                                 |> RandomRun.set leftIndex newHi
                                                 |> RandomRun.set (leftIndex + 1) newLo
                                     }
 
-                    minimizeMantissaPart : State a -> SimplifyResult a
+                    minimizeMantissaPart :: State a -> SimplifyResult a
                     minimizeMantissaPart state_ =
                         case
                             Maybe.map2 Tuple.pair
@@ -352,21 +357,21 @@ minimizeFloat { leftIndex } state =
                             Nothing ->
                                 noImprovement state_
 
-                            Just ( hi, lo ) ->
+                            Just {a:hi, b:lo } ->
                                 let
-                                    mantissa : Int
+                                    mantissa :: Int
                                     mantissa =
-                                        Fuzz.Float.getMantissa ( hi, lo )
+                                        Fuzz.Float.getMantissa {a:hi, b:lo }
                                 in
                                 binarySearchShrink
-                                    { low = 0
-                                    , high = mantissa
-                                    , state = state_
-                                    , updateRun =
+                                    { low : 0
+                                    , high : mantissa
+                                    , state : state_
+                                    , updateRun :
                                         \newMantissa accRun ->
                                             let
-                                                ( newHi, newLo ) =
-                                                    Fuzz.Float.setMantissa newMantissa ( hi, lo )
+                                                {a:newHi, b:newLo } =
+                                                    Fuzz.Float.setMantissa newMantissa {a:hi, b:lo }
                                             in
                                             accRun
                                                 |> RandomRun.set leftIndex newHi
@@ -381,7 +386,7 @@ minimizeFloat { leftIndex } state =
                 noImprovement state
 
 
-minimizeChoice : { index : Int } -> State a -> SimplifyResult a
+minimizeChoice :: { index :: Int } -> State a -> SimplifyResult a
 minimizeChoice { index } state =
     case RandomRun.get index state.randomRun of
         Nothing ->
@@ -393,19 +398,19 @@ minimizeChoice { index } state =
 
             else
                 binarySearchShrink
-                    { low = 0
-                    , high = value
-                    , state = state
-                    , updateRun =
+                    { low : 0
+                    , high : value
+                    , state : state
+                    , updateRun :
                         \value_ accRun ->
                             RandomRun.set index value_ accRun
                     }
 
 
-decrementTogether : { leftIndex : Int, rightIndex : Int, by : Int } -> State a -> SimplifyResult a
+decrementTogether :: { leftIndex :: Int, rightIndex :: Int, by :: Int } -> State a -> SimplifyResult a
 decrementTogether { leftIndex, rightIndex, by } state =
     let
-        simplifiedRun : RandomRun
+        simplifiedRun :: RandomRun
         simplifiedRun =
             state.randomRun
                 |> RandomRun.update leftIndex (\n -> n - by)
@@ -414,7 +419,7 @@ decrementTogether { leftIndex, rightIndex, by } state =
     keepIfBetter simplifiedRun state
 
 
-redistributeChoicesAndMaybeIncrement : { leftIndex : Int, rightIndex : Int } -> State a -> SimplifyResult a
+redistributeChoicesAndMaybeIncrement :: { leftIndex :: Int, rightIndex :: Int } -> State a -> SimplifyResult a
 redistributeChoicesAndMaybeIncrement options state =
     {- First we try swapping them if left > right.
 
@@ -433,17 +438,17 @@ redistributeChoicesAndMaybeIncrement options state =
                 ({ newState } as afterSwap) =
                     keepIfBetter newRun state
 
-                go : RandomRun -> SimplifyResult a
+                go :: RandomRun -> SimplifyResult a
                 go initialRun =
                     binarySearchShrink
-                        { low = 0
-                        , high = newLeftValue
-                        , state = { newState | randomRun = initialRun }
-                        , updateRun =
+                        { low : 0
+                        , high : newLeftValue
+                        , state : ( newState { randomRun = initialRun  })
+                        , updateRun :
                             \value accRun ->
                                 RandomRun.replace
-                                    [ ( options.leftIndex, value )
-                                    , ( options.rightIndex, newRightValue + newLeftValue - value )
+                                    [ {a:options.leftIndex, b:value }
+                                    , {a:options.rightIndex, b:newRightValue + newLeftValue - value }
                                     ]
                                     accRun
                         }
@@ -491,7 +496,7 @@ redistributeChoicesAndMaybeIncrement options state =
                        We'll first try without the increment, and if there is no
                        improvement, we try with the increment.
                     -}
-                    runWithIncrementedRightBucket : RandomRun
+                    runWithIncrementedRightBucket :: RandomRun
                     runWithIncrementedRightBucket =
                         newState.randomRun
                             |> RandomRun.update (options.rightIndex - 1) (\x -> x + 1)
@@ -510,15 +515,15 @@ redistributeChoicesAndMaybeIncrement options state =
 -- BINARY SEARCH SHRINKING
 
 
-type alias BinarySearchOptions a =
-    { low : Int
-    , high : Int
-    , state : State a
-    , updateRun : Int -> RandomRun -> RandomRun
+type BinarySearchOptions a =
+    { low :: Int
+    , high :: Int
+    , state :: State a
+    , updateRun :: Int -> RandomRun -> RandomRun
     }
 
 
-binarySearchShrink : BinarySearchOptions a -> SimplifyResult a
+binarySearchShrink :: BinarySearchOptions a -> SimplifyResult a
 binarySearchShrink ({ updateRun, low, state } as options) =
     let
         -- Let's try the best case first
@@ -533,10 +538,10 @@ binarySearchShrink ({ updateRun, low, state } as options) =
         afterLow
 
     else
-        binarySearchLoop { wasImprovement = False } options
+        binarySearchLoop { wasImprovement : False } options
 
 
-binarySearchLoop : { wasImprovement : Bool } -> BinarySearchOptions a -> SimplifyResult a
+binarySearchLoop :: { wasImprovement :: Bool } -> BinarySearchOptions a -> SimplifyResult a
 binarySearchLoop old ({ low, high, state, updateRun } as options) =
     if low + 1 < high then
         let
@@ -557,17 +562,17 @@ binarySearchLoop old ({ low, high, state, updateRun } as options) =
 
             optionsWithNewRange =
                 if afterMid.wasImprovement then
-                    { options | high = mid }
+                    ( options { high = mid  })
 
                 else
-                    { options | low = mid }
+                    ( options { low = mid  })
 
             newOptions =
-                { optionsWithNewRange | state = afterMid.newState }
+                ( optionsWithNewRange { state = afterMid.newState  })
         in
-        binarySearchLoop { wasImprovement = afterMid.wasImprovement } newOptions
+        binarySearchLoop { wasImprovement : afterMid.wasImprovement } newOptions
 
     else
-        { wasImprovement = old.wasImprovement
-        , newState = options.state
+        { wasImprovement : old.wasImprovement
+        , newState : options.state
         }

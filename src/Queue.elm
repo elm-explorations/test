@@ -1,9 +1,9 @@
-module Queue exposing
-    ( Queue, empty, singleton
+module Queue ( Queue, empty, singleton
     , isEmpty, size, enqueue, dequeue, front
     , fromList, toList
     , map, filter, updateFront
     )
+ where
 
 {-| NOTE: Vendored from turboMaCk/queue 1.1.0
 
@@ -36,11 +36,11 @@ Queue is simple FIFO (first in, first out) datastructure.
 -- Types
 
 
-type alias Rear a =
+type Rear a =
     List a
 
 
-type alias Front a =
+type Front a =
     List a
 
 
@@ -51,17 +51,17 @@ If you need equality checks use [`toList`](#toList).
     Queue.toList firstQueue == Queue.toList secondQueue
 
 -}
-type Queue a
+data Queue a
     = Queue (Front a) (Rear a)
 
 
 {-| private pseudo-constructor
 -}
-queue : Front a -> Rear a -> Queue a
+queue :: Front a -> Rear a -> Queue a
 queue fl rl =
     case fl of
-        [] ->
-            Queue (List.reverse rl) []
+        List.nil ->
+            Queue (List.reverse rl) List.nil
 
         _ ->
             Queue fl rl
@@ -69,9 +69,9 @@ queue fl rl =
 
 {-| Construct empty `Queue`
 -}
-empty : Queue a
+empty :: Queue a
 empty =
-    Queue [] []
+    Queue List.nil List.nil
 
 
 {-| Construct Queue containing single value
@@ -79,9 +79,9 @@ empty =
     Queue.toList (Queue.singleton 1) == [ 1 ]
 
 -}
-singleton : a -> Queue a
+singleton :: a -> Queue a
 singleton a =
-    Queue [ a ] []
+    Queue [ a ] List.nil
 
 
 
@@ -95,7 +95,7 @@ singleton a =
     Queue.isEmpty (Queue.fromList [ 1, 2 ]) == False
 
 -}
-isEmpty : Queue a -> Bool
+isEmpty :: Queue a -> Bool
 isEmpty (Queue fl rl) =
     List.isEmpty fl && List.isEmpty rl
 
@@ -107,7 +107,7 @@ isEmpty (Queue fl rl) =
     Queue.size (Queue.fromList [ 1, 2 ]) == 2
 
 -}
-size : Queue a -> Int
+size :: Queue a -> Int
 size (Queue fl rl) =
     List.length fl + List.length rl
 
@@ -119,9 +119,9 @@ size (Queue fl rl) =
     Queue.size (Queue.enqueue 1 (Queue.fromList [ 1, 2 ])) == 3
 
 -}
-enqueue : a -> Queue a -> Queue a
+enqueue :: a -> Queue a -> Queue a
 enqueue a (Queue fl rl) =
-    queue fl <| a :: rl
+    queue fl <| a List.: rl
 
 
 {-| Take item from `Queue`
@@ -131,13 +131,13 @@ enqueue a (Queue fl rl) =
     Queue.dequeue (Queue.fromList [ 1 ]) == ( Just 1, Queue.empty )
 
 -}
-dequeue : Queue a -> ( Maybe a, Queue a )
+dequeue :: Queue a -> {a::Maybe a, b::Queue a }
 dequeue (Queue fl rl) =
     case fl of
-        [] ->
-            ( Nothing, Queue [] [] )
+        List.nil ->
+            {a::Nothing, b::Queue List.nil List.nil }
 
-        head :: tail ->
+        head List.: tail ->
             ( Just head, queue tail rl )
 
 
@@ -148,7 +148,7 @@ dequeue (Queue fl rl) =
     Queue.front (Queue.fromList [ 1, 2 ]) == Just 1
 
 -}
-front : Queue a -> Maybe a
+front :: Queue a -> Maybe a
 front (Queue fl _) =
     List.head fl
 
@@ -162,23 +162,23 @@ front (Queue fl _) =
     Queue.toList (Queue.updateFront (Maybe.map (\_ -> Nothing)) (Queue.singleton 3)) == []
 
 -}
-updateFront : (Maybe a -> Maybe a) -> Queue a -> Queue a
+updateFront :: (Maybe a -> Maybe a) -> Queue a -> Queue a
 updateFront f (Queue fl rl) =
     let
         update_ maybe t =
             case f maybe of
                 Just a ->
-                    a :: t
+                    a List.: t
 
                 Nothing ->
                     t
     in
     case fl of
-        h :: t ->
+        h List.: t ->
             Queue (update_ (Just h) t) rl
 
-        [] ->
-            Queue (update_ Nothing []) rl
+        List.nil ->
+            Queue (update_ Nothing List.nil) rl
 
 
 
@@ -192,9 +192,9 @@ updateFront f (Queue fl rl) =
     Queue.size (Queue.fromList [ 1, 2, 3 ]) == 3
 
 -}
-fromList : List a -> Queue a
+fromList :: List a -> Queue a
 fromList list =
-    Queue list []
+    Queue list List.nil
 
 
 {-| Convert `Queue` to `List`
@@ -204,9 +204,9 @@ fromList list =
     Queue.toList (Queue.fromList [ 1, 2, 3 ]) == [ 1, 2, 3 ]
 
 -}
-toList : Queue a -> List a
+toList :: Queue a -> List a
 toList (Queue fl rl) =
-    fl ++ List.reverse rl
+    fl <> List.reverse rl
 
 
 
@@ -220,7 +220,7 @@ toList (Queue fl rl) =
     Queue.toList (Queue.map ((+) 1) (Queue.fromList [ 1, 2 ])) == [ 2, 3 ]
 
 -}
-map : (a -> b) -> Queue a -> Queue b
+map :: (a -> b) -> Queue a -> Queue b
 map fc (Queue fl rl) =
     let
         map_ =
@@ -236,7 +236,7 @@ map fc (Queue fl rl) =
     Queue.toList (Queue.filter ((<) 1) (Queue.fromList [ 1, 2 ])) == [ 2 ]
 
 -}
-filter : (a -> Bool) -> Queue a -> Queue a
+filter :: (a -> Bool) -> Queue a -> Queue a
 filter fc (Queue fl rl) =
     let
         f =

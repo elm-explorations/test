@@ -1,27 +1,32 @@
-module Test.Html.ExampleApp exposing (exampleModel, view)
+module Test.Html.ExampleApp {a:exampleModel, b:view} where
 
-import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html (..)
+import Html as Html
+import Html.Attributes (..)
+import Html.Attributes as Html.Attributes
+import Html.Events (onClick)
+import Html.Events as Html.Events
 import Html.Keyed as Keyed
+
 import Html.Lazy as Lazy
 
 
-type alias Model =
-    ()
+
+type Model =
+    {}
 
 
-exampleModel : Model
+exampleModel :: Model
 exampleModel =
-    ()
+    {}
 
 
-type Msg
+data Msg
     = GoToHome
     | GoToExamples
 
 
-view : Model -> Html Msg
+view :: Model -> Html Msg
 view _ =
     div [ class "container" ]
         [ header [ class "funky themed", id "heading" ]
@@ -31,11 +36,11 @@ view _ =
             ]
         , section [ class "funky themed", id "section" ]
             [ someList ]
-        , footer [] [ text "this is the footer" ]
+        , footer List.nil [ text "this is the footer" ]
         ]
 
 
-someList : Html Msg
+someList :: Html Msg
 someList =
     Keyed.ul [ class "some-list" ]
         [ ( "1"

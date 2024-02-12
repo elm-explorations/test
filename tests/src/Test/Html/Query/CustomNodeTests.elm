@@ -1,18 +1,23 @@
-module Test.Html.Query.CustomNodeTests exposing (all)
+module Test.Html.Query.CustomNodeTests (all) where
 
-import Html exposing (Html, div)
-import Test exposing (..)
+import Html (Html, div)
+import Html as Html
+import Test (..)
+import Test as Test
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
-import WebGL exposing (Shader)
+
+import Test.Html.Selector (..)
+import Test.Html.Selector as Test.Html.Selector
+import WebGL (Shader)
+import WebGL as WebGL
 
 
-all : Test
+all :: Test
 all =
     describe "querying Html that contains other kinds of custom virtual-dom nodes"
         [ test "can process Html containing a WebGL node" <|
-            \() ->
-                div []
+            \{} ->
+                div List.nil
                     [ webGlView
                     , Html.text "hello with webgl"
                     ]
@@ -22,29 +27,29 @@ all =
         ]
 
 
-webGlView : Html msg
+webGlView :: Html msg
 webGlView =
     WebGL.toHtml
-        []
+        List.nil
         [ WebGL.entity
             vertexShader
             fragmentShader
-            (WebGL.triangles [])
+            (WebGL.triangles List.nil)
             {}
         ]
 
 
-vertexShader : Shader {} {} {}
+vertexShader :: Shader {} {} {}
 vertexShader =
     [glsl|
-        void main () {
+        void main {} {
         }
     |]
 
 
-fragmentShader : Shader {} {} {}
+fragmentShader :: Shader {} {} {}
 fragmentShader =
     [glsl|
-        void main () {
+        void main {} {
         }
     |]

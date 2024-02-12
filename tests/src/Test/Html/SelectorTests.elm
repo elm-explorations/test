@@ -1,17 +1,22 @@
-module Test.Html.SelectorTests exposing (all)
+module Test.Html.SelectorTests (all) where
 
 {-| Tests for selectors
 -}
 
-import Fuzz exposing (..)
-import Html
+import Fuzz (..)
+import Fuzz as Fuzz
+import Html as Html
 import Html.Attributes as Attr
-import Test exposing (..)
+
+import Test (..)
+import Test as Test
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
+
+import Test.Html.Selector (..)
+import Test.Html.Selector as Test.Html.Selector
 
 
-all : Test
+all :: Test
 all =
     describe "Test.Html.Selector"
         [ bug13
@@ -22,20 +27,20 @@ all =
 
 {-| <https://github.com/eeue56/elm-html-test/issues/13>
 -}
-bug13 : Test
+bug13 :: Test
 bug13 =
     describe "Reproducing bug #13"
         [ test "Using Selector.text twice checks for both." <|
-            \() ->
-                Html.div []
+            \{} ->
+                Html.div List.nil
                     [ Html.text "Text1"
                     , Html.text "Text2"
                     ]
                     |> Query.fromHtml
                     |> Query.has [ text "Text1", text "Text2" ]
         , test "the welcome <h1> says hello!" <|
-            \() ->
-                Html.div []
+            \{} ->
+                Html.div List.nil
                     [ Html.h1 [ Attr.title "greeting", Attr.class "me" ] [ Html.text "Hello!" ] ]
                     |> Query.fromHtml
                     |> Query.find [ attribute (Attr.title "greeting") ]
@@ -43,7 +48,7 @@ bug13 =
         ]
 
 
-textSelectors : Test
+textSelectors :: Test
 textSelectors =
     describe "Selector.text"
         [ fuzz3 (list string) string (list string) "Finds one result" <|
@@ -54,7 +59,7 @@ textSelectors =
                             |> List.concat
                             |> List.map Html.text
                 in
-                Html.div [] textNodes
+                Html.div List.nil textNodes
                     |> Query.fromHtml
                     |> Query.has [ text str ]
         , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
@@ -65,29 +70,29 @@ textSelectors =
                             |> List.concat
                             |> List.map Html.text
                 in
-                Html.div [] textNodes
+                Html.div List.nil textNodes
                     |> Query.fromHtml
                     |> Query.has (List.map text strings)
         , fuzz3 (list string) string (list string) "Finds a submatch" <|
             \before str after ->
                 let
                     textNodes =
-                        [ before, [ "hello" ++ str ++ "world" ], after ]
+                        [ before, [ "hello" <> str <> "world" ], after ]
                             |> List.concat
                             |> List.map Html.text
                 in
-                Html.div [] textNodes
+                Html.div List.nil textNodes
                     |> Query.fromHtml
                     |> Query.has [ text str ]
         ]
 
 
-nonemptyString : Fuzzer String
+nonemptyString :: Fuzzer String
 nonemptyString =
     stringOfLengthBetween 1 10
 
 
-exactTextSelectors : Test
+exactTextSelectors :: Test
 exactTextSelectors =
     describe "Selector.exactText"
         [ fuzz3 (list string) string (list string) "Finds one result" <|
@@ -98,7 +103,7 @@ exactTextSelectors =
                             |> List.concat
                             |> List.map Html.text
                 in
-                Html.div [] textNodes
+                Html.div List.nil textNodes
                     |> Query.fromHtml
                     |> Query.has [ exactText str ]
         , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
@@ -109,7 +114,7 @@ exactTextSelectors =
                             |> List.concat
                             |> List.map Html.text
                 in
-                Html.div [] textNodes
+                Html.div List.nil textNodes
                     |> Query.fromHtml
                     |> Query.has (List.map exactText strings)
         , fuzz3 (list nonemptyString) nonemptyString (list nonemptyString) "Doesn't find a submatch" <|
@@ -117,29 +122,29 @@ exactTextSelectors =
                 let
                     str1 =
                         if List.member str before then
-                            str ++ "_"
+                            str <> "_"
 
                         else
                             str
 
                     str2 =
                         if List.member str1 after then
-                            str1 ++ "_"
+                            str1 <> "_"
 
                         else
                             str1
 
                     textNodes =
-                        [ before, [ "hello" ++ str2 ++ "world" ], after ]
+                        [ before, [ "hello" <> str2 <> "world" ], after ]
                             |> List.concat
                             |> List.map Html.text
                 in
-                Html.div [] textNodes
+                Html.div List.nil textNodes
                     |> Query.fromHtml
                     |> Query.hasNot [ exactText str2 ]
         , test "Trimming is not happening" <|
-            \() ->
-                Html.div [] [ Html.text """
+            \{} ->
+                Html.div List.nil [ Html.text """
                     We like whitespace
                 """ ]
                     |> Query.fromHtml

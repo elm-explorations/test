@@ -1,21 +1,24 @@
-module Simplify.Cmd exposing
-    ( SimplifyCmd
+module Simplify.Cmd ( SimplifyCmd
     , SimplifyCmdType(..)
     , cmdsForRun
     )
+ where
 
 import MicroListExtra as List
-import RandomRun exposing (Chunk, RandomRun)
-import Set exposing (Set)
+
+import RandomRun {a::Chunk, b::RandomRun}
+import RandomRun as RandomRun
+import Set (Set)
+import Set as Set
 
 
-type alias SimplifyCmd =
-    { type_ : SimplifyCmdType
-    , minLength : Int
+type SimplifyCmd =
+    { type_ :: SimplifyCmdType
+    , minLength :: Int
     }
 
 
-type SimplifyCmdType
+data SimplifyCmdType
     = DeleteChunkAndMaybeDecrementPrevious Chunk
     | ReplaceChunkWithZero Chunk
     | SortChunk Chunk
@@ -56,15 +59,15 @@ type SimplifyCmdType
            leftIndex
 
       -}
-      MinimizeFloat { leftIndex : Int }
-    | MinimizeChoice { index : Int }
+      MinimizeFloat { leftIndex :: Int }
+    | MinimizeChoice { index :: Int }
     | {- For notes about why the increment, see a comment in
          Simplify.redistributeChoicesAndMaybeIncrement.
 
          TL;DR: we're trying to increase the success rate of Fuzz.intFrequency
          by incrementing the "bucket index" of the right number.
       -}
-      RedistributeChoicesAndMaybeIncrement { leftIndex : Int, rightIndex : Int }
+      RedistributeChoicesAndMaybeIncrement { leftIndex :: Int, rightIndex :: Int }
     | {- DecrementTogether is tailored to how we generate ints:
          each Fuzz.int contributes two numbers into the RandomRun:
 
@@ -77,11 +80,11 @@ type SimplifyCmdType
          sign bit, effectively halving the numbers in the process. So it's useful
          to be able to decrement by 2 instead of just by 1.
       -}
-      DecrementTogether { leftIndex : Int, rightIndex : Int, by : Int }
+      DecrementTogether { leftIndex :: Int, rightIndex :: Int, by :: Int }
     | SwapChunkWithNeighbour Chunk
 
 
-cmdsForRun : RandomRun -> List SimplifyCmd
+cmdsForRun :: RandomRun -> List SimplifyCmd
 cmdsForRun run =
     let
         length =
@@ -99,44 +102,44 @@ cmdsForRun run =
         ]
 
 
-deletionCmds : Int -> List SimplifyCmd
+deletionCmds :: Int -> List SimplifyCmd
 deletionCmds length =
     chunkCmds
         DeleteChunkAndMaybeDecrementPrevious
-        { length = length
-        , allowChunksOfSize1 = True
+        { length : length
+        , allowChunksOfSize1 : True
         }
 
 
-zeroCmds : Int -> List SimplifyCmd
+zeroCmds :: Int -> List SimplifyCmd
 zeroCmds length =
     chunkCmds
         ReplaceChunkWithZero
-        { length = length
-        , allowChunksOfSize1 = False -- already happens in binary search
+        { length : length
+        , allowChunksOfSize1 : False -- already happens in binary search
         }
 
 
-sortCmds : Int -> List SimplifyCmd
+sortCmds :: Int -> List SimplifyCmd
 sortCmds length =
     chunkCmds
         SortChunk
-        { length = length
-        , allowChunksOfSize1 = False -- doesn't make sense for sorting
+        { length : length
+        , allowChunksOfSize1 : False -- doesn't make sense for sorting
         }
 
 
-minimizeChoiceCmds : RandomRun -> Int -> List SimplifyCmd
+minimizeChoiceCmds :: RandomRun -> Int -> List SimplifyCmd
 minimizeChoiceCmds run length =
     run
         |> RandomRun.toList
         |> List.indexedMap Tuple.pair
         |> List.filterMap
-            (\( index, value ) ->
+            (\{a:index, b:value } ->
                 if value > 0 then
                     Just
-                        { type_ = MinimizeChoice { index = index }
-                        , minLength = index + 1
+                        { type_ : MinimizeChoice { index : index }
+                        , minLength : index + 1
                         }
 
                 else
@@ -145,16 +148,16 @@ minimizeChoiceCmds run length =
             )
 
 
-minimizeFloatCmds : RandomRun -> Int -> List SimplifyCmd
+minimizeFloatCmds :: RandomRun -> Int -> List SimplifyCmd
 minimizeFloatCmds run length =
     let
-        possibleBoolIndexes : Set Int
+        possibleBoolIndexes :: Set Int
         possibleBoolIndexes =
             run
                 |> RandomRun.toList
                 |> List.indexedMap Tuple.pair
                 |> List.filterMap
-                    (\( index, value ) ->
+                    (\{a:index, b:value } ->
                         if value > 1 then
                             Nothing
 
@@ -168,8 +171,8 @@ minimizeFloatCmds run length =
             (\index ->
                 if Set.member (index + 2) possibleBoolIndexes then
                     Just
-                        { type_ = MinimizeFloat { leftIndex = index }
-                        , minLength = index + 3
+                        { type_ : MinimizeFloat { leftIndex : index }
+                        , minLength : index + 3
                         }
 
                 else
@@ -177,7 +180,7 @@ minimizeFloatCmds run length =
             )
 
 
-decrementTogetherCmds : Int -> List SimplifyCmd
+decrementTogetherCmds :: Int -> List SimplifyCmd
 decrementTogetherCmds length =
     let
         maxOffsetLimit =
@@ -206,56 +209,56 @@ decrementTogetherCmds length =
                                             rightIndex =
                                                 index + offset
                                         in
-                                        { type_ =
+                                        { type_ :
                                             DecrementTogether
-                                                { leftIndex = index
-                                                , rightIndex = rightIndex
-                                                , by = by
+                                                { leftIndex : index
+                                                , rightIndex : rightIndex
+                                                , by : by
                                                 }
-                                        , minLength = rightIndex + 1
+                                        , minLength : rightIndex + 1
                                         }
                                     )
                         )
             )
 
 
-redistributeCmds : Int -> List SimplifyCmd
+redistributeCmds :: Int -> List SimplifyCmd
 redistributeCmds length =
     let
-        forOffset : Int -> List SimplifyCmd
+        forOffset :: Int -> List SimplifyCmd
         forOffset offset =
             if offset >= length then
-                []
+                List.nil
 
             else
                 List.range 0 (length - 1 - offset)
                     |> List.reverse
                     |> List.map
                         (\leftIndex ->
-                            { type_ =
+                            { type_ :
                                 RedistributeChoicesAndMaybeIncrement
-                                    { leftIndex = leftIndex
-                                    , rightIndex = leftIndex + offset
+                                    { leftIndex : leftIndex
+                                    , rightIndex : leftIndex + offset
                                     }
-                            , minLength = leftIndex + offset + 1
+                            , minLength : leftIndex + offset + 1
                             }
                         )
     in
-    forOffset 3 ++ forOffset 2 ++ forOffset 1
+    forOffset 3 <> forOffset 2 <> forOffset 1
 
 
-swapCmds : Int -> List SimplifyCmd
+swapCmds :: Int -> List SimplifyCmd
 swapCmds length =
     chunkCmds
         SwapChunkWithNeighbour
-        { length = length
-        , allowChunksOfSize1 = False -- other Cmds are already doing the case with size=1
+        { length : length
+        , allowChunksOfSize1 : False -- other Cmds are already doing the case with size=1
         }
         |> List.map
             (\cmd ->
                 case cmd.type_ of
                     SwapChunkWithNeighbour chunk ->
-                        { cmd | minLength = cmd.minLength + chunk.size }
+                        ( cmd { minLength = cmd.minLength + chunk.size  })
 
                     _ ->
                         cmd
@@ -297,13 +300,13 @@ SortChunk { chunkSize = 8, startIndex = 2 } -- [..XXXXXXXX]
     ]
 
 -}
-chunkCmds :
-    ({ size : Int, startIndex : Int } -> SimplifyCmdType)
-    -> { length : Int, allowChunksOfSize1 : Bool }
+chunkCmds ::
+    ({ size :: Int, startIndex :: Int } -> SimplifyCmdType)
+    -> { length :: Int, allowChunksOfSize1 :: Bool }
     -> List SimplifyCmd
 chunkCmds toType { length, allowChunksOfSize1 } =
     let
-        initChunkSize : Int
+        initChunkSize :: Int
         initChunkSize =
             if allowChunksOfSize1 then
                 1
@@ -311,7 +314,7 @@ chunkCmds toType { length, allowChunksOfSize1 } =
             else
                 2
 
-        go : Int -> Int -> List SimplifyCmd -> List SimplifyCmd
+        go :: Int -> Int -> List SimplifyCmd -> List SimplifyCmd
         go chunkSize startIndex acc =
             if startIndex > length - chunkSize then
                 if chunkSize == 8 then
@@ -329,14 +332,14 @@ chunkCmds toType { length, allowChunksOfSize1 } =
             else
                 let
                     newCmd =
-                        { type_ =
+                        { type_ :
                             toType
-                                { size = chunkSize
-                                , startIndex = startIndex
+                                { size : chunkSize
+                                , startIndex : startIndex
                                 }
-                        , minLength = startIndex + chunkSize
+                        , minLength : startIndex + chunkSize
                         }
                 in
-                go chunkSize (startIndex + 1) (newCmd :: acc)
+                go chunkSize (startIndex + 1) (newCmd List.: acc)
     in
-    go initChunkSize 0 []
+    go initChunkSize 0 List.nil

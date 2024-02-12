@@ -1,7 +1,7 @@
-module Test.Html.Internal.ElmHtml.Markdown exposing
-    ( MarkdownOptions, MarkdownModel, baseMarkdownModel
+module Test.Html.Internal.ElmHtml.Markdown ( MarkdownOptions, MarkdownModel, baseMarkdownModel
     , decodeMarkdownModel
     )
+ where
 
 {-| Markdown helpers
 
@@ -11,45 +11,47 @@ module Test.Html.Internal.ElmHtml.Markdown exposing
 
 -}
 
-import Json.Decode exposing (field)
-import Test.Internal.KernelConstants exposing (kernelConstants)
+import Json.Decode (field)
+import Json.Decode as Json.Decode
+import Test.Internal.KernelConstants (kernelConstants)
+import Test.Internal.KernelConstants as Test.Internal.KernelConstants
 
 
 {-| Just a default markdown model
 -}
-baseMarkdownModel : MarkdownModel
+baseMarkdownModel :: MarkdownModel
 baseMarkdownModel =
-    { options =
-        { githubFlavored = Just { tables = False, breaks = False }
-        , defaultHighlighting = Nothing
-        , sanitize = False
-        , smartypants = False
+    { options :
+        { githubFlavored : Just { tables : False, breaks : False }
+        , defaultHighlighting : Nothing
+        , sanitize : False
+        , smartypants : False
         }
-    , markdown = ""
+    , markdown : ""
     }
 
 
 {-| options markdown expects
 -}
-type alias MarkdownOptions =
-    { githubFlavored : Maybe { tables : Bool, breaks : Bool }
-    , defaultHighlighting : Maybe String
-    , sanitize : Bool
-    , smartypants : Bool
+type MarkdownOptions =
+    { githubFlavored :: Maybe { tables :: Bool, breaks :: Bool }
+    , defaultHighlighting :: Maybe String
+    , sanitize :: Bool
+    , smartypants :: Bool
     }
 
 
 {-| An internal markdown model. Options are the things you give markdown, markdown is the string
 -}
-type alias MarkdownModel =
-    { options : MarkdownOptions
-    , markdown : String
+type MarkdownModel =
+    { options :: MarkdownOptions
+    , markdown :: String
     }
 
 
 {-| decode a markdown model
 -}
-decodeMarkdownModel : Json.Decode.Decoder MarkdownModel
+decodeMarkdownModel :: Json.Decode.Decoder MarkdownModel
 decodeMarkdownModel =
     field kernelConstants.markdown.markdown Json.Decode.string
         |> Json.Decode.map (MarkdownModel baseMarkdownModel.options)
