@@ -100,7 +100,7 @@ fromHtml html =
 
 {-| Find the descendant elements which match all the given selectors.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, ul, li, text)
     import Html.Attributes exposing (class)
     import Test.Html.Query as Query
     import Test exposing (test)
@@ -131,7 +131,7 @@ findAll selectors (Internal.Single showTrace query) =
 
 {-| Find the descendant elements of the result of `findAll` which match all the given selectors.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (a, button, div, ul, li)
     import Html.Attributes exposing (class)
     import Test.Html.Query as Query
     import Test exposing (test)
@@ -154,7 +154,7 @@ findAll selectors (Internal.Single showTrace query) =
                 |> Query.keep ( tag "a" )
                 |> Expect.all
                     [ Query.each (Query.has [ tag "a" ])
-                    , Query.first >> Query.has [ text "first item" ]
+                    , Query.first >> Query.has [ Test.Html.Selector.text "first item" ]
                     ]
 
 -}
@@ -167,11 +167,12 @@ keep selector (Internal.Multiple showTrace query) =
 
 {-| Return the matched element's immediate child elements.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, ul, li, text)
     import Html.Attributes exposing (class)
     import Test.Html.Query as Query
     import Test exposing (test)
     import Test.Html.Selector exposing (tag, classes)
+    import Expect
 
 
     test "The <ul> only has <li> children" <|

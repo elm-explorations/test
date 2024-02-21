@@ -141,7 +141,7 @@ describe untrimmedDesc tests =
 {-| Return a [`Test`](#Test) that evaluates a single
 [`Expectation`](../Expect#Expectation).
 
-    import Test exposing (fuzz)
+    import Test exposing (test)
     import Expect
 
 
@@ -276,7 +276,7 @@ skip =
 
 The number of times to run each fuzz test. (Default is 100.)
 
-    import Test exposing (fuzzWith)
+    import Test exposing (fuzzWith, noDistribution)
     import Fuzz exposing (list, int)
     import Expect
 
@@ -297,7 +297,7 @@ The number of times to run each fuzz test. (Default is 100.)
 A way to report/enforce a statistical distribution of your input values.
 (Default is `noDistribution`.)
 
-    import Test exposing (fuzzWith)
+    import Test exposing (fuzzWith, expectDistribution)
     import Test.Distribution
     import Fuzz exposing (list, int)
     import Expect
@@ -330,7 +330,7 @@ Note that there is no `fuzzWith2`, but you can always pass more fuzz values in
 using [`Fuzz.pair`](Fuzz#pair), [`Fuzz.triple`](Fuzz#triple),
 for example like this:
 
-    import Test exposing (fuzzWith)
+    import Test exposing (fuzzWith, noDistribution)
     import Fuzz exposing (pair, list, int)
     import Expect
 
@@ -424,6 +424,7 @@ See [`fuzzWith`](#fuzzWith) for an example of writing this using tuples.
 
     import Test exposing (fuzz2)
     import Fuzz exposing (list, int)
+    import Expect
 
 
     fuzz2 (list int) int "List.reverse never influences List.member" <|

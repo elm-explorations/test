@@ -54,7 +54,11 @@ type Event msg
 
 {-| Simulate an event on a node.
 
+    import Html
+    import Html.Events exposing (onInput)
+    import Test exposing (test)
     import Test.Html.Event as Event
+    import Test.Html.Query as Query
 
     type Msg
         = Change String
@@ -75,7 +79,11 @@ simulate =
 
 {-| Passes if the given message is triggered by the simulated event.
 
+    import Html
+    import Html.Events exposing (onInput)
+    import Test exposing (test)
     import Test.Html.Event as Event
+    import Test.Html.Query as Query
 
     type Msg
         = Change String
@@ -113,7 +121,11 @@ expect msg (Event event (QueryInternal.Single showTrace query)) =
 Note that Event.expect gives nicer messages; this is generally more useful
 when testing that an event handler is _not_ present.
 
+    import Html
+    import Html.Events exposing (onInput)
+    import Test exposing (test)
     import Test.Html.Event as Event
+    import Test.Html.Query as Query
 
 
     test "Input produces expected Msg" <|
@@ -309,9 +321,12 @@ focus =
 {-| Simulate a custom event. The `String` is the event name, and the `Value` is the event object
 the browser would send to the event listener callback.
 
-    import Test.Html.Event as Event
+    import Html
+    import Html.Events exposing (onInput)
     import Json.Encode as Encode exposing (Value)
-
+    import Test exposing (test)
+    import Test.Html.Event as Event
+    import Test.Html.Query as Query
 
     type Msg
         = Change String
