@@ -1,5 +1,5 @@
 module Test exposing
-    ( Test, test
+    ( Test, test, testWithKey
     , describe, concat, todo, skip, only
     , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
     , Distribution, noDistribution, reportDistribution, expectDistribution
@@ -7,7 +7,7 @@ module Test exposing
 
 {-| A module containing functions for creating and managing tests.
 
-@docs Test, test
+@docs Test, test, testWithKey
 
 
 ## Organizing Tests
@@ -168,6 +168,35 @@ test untrimmedDesc thunk =
 
     else
         Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk () ]))
+
+
+{-| Return a [`Test`](#Test) that requires a [`Browser.Navigation.Key`](https://package.elm-lang.org/packages/elm/browser/latest/Browser-Navigation#Key)
+that evaluates a single [`Expectation`](../Expect#Expectation).
+
+If you do not need the key, use [`test`](#test) instead.
+
+    import Test exposing (test)
+    import Expect
+
+
+    test "functionToTest returns 0 when given 0" <|
+        \key ->
+            functionToTest key 0
+                |> Expect.equal 0
+
+-}
+testWithKey : String -> (Browser.Navigation.Key -> Expectation) -> Test
+testWithKey untrimmedDesc thunk =
+    let
+        desc : String
+        desc =
+            String.trim untrimmedDesc
+    in
+    if String.isEmpty desc then
+        Internal.blankDescriptionFailure
+
+    else
+        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk testNavigationKey ]))
 
 
 testNavigationKey : Browser.Navigation.Key
