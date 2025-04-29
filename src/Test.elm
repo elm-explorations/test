@@ -73,9 +73,9 @@ concat tests =
 
 {-| Apply a description to a list of tests.
 
-    import Test exposing (describe, test, fuzz)
-    import Fuzz exposing (int)
     import Expect
+    import Fuzz exposing (int)
+    import Test exposing (describe, fuzz, test)
 
 
     describe "List"
@@ -141,8 +141,8 @@ describe untrimmedDesc tests =
 {-| Return a [`Test`](#Test) that evaluates a single
 [`Expectation`](../Expect#Expectation).
 
-    import Test exposing (test)
     import Expect
+    import Test exposing (test)
 
 
     test "the empty list has 0 length" <|
@@ -276,9 +276,9 @@ skip =
 
 The number of times to run each fuzz test. (Default is 100.)
 
-    import Test exposing (fuzzWith, noDistribution)
-    import Fuzz exposing (list, int)
     import Expect
+    import Fuzz exposing (int, list)
+    import Test exposing (fuzzWith, noDistribution)
 
     fuzzWith { runs = 350, distribution = noDistribution }
         (list int)
@@ -297,10 +297,10 @@ The number of times to run each fuzz test. (Default is 100.)
 A way to report/enforce a statistical distribution of your input values.
 (Default is `noDistribution`.)
 
-    import Test exposing (fuzzWith, expectDistribution)
-    import Test.Distribution
-    import Fuzz exposing (list, int)
     import Expect
+    import Fuzz exposing (int, list)
+    import Test exposing (expectDistribution, fuzzWith)
+    import Test.Distribution
 
     fuzzWith
         { runs = 350
@@ -330,9 +330,9 @@ Note that there is no `fuzzWith2`, but you can always pass more fuzz values in
 using [`Fuzz.pair`](Fuzz#pair), [`Fuzz.triple`](Fuzz#triple),
 for example like this:
 
-    import Test exposing (fuzzWith, noDistribution)
-    import Fuzz exposing (pair, list, int)
     import Expect
+    import Fuzz exposing (int, list, pair)
+    import Test exposing (fuzzWith, noDistribution)
 
 
     fuzzWith { runs = 4200, distribution = noDistribution }
@@ -393,10 +393,9 @@ You may find them elsewhere called [property-based tests](http://blog.jessitron.
 [generative tests](http://www.pivotaltracker.com/community/tracker-blog/generative-testing), or
 [QuickCheck-style tests](https://en.wikipedia.org/wiki/QuickCheck).
 
-    import Test exposing (fuzz)
-    import Fuzz exposing (list, int)
     import Expect
-
+    import Fuzz exposing (int, list)
+    import Test exposing (fuzz)
 
     fuzz (list int) "List.length should never be negative" <|
         -- This anonymous function will be run 100 times, each time with a
@@ -422,9 +421,9 @@ This is a convenience function that lets you skip calling [`Fuzz.pair`](Fuzz#pai
 
 See [`fuzzWith`](#fuzzWith) for an example of writing this using tuples.
 
-    import Test exposing (fuzz2)
-    import Fuzz exposing (list, int)
     import Expect
+    import Fuzz exposing (int, list)
+    import Test exposing (fuzz2)
 
 
     fuzz2 (list int) int "List.reverse never influences List.member" <|
