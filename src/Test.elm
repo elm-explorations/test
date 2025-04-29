@@ -22,6 +22,8 @@ module Test exposing
 
 -}
 
+import Browser.Navigation
+import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Set
@@ -166,6 +168,11 @@ test untrimmedDesc thunk =
 
     else
         Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk () ]))
+
+
+testNavigationKey : Browser.Navigation.Key
+testNavigationKey =
+    Elm.Kernel.Test.navigationKey
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests
