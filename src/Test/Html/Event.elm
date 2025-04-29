@@ -343,10 +343,10 @@ the browser would send to the event listener callback.
                           )
                         ]
             in
-                Html.input [ onInput Change ] [ ]
-                    |> Query.fromHtml
-                    |> Event.simulate (Event.custom "input" simulatedEventObject)
-                    |> Event.expect (Change "cats")
+            Html.input [ onInput Change ] [ ]
+                |> Query.fromHtml
+                |> Event.simulate (Event.custom "input" simulatedEventObject)
+                |> Event.expect (Change "cats")
 
 -}
 custom : String -> Value -> ( String, Value )
