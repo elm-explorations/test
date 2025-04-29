@@ -59,6 +59,7 @@ concat tests =
         case Internal.duplicatedName tests of
             Err dups ->
                 let
+                    dupDescription : String -> String
                     dupDescription duped =
                         "A test group contains multiple tests named '" ++ duped ++ "'. Do some renaming so that tests have unique names."
                 in
@@ -98,6 +99,7 @@ mistake or are creating a placeholder.
 describe : String -> List Test -> Test
 describe untrimmedDesc tests =
     let
+        desc : String
         desc =
             String.trim untrimmedDesc
     in
@@ -117,6 +119,7 @@ describe untrimmedDesc tests =
         case Internal.duplicatedName tests of
             Err dups ->
                 let
+                    dupDescription : String -> String
                     dupDescription duped =
                         "Contains multiple tests named '" ++ duped ++ "'. Let's rename them so we know which is which."
                 in
@@ -154,6 +157,7 @@ describe untrimmedDesc tests =
 test : String -> (() -> Expectation) -> Test
 test untrimmedDesc thunk =
     let
+        desc : String
         desc =
             String.trim untrimmedDesc
     in
@@ -440,6 +444,7 @@ fuzz2 :
     -> Test
 fuzz2 fuzzA fuzzB desc =
     let
+        fuzzer : Fuzzer ( a, b )
         fuzzer =
             Fuzz.pair fuzzA fuzzB
     in
@@ -460,6 +465,7 @@ fuzz3 :
     -> Test
 fuzz3 fuzzA fuzzB fuzzC desc =
     let
+        fuzzer : Fuzzer ( a, b, c )
         fuzzer =
             Fuzz.triple fuzzA fuzzB fuzzC
     in
