@@ -22,7 +22,7 @@ toSeededRunners =
 
 fromTest : Test
 fromTest =
-    describe "TestRunner.fromTest"
+    describe "Test.Runner.fromTest"
         [ describe "test length"
             [ fuzz2 int int "only positive tests runs are valid" <|
                 \runs intSeed ->
