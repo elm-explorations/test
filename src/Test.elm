@@ -170,9 +170,12 @@ test untrimmedDesc thunk =
         Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk () ]))
 
 
-{-| Return a [`Test`](#Test) that requires a [`Browser.Navigation.Key`](https://package.elm-lang.org/packages/elm/browser/latest/Browser-Navigation#Key)
+{-| Return a [`Test`](#Test) that provides a [`Browser.Navigation.Key`](https://package.elm-lang.org/packages/elm/browser/latest/Browser-Navigation#Key)
 that evaluates a single [`Expectation`](../Expect#Expectation).
 
+You might need such a key if you're testing functions where a key is contained in the arguments.
+This might be the case when using [`Browser.application`](https://package.elm-lang.org/packages/elm/browser/latest/Browser#application)
+and storing the key in the `Model`.
 If you do not need the key, use [`test`](#test) instead.
 
     import Test exposing (test)
@@ -458,6 +461,9 @@ fuzz =
 
 {-| Run a [fuzz test](#fuzz) using a [`Browser.Navigation.Key`](https://package.elm-lang.org/packages/elm/browser/latest/Browser-Navigation#Key) and a random input.
 
+You might need such a key if you're testing functions where a key is contained in the arguments.
+This might be the case when using [`Browser.application`](https://package.elm-lang.org/packages/elm/browser/latest/Browser#application)
+and storing the key in the `Model`.
 If you do not need the key, use [`fuzz`](#fuzz) instead.
 
 -}
