@@ -82,9 +82,7 @@ testSimplifyingWith { runs } test =
             Test.test label <|
                 \() ->
                     runner.run ()
-                        |> List.head
-                        |> Maybe.map (passToFail handleFailure)
-                        |> Maybe.withDefault (Expect.fail "Somehow `testSimplifyingWith` had multiple tests inside")
+                        |> passToFail handleFailure
 
         _ ->
             Debug.todo "Unexpected number of test runners in `testSimplifyingWith`"
@@ -125,9 +123,7 @@ testFailingWith { runs } test =
             Test.test label <|
                 \() ->
                     runner.run ()
-                        |> List.head
-                        |> Maybe.map (passToFail handleFailure)
-                        |> Maybe.withDefault (Expect.fail "Somehow `testFailingWith` had multiple tests inside")
+                        |> passToFail handleFailure
 
         _ ->
             Debug.todo "Unexpected number of test runners in `testFailingWith`"
@@ -165,7 +161,7 @@ expectTestToFail test =
     test
         |> Test.Runner.fromTest 100 seed
         |> getRunners
-        |> List.concatMap (\{ run } -> run ())
+        |> List.map (\{ run } -> run ())
         |> List.map (\expectation () -> expectToFail expectation)
         |> (\expectations -> Expect.all expectations ())
 
