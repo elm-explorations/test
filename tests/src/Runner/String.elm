@@ -75,25 +75,19 @@ fromExpectation labels expectation summary =
             expectation
                 |> Test.Runner.getDistributionReport
                 |> Runner.String.Distribution.report labels
-
-        summaryWithDistribution : Summary
-        summaryWithDistribution =
-            case distributionReport of
-                Nothing ->
-                    summary
-
-                Just distribution ->
-                    { summary
-                        | output =
-                            summary.output
-                                ++ "\n\n"
-                                ++ distribution
-                                ++ "\n"
-                    }
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { summaryWithDistribution | passed = summaryWithDistribution.passed + 1 }
+            { summary
+                | passed = summary.passed + 1
+                , output =
+                    distributionReport
+                        |> Maybe.map
+                            (\distribution ->
+                                summary.output ++ "\n\n" ++ distribution ++ "\n"
+                            )
+                        |> Maybe.withDefault summary.output
+            }
 
         Just { given, description, reason } ->
             let
@@ -112,13 +106,20 @@ fromExpectation labels expectation summary =
                     "\n\n"
                         ++ outputLabels labels
                         ++ "\n"
+                        ++ (distributionReport
+                                |> Maybe.map
+                                    (\distribution ->
+                                        "\n" ++ indentLines distribution ++ "\n\n"
+                                    )
+                                |> Maybe.withDefault ""
+                           )
                         ++ (prefix ++ indentLines message)
                         ++ "\n"
             in
-            { summaryWithDistribution
-                | output = summaryWithDistribution.output ++ newOutput
-                , failed = summaryWithDistribution.failed + 1
-                , passed = summaryWithDistribution.passed
+            { summary
+                | output = summary.output ++ newOutput
+                , failed = summary.failed + 1
+                , passed = summary.passed
             }
 
 

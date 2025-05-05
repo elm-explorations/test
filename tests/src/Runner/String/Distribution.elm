@@ -25,8 +25,5 @@ report testBreadcrumbs distributionReport =
         DistributionCheckSucceeded _ ->
             Nothing
 
-        DistributionCheckFailed _ ->
-            {- Don't show it here: it's already included in the failure message.
-               That way the Node runner will show it too.
-            -}
-            Nothing
+        DistributionCheckFailed r ->
+            Just <| Test.Distribution.distributionReportTable r
