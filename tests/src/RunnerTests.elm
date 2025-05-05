@@ -12,7 +12,9 @@ import Test.Runner.Failure
 all : Test
 all =
     Test.concat
-        [ fromTest ]
+        [ fromTest
+        , helperTests
+        ]
 
 
 toSeededRunners : Test -> SeededRunners
@@ -202,7 +204,7 @@ fromTest =
                                 |> Expect.equal
                                     (Just
                                         { given = Nothing
-                                        , description = "This test failed because it threw an exception: \"Error: TODO in module `RunnerTests` on line 197\n\ncrash\""
+                                        , description = "This test failed because it threw an exception: \"Error: TODO in module `RunnerTests` on line 199\n\ncrash\""
                                         , reason = Test.Runner.Failure.Custom
                                         }
                                     )
@@ -219,3 +221,18 @@ fromTest =
 passing : Test
 passing =
     test "A passing test" expectPass
+
+
+helperTests : Test
+helperTests =
+    describe "Tests for runner helper functions"
+        [ test "correctly finds tests" <|
+            \() ->
+                Test.Runner.downcastTest passing
+                    |> Expect.equal (Just passing)
+        , test "correctly ignores non-tests" <|
+            \() ->
+                Test.Runner.downcastTest 67
+                    |> Expect.equal Nothing
+        ]
+
