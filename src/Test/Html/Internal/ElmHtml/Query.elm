@@ -263,8 +263,14 @@ hasStyle style facts =
 classnames : Facts msg -> List String
 classnames facts =
     (case ( Dict.get "class" facts.stringAttributes, Dict.get "className" facts.stringAttributes ) of
-        ( Just class, Just className ) ->
-            class ++ " " ++ className
+        ( Just _, Just _ ) ->
+            -- If you use both the `class` attribute and the `className` property at the same time,
+            -- it’s undefined which classes you end up with. It depends on which order they are specified,
+            -- which order elm/virtual-dom happens to apply them, and which of them changed most recently.
+            -- Mixing both is not a good idea. Ideally, we’d show some nice error message explaining this
+            -- here, but since this is very much an edge case it does not feel worth the complexity.
+            -- Instead, silently claim that there are no classes (that no classes match the node).
+            ""
 
         ( Just class, Nothing ) ->
             class

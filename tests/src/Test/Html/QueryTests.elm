@@ -123,7 +123,7 @@ all =
                         divWithAttribute (Attr.property "className" (Encode.string "hello"))
                             |> Query.fromHtml
                             |> Query.has [ class "hello" ]
-                , test "matches one class added using Attr.attribute and one added using Attr.property" <|
+                , test "matches nothing if classes are added both using Attr.attribute and Attr.property" <|
                     \() ->
                         Html.div
                             [ Attr.attribute "class" "hello"
@@ -131,7 +131,9 @@ all =
                             ]
                             []
                             |> Query.fromHtml
-                            |> Query.has [ class "hello", class "world" ]
+                            |> Query.has [ class "hello" ]
+                            |> expectationToIsPassing
+                            |> Expect.equal False
                 ]
             ]
         , describe "Query.contains" <|
