@@ -262,8 +262,19 @@ hasStyle style facts =
 
 classnames : Facts msg -> List String
 classnames facts =
-    Dict.get "className" facts.stringAttributes
-        |> Maybe.withDefault ""
+    (case ( Dict.get "class" facts.stringAttributes, Dict.get "className" facts.stringAttributes ) of
+        ( Just class, Just className ) ->
+            class ++ " " ++ className
+
+        ( Just class, Nothing ) ->
+            class
+
+        ( Nothing, Just className ) ->
+            className
+
+        ( Nothing, Nothing ) ->
+            ""
+    )
         |> String.split " "
 
 

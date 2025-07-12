@@ -113,6 +113,25 @@ all =
                                 [ Query.has [ attribute (Attr.property "className" (Encode.string "hello world")) ]
                                 , Query.has [ attribute (Attr.property "className" (Encode.string "world hello")) ]
                                 ]
+                , test "matches a class added using Attr.attribute" <|
+                    \() ->
+                        divWithAttribute (Attr.attribute "class" "hello")
+                            |> Query.fromHtml
+                            |> Query.has [ class "hello" ]
+                , test "matches a class added using Attr.property" <|
+                    \() ->
+                        divWithAttribute (Attr.property "className" (Encode.string "hello"))
+                            |> Query.fromHtml
+                            |> Query.has [ class "hello" ]
+                , test "matches one class added using Attr.attribute and one added using Attr.property" <|
+                    \() ->
+                        Html.div
+                            [ Attr.attribute "class" "hello"
+                            , Attr.property "className" (Encode.string "world")
+                            ]
+                            []
+                            |> Query.fromHtml
+                            |> Query.has [ class "hello", class "world" ]
                 ]
             ]
         , describe "Query.contains" <|
