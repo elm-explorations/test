@@ -3,7 +3,7 @@ module Expect exposing
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
-    , pass, fail, onFail
+    , pass, fail, onFail, equalToFile
     )
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
@@ -575,6 +575,25 @@ equalSets expected actual =
         in
         reportCollectionFailure "Expect.equalSets" expected actual missingKeys extraKeys
 
+readFile : String -> Result String String
+readFile = Elm.Kernel.Test.readFile
+
+writeFile : String -> String -> Result String ()
+writeFile = Elm.Kernel.Test.writeFile
+
+equalToFile : String -> String -> Expectation
+equalToFile filePath actual =
+    case readFile filePath of 
+        Err _ ->
+            case writeFile filePath actual of 
+                Err q -> 
+                    fail q
+
+                Ok _ ->
+                    pass
+
+        Ok contents -> 
+            equateWith ("equalToFile \'" ++ filePath ++ "\'") (==) contents actual
 
 {-| Always passes.
 
