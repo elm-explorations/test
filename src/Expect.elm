@@ -42,6 +42,9 @@ or both. For an in-depth look, see our [Guide to Floating Point Comparison](#gui
 
 @docs ok, err, equalLists, equalDicts, equalSets
 
+## Golden Files
+
+@docs equalToFile
 
 ## Customizing
 
@@ -104,6 +107,7 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 
 import Dict exposing (Dict)
 import Set exposing (Set)
+import File
 import Test.Distribution
 import Test.Expectation
 import Test.Internal as Internal
@@ -575,22 +579,39 @@ equalSets expected actual =
         in
         reportCollectionFailure "Expect.equalSets" expected actual missingKeys extraKeys
 
-readFile : String -> Result String String
-readFile = Elm.Kernel.Test.readFile
 
-writeFile : String -> String -> Result String ()
-writeFile = Elm.Kernel.Test.writeFile
+{-| Tests the a String is equal to the contents of the file stored at the file path. 
 
+If the file does not exist, it will be created and this test will pass.
+
+If the file does exist, then this test will pass if its contents are equal to the actual string.
+
+All file paths are scoped to be within the "tests/" directory.
+
+-}
 equalToFile : String -> String -> Expectation
 equalToFile filePath actual =
-    case readFile filePath of 
-        Err _ ->
-            case writeFile filePath actual of 
-                Err q -> 
-                    fail q
+    case File.readFile filePath of 
+        Err File.FileNotFound ->
+            case File.writeFile filePath actual of 
+                Err (File.GeneralFileError fileError) -> 
+                    Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
+
+                -- This case should be impossible non general file errors should have been surfaced in the call to `readFile` above.
+                Err _ -> 
+                    Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom  }
 
                 Ok _ ->
                     pass
+
+        Err File.IsDirectory -> 
+            Test.Expectation.fail { description = "Expect.equalToFile was given a directory instead of a file", reason = Custom }
+
+        Err File.PathEscapesDirectory -> 
+            Test.Expectation.fail { description = "Expect.equalToFile was given a path that would escape the tests/ directory", reason = Custom }
+
+        Err (File.GeneralFileError fileError) -> 
+            Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
 
         Ok contents -> 
             equateWith ("equalToFile \'" ++ filePath ++ "\'") (==) contents actual
