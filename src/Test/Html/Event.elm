@@ -399,8 +399,8 @@ findEvent eventName element =
         NodeEntry node ->
             eventDecoder node
 
-        CustomNode node ->
-            eventDecoder node
+        CustomNode facts ->
+            eventDecoder { facts = facts }
 
         MarkdownNode node ->
             eventDecoder node

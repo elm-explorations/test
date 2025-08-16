@@ -15,6 +15,7 @@ module Test.Html.Internal.ElmHtml.Query exposing
 -}
 
 import Dict
+import Json.Decode
 import String
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
@@ -153,7 +154,7 @@ queryInNodeHelp maxDescendantDepth selector node =
             else
                 childEntries
 
-        TextTag { text } ->
+        TextTag text ->
             case selector of
                 ContainsText innerText ->
                     if String.contains innerText text then
@@ -227,19 +228,24 @@ hasAllSelectors selectors record =
 
 hasAttribute : String -> String -> Facts msg -> Bool
 hasAttribute attribute queryString facts =
-    case Dict.get attribute facts.stringAttributes of
+    case Dict.get attribute facts.attributes of
         Just id ->
             id == queryString
 
         Nothing ->
-            False
+            case Dict.get attribute facts.properties of
+                Just id ->
+                    Json.Decode.decodeValue Json.Decode.string id == Ok queryString
+
+                Nothing ->
+                    False
 
 
 hasBoolAttribute : String -> Bool -> Facts msg -> Bool
 hasBoolAttribute attribute value facts =
-    case Dict.get attribute facts.boolAttributes of
+    case Dict.get attribute facts.properties of
         Just id ->
-            id == value
+            Json.Decode.decodeValue Json.Decode.bool id == Ok value
 
         Nothing ->
             False
@@ -262,8 +268,26 @@ hasStyle style facts =
 
 classnames : Facts msg -> List String
 classnames facts =
-    Dict.get "className" facts.stringAttributes
-        |> Maybe.withDefault ""
+    (case ( Dict.get "class" facts.attributes, Dict.get "className" facts.properties ) of
+        ( Just _, Just _ ) ->
+            -- If you use both the `class` attribute and the `className` property at the same time,
+            -- it’s undefined which classes you end up with. It depends on which order they are specified,
+            -- which order elm/virtual-dom happens to apply them, and which of them changed most recently.
+            -- Mixing both is not a good idea. Ideally, we’d show some nice error message explaining this
+            -- here, but since this is very much an edge case it does not feel worth the complexity.
+            -- Instead, silently claim that there are no classes (that no classes match the node).
+            ""
+
+        ( Just class, Nothing ) ->
+            class
+
+        ( Nothing, Just className ) ->
+            Json.Decode.decodeValue Json.Decode.string className
+                |> Result.withDefault ""
+
+        ( Nothing, Nothing ) ->
+            ""
+    )
         |> String.split " "
 
 
@@ -347,13 +371,11 @@ markdownPredicate selector =
                 >> hasStyle style
 
         ContainsText text ->
-            .model
-                >> .markdown
+            .markdown
                 >> String.contains text
 
         ContainsExactText text ->
-            .model
-                >> .markdown
+            .markdown
                 >> (==) text
 
         Multiple selectors ->

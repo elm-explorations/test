@@ -6,10 +6,11 @@ module Test.Html.Internal.Inert exposing (Node, fromElmHtml, fromHtml, parseAttr
 
 -}
 
-import Elm.Kernel.HtmlAsJson
+import Dict
+import Elm.Kernel.Test
 import Html exposing (Html)
 import Json.Decode
-import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml, EventHandler, Tagger, decodeAttribute, decodeElmHtml)
+import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml(..), EventHandler, Tagger)
 import VirtualDom
 
 
@@ -17,14 +18,9 @@ type Node msg
     = Node (ElmHtml msg)
 
 
-fromHtml : Html msg -> Result String (Node msg)
+fromHtml : Html msg -> Node msg
 fromHtml html =
-    case Json.Decode.decodeValue (decodeElmHtml taggedEventDecoder) (toJson html) of
-        Ok elmHtml ->
-            Ok (Node elmHtml)
-
-        Err jsonError ->
-            Err (Json.Decode.errorToString jsonError)
+    Node (Elm.Kernel.Test.virtualDomToTest html TextTag NodeEntry CustomNode MarkdownNode)
 
 
 fromElmHtml : ElmHtml msg -> Node msg
@@ -32,85 +28,41 @@ fromElmHtml =
     Node
 
 
-{-| Convert a Html node to a Json string
--}
-toJson : Html a -> Json.Decode.Value
-toJson node =
-    Elm.Kernel.HtmlAsJson.toJson node
-
-
 toElmHtml : Node msg -> ElmHtml msg
 toElmHtml (Node elmHtml) =
     elmHtml
 
 
-attributeToJson : Html.Attribute a -> Json.Decode.Value
-attributeToJson attribute =
-    Elm.Kernel.HtmlAsJson.attributeToJson attribute
-
-
 parseAttribute : Html.Attribute a -> Result String InternalTypes.Attribute
 parseAttribute attr =
-    case Json.Decode.decodeValue decodeAttribute (attributeToJson attr) of
-        Ok parsedAttribute ->
-            Ok parsedAttribute
+    case fromHtml (Html.div [ attr ] []) of
+        Node (NodeEntry { facts }) ->
+            case Dict.toList facts.attributes of
+                [ ( key, value ) ] ->
+                    Ok (InternalTypes.Attribute { key = key, value = value })
 
-        Err jsonError ->
-            Err
-                ("Error internally processing Attribute for testing - please report this error message as a bug: "
-                    ++ Json.Decode.errorToString jsonError
-                )
+                _ ->
+                    case Dict.toList facts.attributesNS of
+                        [ ( key, { namespace, value } ) ] ->
+                            Ok (InternalTypes.NamespacedAttribute { key = key, value = value, namespace = namespace })
 
+                        _ ->
+                            case Dict.toList facts.properties of
+                                [ ( key, value ) ] ->
+                                    Ok (InternalTypes.Property { key = key, value = value })
 
-{-| Gets the function out of a tagger
--}
-taggerFunction : Tagger -> (a -> msg)
-taggerFunction tagger =
-    Elm.Kernel.HtmlAsJson.taggerFunction tagger
+                                _ ->
+                                    case Dict.toList facts.styles of
+                                        [ ( key, value ) ] ->
+                                            Ok (InternalTypes.Style { key = key, value = value })
 
+                                        _ ->
+                                            case Dict.toList facts.events of
+                                                [ ( event, _ ) ] ->
+                                                    Ok (InternalTypes.Event { event = event })
 
-{-| Gets the decoder out of an EventHandler
--}
-eventDecoder : EventHandler -> VirtualDom.Handler msg
-eventDecoder eventHandler =
-    Elm.Kernel.HtmlAsJson.eventHandler eventHandler
+                                                _ ->
+                                                    Err "Error internally processing Attribute for testing - please report this error message as a bug: Html.Attribute didn't end up as a fact in NodeEntry"
 
-
-{-| Applies the taggers over the event handlers to have the complete event decoder
--}
-taggedEventDecoder : List Tagger -> EventHandler -> VirtualDom.Handler msg
-taggedEventDecoder taggers eventHandler =
-    case taggers of
-        [] ->
-            eventDecoder eventHandler
-
-        [ tagger ] ->
-            mapHandler (taggerFunction tagger) (eventDecoder eventHandler)
-
-        tagger :: rest ->
-            mapHandler (taggerFunction tagger) (taggedEventDecoder rest eventHandler)
-
-
-mapHandler : (a -> b) -> VirtualDom.Handler a -> VirtualDom.Handler b
-mapHandler f handler =
-    case handler of
-        VirtualDom.Normal decoder ->
-            VirtualDom.Normal (Json.Decode.map f decoder)
-
-        VirtualDom.MayStopPropagation decoder ->
-            VirtualDom.MayStopPropagation (Json.Decode.map (Tuple.mapFirst f) decoder)
-
-        VirtualDom.MayPreventDefault decoder ->
-            VirtualDom.MayPreventDefault (Json.Decode.map (Tuple.mapFirst f) decoder)
-
-        VirtualDom.Custom decoder ->
-            VirtualDom.Custom
-                (Json.Decode.map
-                    (\value ->
-                        { message = f value.message
-                        , stopPropagation = value.stopPropagation
-                        , preventDefault = value.preventDefault
-                        }
-                    )
-                    decoder
-                )
+        _ ->
+            Err "Error internally processing Attribute for testing - please report this error message as a bug: Html.div wasn't parsed as NodeEntry"

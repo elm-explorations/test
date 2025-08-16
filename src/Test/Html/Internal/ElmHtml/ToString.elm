@@ -12,6 +12,7 @@ module Test.Html.Internal.ElmHtml.ToString exposing
 -}
 
 import Dict
+import Json.Decode
 import String
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
@@ -36,7 +37,7 @@ defaultFormatOptions =
 nodeToLines : FormatOptions -> ElmHtml msg -> List String
 nodeToLines options nodeType =
     case nodeType of
-        TextTag { text } ->
+        TextTag text ->
             [ text ]
 
         NodeEntry record ->
@@ -46,7 +47,7 @@ nodeToLines options nodeType =
             []
 
         MarkdownNode record ->
-            [ record.model.markdown ]
+            [ record.markdown ]
 
 
 {-| Convert a given html node to a string based on the type
@@ -116,25 +117,38 @@ nodeRecordToString options { tag, children, facts } =
                         |> Just
 
         classes =
-            Dict.get "className" facts.stringAttributes
+            Dict.get "className" facts.properties
+                |> Maybe.andThen (Json.Decode.decodeValue Json.Decode.string >> Result.toMaybe)
                 |> Maybe.map (\name -> "class=\"" ++ name ++ "\"")
 
         stringAttributes =
-            Dict.filter (\k _ -> k /= "className") facts.stringAttributes
+            facts.properties
                 |> Dict.toList
+                |> List.filterMap
+                    (\( k, v ) ->
+                        if k == "className" then
+                            Nothing
+
+                        else
+                            Json.Decode.decodeValue Json.Decode.string v
+                                |> Result.toMaybe
+                                |> Maybe.map (Tuple.pair k)
+                    )
+                |> List.append (Dict.toList facts.attributes)
                 |> List.map (\( k, v ) -> k ++ "=\"" ++ v ++ "\"")
                 |> String.join " "
                 |> Just
 
         boolAttributes =
-            Dict.toList facts.boolAttributes
+            Dict.toList facts.properties
                 |> List.filterMap
                     (\( k, v ) ->
-                        if v then
-                            Just k
+                        case Json.Decode.decodeValue Json.Decode.bool v of
+                            Ok True ->
+                                Just k
 
-                        else
-                            Nothing
+                            _ ->
+                                Nothing
                     )
                 |> String.join " "
                 |> Just

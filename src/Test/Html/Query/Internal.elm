@@ -13,7 +13,6 @@ import Test.Runner
 -}
 type Query msg
     = Query (Inert.Node msg) (List SelectorQuery)
-    | InternalError String
 
 
 type SelectorQuery
@@ -46,20 +45,12 @@ type Multiple msg
 type QueryError
     = NoResultsForSingle String
     | MultipleResultsForSingle String Int
-    | OtherInternalError String
 
 
 toLines : String -> Query msg -> String -> List String
-toLines expectationFailure query queryName =
-    case query of
-        Query node selectors ->
-            toLinesHelp expectationFailure [ Inert.toElmHtml node ] (List.reverse selectors) queryName []
-                |> List.reverse
-
-        InternalError message ->
-            [ "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>"
-            , message
-            ]
+toLines expectationFailure (Query node selectors) queryName =
+    toLinesHelp expectationFailure [ Inert.toElmHtml node ] (List.reverse selectors) queryName []
+        |> List.reverse
 
 
 prettyPrint : ElmHtml msg -> String
@@ -68,14 +59,8 @@ prettyPrint =
 
 
 toOutputLine : Query msg -> String
-toOutputLine query =
-    case query of
-        Query node _ ->
-            prettyPrint (Inert.toElmHtml node)
-
-        InternalError message ->
-            "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>.  "
-                ++ message
+toOutputLine (Query node _) =
+    prettyPrint (Inert.toElmHtml node)
 
 
 toLinesHelp : String -> List (ElmHtml msg) -> List SelectorQuery -> String -> List String -> List String
@@ -235,13 +220,8 @@ baseIndentation =
 
 
 prependSelector : Query msg -> SelectorQuery -> Query msg
-prependSelector query selector =
-    case query of
-        Query node selectors ->
-            Query node (selector :: selectors)
-
-        InternalError message ->
-            InternalError message
+prependSelector (Query node selectors) selector =
+    Query node (selector :: selectors)
 
 
 {-| This is a more efficient implementation of the following:
@@ -292,13 +272,8 @@ getElementAtHelp index list =
 
 
 traverse : Query msg -> Result QueryError (List (ElmHtml msg))
-traverse query =
-    case query of
-        Query node selectorQueries ->
-            traverseSelectors selectorQueries [ Inert.toElmHtml node ]
-
-        InternalError message ->
-            Err (OtherInternalError message)
+traverse (Query node selectorQueries) =
+    traverseSelectors selectorQueries [ Inert.toElmHtml node ]
 
 
 traverseSelectors : List SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
@@ -447,10 +422,6 @@ queryErrorToString error =
                 ++ " instead.\n\n\nHINT: If you actually expected "
                 ++ String.fromInt resultCount
                 ++ " elements, use Query.findAll instead of Query.find."
-
-        OtherInternalError message ->
-            "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>.  "
-                ++ message
 
 
 contains : List (ElmHtml msg) -> Query msg -> Expectation
