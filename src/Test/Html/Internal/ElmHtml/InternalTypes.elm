@@ -1,19 +1,19 @@
 module Test.Html.Internal.ElmHtml.InternalTypes exposing
-    ( ElmHtml(..), TextTagRecord, NodeRecord, CustomNodeRecord, MarkdownNodeRecord
+    ( ElmHtml(..), NodeRecord, MarkdownNodeRecord
     , Facts, Tagger, EventHandler, ElementKind(..)
     , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
-    , decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
+    , toElementKind
     )
 
 {-| Internal types used to represent Elm Html in pure Elm
 
-@docs ElmHtml, TextTagRecord, NodeRecord, CustomNodeRecord, MarkdownNodeRecord
+@docs ElmHtml, NodeRecord, MarkdownNodeRecord
 
 @docs Facts, Tagger, EventHandler, ElementKind
 
 @docs Attribute, AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
 
-@docs decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
+@docs toElementKind
 
 -}
 
@@ -21,8 +21,6 @@ import Dict exposing (Dict)
 import Json.Decode exposing (field)
 import Test.Html.Internal.ElmHtml.Constants as Constants exposing (..)
 import Test.Html.Internal.ElmHtml.Helpers exposing (..)
-import Test.Html.Internal.ElmHtml.Markdown exposing (..)
-import Test.Internal.KernelConstants exposing (kernelConstants)
 import VirtualDom
 
 
@@ -35,28 +33,19 @@ import VirtualDom
 
 -}
 type ElmHtml msg
-    = TextTag TextTagRecord
+    = TextTag String
     | NodeEntry (NodeRecord msg)
-    | CustomNode (CustomNodeRecord msg)
+    | CustomNode (Facts msg)
     | MarkdownNode (MarkdownNodeRecord msg)
 
 
-{-| Text tags just contain text
--}
-type alias TextTagRecord =
-    { text : String }
-
-
-{-| A node contains the `tag` as a string, the children, the facts (e.g attributes) and descendantsCount
+{-| A node contains the `tag` as a string, the children, the facts (e.g attributes) and namespace
 -}
 type alias NodeRecord msg =
     { tag : String
     , children : List (ElmHtml msg)
-    , facts :
-        Facts msg
-
-    --, namespace : String
-    , descendantsCount : Int
+    , facts : Facts msg
+    , namespace : Maybe String
     }
 
 
@@ -64,15 +53,7 @@ type alias NodeRecord msg =
 -}
 type alias MarkdownNodeRecord msg =
     { facts : Facts msg
-    , model : MarkdownModel
-    }
-
-
-{-| Custom nodes contain facts (e.g attributes) and a json value for the model
--}
-type alias CustomNodeRecord msg =
-    { facts : Facts msg
-    , model : Json.Decode.Value
+    , markdown : String
     }
 
 
@@ -95,19 +76,13 @@ type alias EventHandler =
 
 
 {-| Facts contain various dictionaries and values for a node
-
-  - styles are a mapping of rules
-  - events may be a json object containing event handlers
-  - attributes are pulled out into stringAttributes and boolAttributes - things with string values go into
-    stringAttributes, things with bool values go into boolAttributes
-
 -}
 type alias Facts msg =
     { styles : Dict String String
     , events : Dict String (VirtualDom.Handler msg)
-    , attributeNamespace : Maybe Json.Decode.Value
-    , stringAttributes : Dict String String
-    , boolAttributes : Dict String Bool
+    , attributes : Dict String String
+    , attributesNS : Dict String { namespace : String, value : String }
+    , properties : Dict String Json.Decode.Value
     }
 
 
@@ -121,10 +96,6 @@ type ElementKind
     | EscapableRawTextElements
     | ForeignElements
     | NormalElements
-
-
-type HtmlContext msg
-    = HtmlContext (List Tagger) (List Tagger -> EventHandler -> VirtualDom.Handler msg)
 
 
 {-| Type for representing Elm's Attributes
@@ -173,263 +144,11 @@ type alias PropertyRecord =
     }
 
 
-{-| Event contains a string key, a decoder for a msg and event options
+{-| Event contains a string event
 -}
 type alias EventRecord =
-    { key : String
-    , decoder : Json.Decode.Value
-    , options : EventOptions
+    { event : String
     }
-
-
-type alias EventOptions =
-    { stopPropagation : Bool
-    , preventDefault : Bool
-    }
-
-
-{-| decode a json object into ElmHtml, you have to pass a function that decodes
-events from Html Nodes. If you don't want to decode event msgs, you can ignore it:
-
-    decodeElmHtml (\_ _ -> VirtualDom.Normal (Json.Decode.succeed ())) jsonHtml
-
-if you do want to decode them, you will probably need to write some native code
-like elm-html-test does to extract the function inside those.
-
--}
-decodeElmHtml : (List Tagger -> EventHandler -> VirtualDom.Handler msg) -> Json.Decode.Decoder (ElmHtml msg)
-decodeElmHtml eventDecoder =
-    contextDecodeElmHtml (HtmlContext [] eventDecoder)
-
-
-contextDecodeElmHtml : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
-contextDecodeElmHtml context =
-    field kernelConstants.virtualDom.nodeType Json.Decode.int
-        |> Json.Decode.andThen
-            (\nodeType ->
-                if nodeType == kernelConstants.virtualDom.nodeTypeText then
-                    Json.Decode.map TextTag decodeTextTag
-
-                else if nodeType == kernelConstants.virtualDom.nodeTypeKeyedNode then
-                    Json.Decode.map NodeEntry (decodeKeyedNode context)
-
-                else if nodeType == kernelConstants.virtualDom.nodeTypeNode then
-                    Json.Decode.map NodeEntry (decodeNode context)
-
-                else if nodeType == kernelConstants.virtualDom.nodeTypeCustom then
-                    decodeCustomNode context
-
-                else if nodeType == kernelConstants.virtualDom.nodeTypeTagger then
-                    decodeTagger context
-
-                else if nodeType == kernelConstants.virtualDom.nodeTypeThunk then
-                    field kernelConstants.virtualDom.node (contextDecodeElmHtml context)
-
-                else
-                    Json.Decode.fail ("No such type as " ++ String.fromInt nodeType)
-            )
-
-
-{-| decode text tag
--}
-decodeTextTag : Json.Decode.Decoder TextTagRecord
-decodeTextTag =
-    field kernelConstants.virtualDom.text
-        (Json.Decode.andThen (\text -> Json.Decode.succeed { text = text }) Json.Decode.string)
-
-
-{-| decode a tagger
--}
-decodeTagger : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
-decodeTagger (HtmlContext taggers eventDecoder) =
-    Json.Decode.field kernelConstants.virtualDom.tagger Json.Decode.value
-        |> Json.Decode.andThen
-            (\tagger ->
-                let
-                    nodeDecoder =
-                        contextDecodeElmHtml (HtmlContext (taggers ++ [ tagger ]) eventDecoder)
-                in
-                Json.Decode.at [ kernelConstants.virtualDom.node ] nodeDecoder
-            )
-
-
-decodeKeyedNode : HtmlContext msg -> Json.Decode.Decoder (NodeRecord msg)
-decodeKeyedNode context =
-    let
-        -- elm stores keyed nodes as tuples
-        -- we only want to decode the html, in the second property
-        decodeSecondNode =
-            Json.Decode.field "b" (contextDecodeElmHtml context)
-    in
-    Json.Decode.map4 NodeRecord
-        (Json.Decode.field kernelConstants.virtualDom.tag Json.Decode.string)
-        (Json.Decode.field kernelConstants.virtualDom.kids (Json.Decode.list decodeSecondNode))
-        (Json.Decode.field kernelConstants.virtualDom.facts (decodeFacts context))
-        (Json.Decode.field kernelConstants.virtualDom.descendantsCount Json.Decode.int)
-
-
-{-| decode a node record
--}
-decodeNode : HtmlContext msg -> Json.Decode.Decoder (NodeRecord msg)
-decodeNode context =
-    Json.Decode.map4 NodeRecord
-        (field kernelConstants.virtualDom.tag Json.Decode.string)
-        (field kernelConstants.virtualDom.kids (Json.Decode.list (contextDecodeElmHtml context)))
-        (field kernelConstants.virtualDom.facts (decodeFacts context))
-        (field kernelConstants.virtualDom.descendantsCount Json.Decode.int)
-
-
-{-| decode custom node into either markdown or custom
--}
-decodeCustomNode : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
-decodeCustomNode context =
-    Json.Decode.oneOf
-        [ Json.Decode.map MarkdownNode (decodeMarkdownNodeRecord context)
-        , Json.Decode.map CustomNode (decodeCustomNodeRecord context)
-        ]
-
-
-{-| decode custom node record
--}
-decodeCustomNodeRecord : HtmlContext msg -> Json.Decode.Decoder (CustomNodeRecord msg)
-decodeCustomNodeRecord context =
-    Json.Decode.map2 CustomNodeRecord
-        (field kernelConstants.virtualDom.facts (decodeFacts context))
-        (field kernelConstants.virtualDom.model Json.Decode.value)
-
-
-{-| decode markdown node record
--}
-decodeMarkdownNodeRecord : HtmlContext msg -> Json.Decode.Decoder (MarkdownNodeRecord msg)
-decodeMarkdownNodeRecord context =
-    Json.Decode.map2 MarkdownNodeRecord
-        (field kernelConstants.virtualDom.facts (decodeFacts context))
-        (field kernelConstants.virtualDom.model decodeMarkdownModel)
-
-
-{-| decode the styles
--}
-decodeStyles : Json.Decode.Decoder (Dict String String)
-decodeStyles =
-    Json.Decode.oneOf
-        [ field styleKey (Json.Decode.dict Json.Decode.string)
-        , Json.Decode.succeed Dict.empty
-        ]
-
-
-{-| grab things from attributes via a decoder, then anything that isn't filtered on
-the object
--}
-decodeOthers : Json.Decode.Decoder a -> Json.Decode.Decoder (Dict String a)
-decodeOthers otherDecoder =
-    decodeAttributes otherDecoder
-        |> Json.Decode.andThen
-            (\attributes ->
-                decodeDictFilterMap otherDecoder
-                    |> Json.Decode.map (filterKnownKeys >> Dict.union attributes)
-            )
-
-
-{-| For a given decoder, keep the values from a dict that pass the decoder
--}
-decodeDictFilterMap : Json.Decode.Decoder a -> Json.Decode.Decoder (Dict String a)
-decodeDictFilterMap decoder =
-    Json.Decode.dict Json.Decode.value
-        |> Json.Decode.map
-            (Dict.toList
-                >> List.filterMap
-                    (\( key, value ) ->
-                        case Json.Decode.decodeValue decoder value of
-                            Err _ ->
-                                Nothing
-
-                            Ok v ->
-                                Just ( key, v )
-                    )
-                >> Dict.fromList
-            )
-
-
-decodeAttributes : Json.Decode.Decoder a -> Json.Decode.Decoder (Dict String a)
-decodeAttributes decoder =
-    Json.Decode.oneOf
-        [ Json.Decode.field attributeKey (decodeDictFilterMap decoder)
-        , Json.Decode.succeed Dict.empty
-        ]
-
-
-decodeEvents : (EventHandler -> VirtualDom.Handler msg) -> Json.Decode.Decoder (Dict String (VirtualDom.Handler msg))
-decodeEvents taggedEventDecoder =
-    Json.Decode.oneOf
-        [ Json.Decode.field eventKey (Json.Decode.dict (Json.Decode.map taggedEventDecoder Json.Decode.value))
-        , Json.Decode.succeed Dict.empty
-        ]
-
-
-{-| decode fact
--}
-decodeFacts : HtmlContext msg -> Json.Decode.Decoder (Facts msg)
-decodeFacts (HtmlContext taggers eventDecoder) =
-    Json.Decode.map5 Facts
-        decodeStyles
-        (decodeEvents (eventDecoder taggers))
-        (Json.Decode.maybe (Json.Decode.field attributeNamespaceKey Json.Decode.value))
-        (decodeOthers Json.Decode.string)
-        (decodeOthers Json.Decode.bool)
-
-
-{-| Just empty facts
--}
-emptyFacts : Facts msg
-emptyFacts =
-    { styles = Dict.empty
-    , events = Dict.empty
-    , attributeNamespace = Nothing
-    , stringAttributes = Dict.empty
-    , boolAttributes = Dict.empty
-    }
-
-
-{-| Decode a JSON object into an Attribute. You have to pass a function that
-decodes events from event attributes. If you don't want to decode event msgs,
-you can ignore it:
-
-    decodeAttribute (\_ -> ()) jsonHtml
-
-If you do want to decode them, you will probably need to write some native code
-like elm-html-test does to extract the function inside those.
-
--}
-decodeAttribute : Json.Decode.Decoder Attribute
-decodeAttribute =
-    Json.Decode.field "$" Json.Decode.string
-        |> Json.Decode.andThen
-            (\tag ->
-                if tag == Constants.attributeKey then
-                    Json.Decode.map2 (\key val -> Attribute (AttributeRecord key val))
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.field "o" Json.Decode.string)
-
-                else if tag == Constants.attributeNamespaceKey then
-                    Json.Decode.map3 NamespacedAttributeRecord
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.at [ "o", "o" ] Json.Decode.string)
-                        (Json.Decode.at [ "o", "f" ] Json.Decode.string)
-                        |> Json.Decode.map NamespacedAttribute
-
-                else if tag == Constants.styleKey then
-                    Json.Decode.map2 (\key val -> Style { key = key, value = val })
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.field "o" Json.Decode.string)
-
-                else if tag == Constants.propKey then
-                    Json.Decode.map2 (\key val -> Property (PropertyRecord key val))
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.at [ "o", "a" ] Json.Decode.value)
-
-                else
-                    Json.Decode.fail ("Unexpected Html.Attribute tag: " ++ tag)
-            )
 
 
 {-| A list of Void elements as defined by the HTML5 specification. These

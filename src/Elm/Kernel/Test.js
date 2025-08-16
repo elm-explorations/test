@@ -1,6 +1,7 @@
 /*
 
 import Elm.Kernel.Utils exposing (Tuple0)
+import Elm.Kernel.VirtualDom exposing (toTest)
 import Result exposing (Err, Ok)
 
 */
@@ -16,3 +17,6 @@ function _Test_runThunk(thunk)
     return __Result_Err(err.toString());
   }
 }
+
+
+var _Test_virtualDomToTest = __VirtualDom_toTest;
