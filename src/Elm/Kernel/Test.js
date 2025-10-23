@@ -18,8 +18,8 @@ function _Test_runThunk(thunk)
 }
 
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 function _Test_readFile(filePath)
 {
