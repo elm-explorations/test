@@ -69,11 +69,8 @@ var _Test_writeFile = F2(function(filePath, contents)
 
     const fullDir = path.dirname(fullPath);
 
-    if (!fs.existsSync(fullDir))
-    {
-        // Can this make a nested directory? 
-        fs.mkdirSync(fullDir, {recursive: true});
-    }
+    // Note that this does not throw an error if the directory exists
+    fs.mkdirSync(fullDir, {recursive: true});
 
     try {
         fs.writeFileSync(fullPath, contents);
