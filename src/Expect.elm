@@ -3,7 +3,8 @@ module Expect exposing
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
-    , pass, fail, onFail, equalToFile
+    , equalToFile
+    , pass, fail, onFail
     )
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
@@ -42,9 +43,11 @@ or both. For an in-depth look, see our [Guide to Floating Point Comparison](#gui
 
 @docs ok, err, equalLists, equalDicts, equalSets
 
+
 ## Golden Files
 
 @docs equalToFile
+
 
 ## Customizing
 
@@ -106,8 +109,8 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 -}
 
 import Dict exposing (Dict)
-import Set exposing (Set)
 import File
+import Set exposing (Set)
 import Test.Distribution
 import Test.Expectation
 import Test.Internal as Internal
@@ -580,7 +583,7 @@ equalSets expected actual =
         reportCollectionFailure "Expect.equalSets" expected actual missingKeys extraKeys
 
 
-{-| Tests the a String is equal to the contents of the file stored at the file path. 
+{-| Tests the a String is equal to the contents of the file stored at the file path.
 
 If the file does not exist, it will be created and this test will pass.
 
@@ -591,30 +594,53 @@ All file paths are scoped to be within the "tests/" directory.
 -}
 equalToFile : String -> String -> Expectation
 equalToFile filePath actual =
-    case File.readFile filePath of 
+    case File.readFile filePath of
         Err File.FileNotFound ->
-            case File.writeFile filePath actual of 
-                Err (File.GeneralFileError fileError) -> 
+            case File.writeFile filePath actual of
+                Err (File.GeneralFileError fileError) ->
                     Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
 
                 -- This case should be impossible non general file errors should have been surfaced in the call to `readFile` above.
-                Err _ -> 
-                    Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom  }
+                Err _ ->
+                    Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom }
 
                 Ok _ ->
                     pass
 
-        Err File.IsDirectory -> 
+        Err File.IsDirectory ->
             Test.Expectation.fail { description = "Expect.equalToFile was given a directory instead of a file", reason = Custom }
 
-        Err File.PathEscapesDirectory -> 
+        Err File.PathEscapesDirectory ->
             Test.Expectation.fail { description = "Expect.equalToFile was given a path that would escape the tests/ directory", reason = Custom }
 
-        Err (File.GeneralFileError fileError) -> 
+        Err (File.GeneralFileError fileError) ->
             Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
 
-        Ok contents -> 
-            equateWith ("equalToFile \'" ++ filePath ++ "\'") (==) contents actual
+        Ok ( existingAbsolutePath, contents ) ->
+            if actual == contents then
+                pass
+
+            else
+                case File.writeTempFile filePath actual of
+                    Ok newAbsolutePath ->
+                        let
+                            message =
+                                [ "The contents of \"" ++ filePath ++ "\" changed!"
+                                , "To compare run: git diff --no-index " ++ existingAbsolutePath ++ " " ++ newAbsolutePath
+                                ]
+
+                            messageWithVisualDiff =
+                                if String.endsWith ".html" filePath then
+                                    message ++ [ "To visually compare run: open file://" ++ existingAbsolutePath ++ " file://" ++ newAbsolutePath ]
+
+                                else
+                                    message
+                        in
+                        Test.Expectation.fail { description = String.join "\n\n" messageWithVisualDiff, reason = Custom }
+
+                    _ ->
+                        Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom }
+
 
 {-| Always passes.
 
