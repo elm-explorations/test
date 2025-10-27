@@ -21,6 +21,7 @@ function _Test_runThunk(thunk)
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const process = require('node:process');
 const crypto = require('node:crypto');
 
 function _Test_readFile(filePath)
@@ -99,3 +100,12 @@ var _Test_writeTempFile = F2(function(filePath, contents)
 
     return WriteFile(tempDir, filePath, contents);
 })
+
+var overwriteGoldenFiles = null;
+function _Test_overwriteGoldenFiles(unused)
+{
+    if (overwriteGoldenFiles === null)
+        overwriteGoldenFiles = process.env.OVERWRITE_GOLDEN_FILES == '1';
+    
+    return overwriteGoldenFiles;
+}

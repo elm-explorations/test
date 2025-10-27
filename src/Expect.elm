@@ -594,52 +594,65 @@ All file paths are scoped to be within the "tests/" directory.
 -}
 equalToFile : String -> String -> Expectation
 equalToFile filePath actual =
-    case File.readFile filePath of
-        Err File.FileNotFound ->
+    let
+        writeGoldenFile () =
             case File.writeFile filePath actual of
+                Err File.FileNotFound ->
+                    -- Impossible
+                    pass
+
+                Err File.IsDirectory ->
+                    Test.Expectation.fail { description = "Expect.equalToFile was given a directory instead of a file", reason = Custom }
+
+                Err File.PathEscapesDirectory ->
+                    Test.Expectation.fail { description = "Expect.equalToFile was given a path that would escape the tests/ directory", reason = Custom }
+
                 Err (File.GeneralFileError fileError) ->
                     Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
 
-                -- This case should be impossible non general file errors should have been surfaced in the call to `readFile` above.
-                Err _ ->
-                    Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom }
-
                 Ok _ ->
                     pass
+    in
+    if File.overwriteGoldenFiles () then
+        writeGoldenFile ()
 
-        Err File.IsDirectory ->
-            Test.Expectation.fail { description = "Expect.equalToFile was given a directory instead of a file", reason = Custom }
+    else
+        case File.readFile filePath of
+            Err File.FileNotFound ->
+                writeGoldenFile ()
 
-        Err File.PathEscapesDirectory ->
-            Test.Expectation.fail { description = "Expect.equalToFile was given a path that would escape the tests/ directory", reason = Custom }
+            Err File.IsDirectory ->
+                Test.Expectation.fail { description = "Expect.equalToFile was given a directory instead of a file", reason = Custom }
 
-        Err (File.GeneralFileError fileError) ->
-            Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
+            Err File.PathEscapesDirectory ->
+                Test.Expectation.fail { description = "Expect.equalToFile was given a path that would escape the tests/ directory", reason = Custom }
 
-        Ok ( existingAbsolutePath, contents ) ->
-            if actual == contents then
-                pass
+            Err (File.GeneralFileError fileError) ->
+                Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
 
-            else
-                case File.writeTempFile filePath actual of
-                    Ok newAbsolutePath ->
-                        let
-                            message =
-                                [ "The contents of \"" ++ filePath ++ "\" changed!"
-                                , "To compare run: git diff --no-index " ++ existingAbsolutePath ++ " " ++ newAbsolutePath
-                                ]
+            Ok ( existingAbsolutePath, contents ) ->
+                if actual == contents then
+                    pass
 
-                            messageWithVisualDiff =
-                                if String.endsWith ".html" filePath then
-                                    message ++ [ "To visually compare run: open file://" ++ existingAbsolutePath ++ " file://" ++ newAbsolutePath ]
+                else
+                    case File.writeTempFile filePath actual of
+                        Ok newAbsolutePath ->
+                            let
+                                message =
+                                    [ Just <| "The contents of \"" ++ filePath ++ "\" changed!"
+                                    , Just <| "To compare run: git diff --no-index " ++ existingAbsolutePath ++ " " ++ newAbsolutePath
+                                    , if String.endsWith ".html" filePath then
+                                        Just <| "To visually compare run: open file://" ++ existingAbsolutePath ++ " file://" ++ newAbsolutePath
 
-                                else
-                                    message
-                        in
-                        Test.Expectation.fail { description = String.join "\n\n" messageWithVisualDiff, reason = Custom }
+                                      else
+                                        Nothing
+                                    , Just <| "To accept these changes delete \"" ++ filePath ++ "\" or specify OVERWRITE_GOLDEN_FILES=1 when running elm-test"
+                                    ]
+                            in
+                            Test.Expectation.fail { description = String.join "\n\n" (List.filterMap identity message), reason = Custom }
 
-                    _ ->
-                        Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom }
+                        _ ->
+                            Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom }
 
 
 {-| Always passes.

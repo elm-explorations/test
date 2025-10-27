@@ -1,4 +1,4 @@
-module File exposing (AbsolutePath, FileError(..), RelativePath, readFile, writeFile, writeTempFile)
+module File exposing (AbsolutePath, FileError(..), RelativePath, overwriteGoldenFiles, readFile, writeFile, writeTempFile)
 
 import Elm.Kernel.Test
 
@@ -43,3 +43,10 @@ Returns the absolute file path if successful.
 writeTempFile : RelativePath -> String -> Result FileError AbsolutePath
 writeTempFile =
     Elm.Kernel.Test.writeTempFile
+
+
+{-| Checks the OVERWRITE\_GOLDEN\_FILES environment variable
+-}
+overwriteGoldenFiles : () -> Bool
+overwriteGoldenFiles =
+    Elm.Kernel.Test.overwriteGoldenFiles
