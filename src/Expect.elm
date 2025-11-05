@@ -635,7 +635,16 @@ equalToFile filePath actual =
                     pass
 
                 else
-                    case File.writeTempFile filePath actual of
+                    let
+                        failedFilePath =
+                            -- Be careful to make the failed final extension .html so that browsers can render it
+                            if String.endsWith ".html" filePath then
+                                String.dropRight (String.length ".html") filePath ++ ".failed.html"
+
+                            else
+                                filePath ++ ".failed"
+                    in
+                    case File.writeFile failedFilePath actual of
                         Ok newAbsolutePath ->
                             let
                                 message =

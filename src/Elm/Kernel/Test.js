@@ -20,9 +20,7 @@ function _Test_runThunk(thunk)
 
 const fs = require('node:fs');
 const path = require('node:path');
-const os = require('node:os');
 const process = require('node:process');
-const crypto = require('node:crypto');
 
 function _Test_readFile(filePath)
 {
@@ -69,6 +67,25 @@ function WriteFile(root, filePath, contents)
         return __Result_Err(__File_PathEscapesDirectory);
     }
 
+    // Remove failed file if it exists
+    var failedPath = null; 
+    if (!fullPath.endsWith(".failed.html") && fullPath.endsWith(".html")) 
+        failedPath = fullPath.slice(0, -5) + ".failed.html";
+    else if (!fullPath.endsWith(".failed"))
+        failedPath = fullPath + ".failed";
+
+    if (failedPath)
+    {
+        try
+        {
+            fs.unlinkSync(failedPath);
+        }
+        catch (error)
+        {
+            // Ignore failure if file doesn't exist
+        }
+    }
+        
     const fullDir = path.dirname(fullPath);
 
     // Note that this does not throw an error if the directory exists
@@ -87,18 +104,6 @@ function WriteFile(root, filePath, contents)
 var _Test_writeFile = F2(function(filePath, contents)
 {
     return WriteFile(path.resolve("tests"), filePath, contents);
-})
-
-var tempDir = null;
-var _Test_writeTempFile = F2(function(filePath, contents)
-{
-    if (tempDir === null)
-    {
-        tempDir = os.tmpdir() + "/" + crypto.randomUUID();
-        fs.mkdirSync(tempDir);
-    }
-
-    return WriteFile(tempDir, filePath, contents);
 })
 
 var overwriteGoldenFiles = null;
