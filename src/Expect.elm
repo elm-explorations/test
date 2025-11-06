@@ -595,6 +595,14 @@ All file paths are scoped to be within the "tests/" directory.
 equalToFile : String -> String -> Expectation
 equalToFile filePath actual =
     let
+        failedFilePath =
+            -- Be careful to make the failed final extension .html so that browsers can render it
+            if String.endsWith ".html" filePath then
+                String.dropRight (String.length ".html") filePath ++ ".failed.html"
+
+            else
+                filePath ++ ".failed"
+
         writeGoldenFile () =
             case File.writeFile filePath actual of
                 Err File.FileNotFound ->
@@ -611,7 +619,11 @@ equalToFile filePath actual =
                     Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
 
                 Ok _ ->
-                    pass
+                    -- If we have successully written the golden file we can delete the failure file.
+                    -- We don't really care if this fails, if nothing else the user can delete the file themselves
+                    case File.deleteFile failedFilePath of
+                        _ ->
+                            pass
     in
     if File.overwriteGoldenFiles () then
         writeGoldenFile ()
@@ -635,15 +647,6 @@ equalToFile filePath actual =
                     pass
 
                 else
-                    let
-                        failedFilePath =
-                            -- Be careful to make the failed final extension .html so that browsers can render it
-                            if String.endsWith ".html" filePath then
-                                String.dropRight (String.length ".html") filePath ++ ".failed.html"
-
-                            else
-                                filePath ++ ".failed"
-                    in
                     case File.writeFile failedFilePath actual of
                         Ok newAbsolutePath ->
                             let

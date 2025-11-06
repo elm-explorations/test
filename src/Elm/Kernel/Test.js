@@ -106,6 +106,36 @@ var _Test_writeFile = F2(function(filePath, contents)
     return WriteFile(path.resolve("tests"), filePath, contents);
 })
 
+function _Test_deleteFile(filePath)
+{
+    // Test for this early as `resolve` will strip training slashes
+    if (filePath.slice(-1) == path.sep) {
+        return __Result_Err(__File_IsDirectory);
+    }
+
+    // Protect against deleting files above the "tests" directory
+    const testsPath = path.resolve("tests");
+    const fullPath = path.resolve(testsPath, filePath);
+
+    if (!fullPath.startsWith(testsPath))
+    {
+        return __Result_Err(__File_PathEscapesDirectory);
+    }
+
+    try {
+        fs.unlinkSync(fullPath);
+    }
+    catch (err)
+    {
+        if (err.code == "ENOENT"){
+            return __Result_Err(__File_FileNotFound);
+        }
+        else {
+            return __Result_Err(__File_GeneralFileError(err.toString()));
+        }
+    }
+}
+
 var overwriteGoldenFiles = null;
 function _Test_overwriteGoldenFiles(unused)
 {
