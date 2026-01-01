@@ -103,27 +103,29 @@ deletionCmds : Int -> List SimplifyCmd
 deletionCmds length =
     chunkCmds
         DeleteChunkAndMaybeDecrementPrevious
-        { length = length
-        , allowChunksOfSize1 = True
-        }
+        length
+        True
 
 
 zeroCmds : Int -> List SimplifyCmd
 zeroCmds length =
     chunkCmds
         ReplaceChunkWithZero
-        { length = length
-        , allowChunksOfSize1 = False -- already happens in binary search
-        }
+        length
+        False
+
+
+
+-- already happens in binary search
 
 
 sortCmds : Int -> List SimplifyCmd
 sortCmds length =
     chunkCmds
         SortChunk
-        { length = length
-        , allowChunksOfSize1 = False -- doesn't make sense for sorting
-        }
+        length
+        -- doesn't make sense for sorting
+        False
 
 
 minimizeChoiceCmds : RandomRun -> List SimplifyCmd
@@ -248,9 +250,9 @@ swapCmds : Int -> List SimplifyCmd
 swapCmds length =
     chunkCmds
         SwapChunkWithNeighbour
-        { length = length
-        , allowChunksOfSize1 = False -- other Cmds are already doing the case with size=1
-        }
+        length
+        False
+        -- other Cmds are already doing the case with size=1
         |> List.map
             (\cmd ->
                 case cmd.type_ of
@@ -299,9 +301,10 @@ SortChunk { chunkSize = 8, startIndex = 2 } -- [..XXXXXXXX]
 -}
 chunkCmds :
     ({ size : Int, startIndex : Int } -> SimplifyCmdType)
-    -> { length : Int, allowChunksOfSize1 : Bool }
+    -> Int
+    -> Bool
     -> List SimplifyCmd
-chunkCmds toType { length, allowChunksOfSize1 } =
+chunkCmds toType length allowChunksOfSize1 =
     let
         initChunkSize : Int
         initChunkSize =
