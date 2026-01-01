@@ -276,11 +276,11 @@ allSufficientlyCovered c state normalizedDistributionCount =
                     |> Maybe.traverse
                         (\( labels, count ) ->
                             Dict.get labels expectedDistributions_
-                                |> Maybe.map (\expectedDistribution -> ( labels, count, expectedDistribution ))
+                                |> Maybe.map (\expectedDistribution -> ( count, expectedDistribution ))
                         )
                     |> Maybe.map
                         (List.all
-                            (\( _, count, expectedDistribution ) ->
+                            (\( count, expectedDistribution ) ->
                                 case expectedDistribution of
                                     -- Zero and MoreThanZero will get checked in the Success case
                                     Zero ->
