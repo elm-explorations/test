@@ -295,45 +295,49 @@ allSufficientlyCovered c state normalizedDistributionCount =
 
 findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
 findBadZeroRelatedCase c state normalizedDistributionCount =
-    Maybe.map2
-        (\distributionCount expectedDistributions ->
-            expectedDistributions
-                |> List.find
-                    (\( label, expectedDistribution ) ->
-                        case expectedDistribution of
-                            Zero ->
-                                -- TODO short-circuit Zero sooner: as soon as we increment its counter, during runNTimes.
-                                Dict.get [ label ] distributionCount
-                                    -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
-                                    |> Maybe.withDefault 1
-                                    |> (/=) 0
+    case normalizedDistributionCount of
+        Nothing ->
+            Nothing
 
-                            MoreThanZero ->
-                                Dict.get [ label ] distributionCount
-                                    -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
-                                    |> Maybe.withDefault 0
-                                    |> (==) 0
+        Just distributionCount ->
+            case Test.Distribution.Internal.getExpectedDistributionsAsList c.distribution of
+                Nothing ->
+                    Nothing
 
-                            AtLeast _ ->
-                                False
-                    )
-                |> Maybe.andThen
-                    (\( label, expectedDistribution ) ->
-                        Dict.get [ label ] distributionCount
-                            |> Maybe.map
-                                (\count ->
-                                    { label = label
-                                    , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
-                                    , expectedDistribution = expectedDistribution
-                                    , runsElapsed = state.runsElapsed
-                                    , distributionCount = distributionCount
-                                    }
-                                )
-                    )
-        )
-        normalizedDistributionCount
-        (Test.Distribution.Internal.getExpectedDistributionsAsList c.distribution)
-        |> Maybe.andThen identity
+                Just expectedDistributions ->
+                    expectedDistributions
+                        |> List.find
+                            (\( label, expectedDistribution ) ->
+                                case expectedDistribution of
+                                    Zero ->
+                                        -- TODO short-circuit Zero sooner: as soon as we increment its counter, during runNTimes.
+                                        Dict.get [ label ] distributionCount
+                                            -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
+                                            |> Maybe.withDefault 1
+                                            |> (/=) 0
+
+                                    MoreThanZero ->
+                                        Dict.get [ label ] distributionCount
+                                            -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
+                                            |> Maybe.withDefault 0
+                                            |> (==) 0
+
+                                    AtLeast _ ->
+                                        False
+                            )
+                        |> Maybe.andThen
+                            (\( label, expectedDistribution ) ->
+                                Dict.get [ label ] distributionCount
+                                    |> Maybe.map
+                                        (\count ->
+                                            { label = label
+                                            , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
+                                            , expectedDistribution = expectedDistribution
+                                            , runsElapsed = state.runsElapsed
+                                            , distributionCount = distributionCount
+                                            }
+                                        )
+                            )
 
 
 findInsufficientlyCoveredLabel : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
