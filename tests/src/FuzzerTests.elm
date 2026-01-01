@@ -167,7 +167,7 @@ fuzzerSpecificationTests =
                     (\v -> v == 999)
                 , passes "Returns what you give it - Bool"
                     (Fuzz.constant True)
-                    (\v -> v == True)
+                    (\v -> v)
                 , simplifiesTowards "42" 42 (Fuzz.constant 42) fullySimplify
                 ]
             , describe "maybe"
@@ -525,7 +525,7 @@ fuzzerSpecificationTests =
                     (Fuzz.list Fuzz.unit)
                     (not << List.isEmpty)
                 , simplifiesTowards "simplest" [] (Fuzz.list Fuzz.int) fullySimplify
-                , simplifiesTowardsWith { runs = 2000 } "next simplest" [ 0 ] (Fuzz.list Fuzz.int) (\x -> x == [])
+                , simplifiesTowardsWith { runs = 2000 } "next simplest" [ 0 ] (Fuzz.list Fuzz.int) List.isEmpty
                 , simplifiesTowardsMany "All lists are sorted"
                     [ [ 0, -1 ]
                     , [ 1, 0 ]
@@ -889,7 +889,7 @@ fuzzerSpecificationTests =
                                     (Fuzz.constant ((+) 1)
                                         |> Fuzz.andMap (Fuzz.constant n)
                                     )
-                                    (Fuzz.constant ((+) 1 n))
+                                    (Fuzz.constant (1 + n))
                             )
                     )
                     (\( left, right ) -> left == right)
@@ -996,16 +996,16 @@ fuzzerSpecificationTests =
                 , canGenerate True (Fuzz.weightedBool 0.5)
                 , passes "0 = always False"
                     (Fuzz.weightedBool 0)
-                    (\bool -> bool == False)
+                    (\bool -> not bool)
                 , passes "1 = always True"
                     (Fuzz.weightedBool 1)
-                    (\bool -> bool == True)
+                    (\bool -> bool)
                 , passes "<0 clamps to 0"
                     (Fuzz.weightedBool -0.5)
-                    (\bool -> bool == False)
+                    (\bool -> not bool)
                 , passes ">1 clamps to 1"
                     (Fuzz.weightedBool 1.5)
-                    (\bool -> bool == True)
+                    (\bool -> bool)
                 , simplifiesTowards "simplest" False (Fuzz.weightedBool 0.5) fullySimplify
                 , simplifiesTowards "non-False" True (Fuzz.weightedBool 0.5) (\x -> x == False)
                 ]
