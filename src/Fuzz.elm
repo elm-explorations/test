@@ -1670,11 +1670,7 @@ forcedChoice n =
 -}
 intToBool : Int -> Bool
 intToBool n =
-    if n == 0 then
-        False
-
-    else
-        True
+    n /= 0
 
 
 weightedBoolGenerator : Float -> Random.Generator Int

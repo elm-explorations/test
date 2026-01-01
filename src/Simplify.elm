@@ -145,8 +145,7 @@ logState label state =
     let
         runString =
             Debug.toString (RandomRun.toList state.randomRun)
-    in
-    let
+
         _ =
             case Fuzz.Internal.generate (PRNG.hardcoded state.randomRun) state.fuzzer of
                 Generated { value } ->
