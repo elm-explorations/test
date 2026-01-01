@@ -1181,7 +1181,7 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            (\n -> Expect.pass)
+            (\_ -> Expect.pass)
         , Test.fuzzWith "Fizz buzz"
             { runs = 10000
             , distribution =
@@ -1191,7 +1191,7 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            (\n -> Expect.pass)
+            (\_ -> Expect.pass)
         , Test.fuzzWith "Fizz buzz even odd"
             { runs = 10000
             , distribution =
@@ -1203,7 +1203,7 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            (\n -> Expect.pass)
+            (\_ -> Expect.pass)
         , Test.fuzzWith "Int range boundaries - mandatory"
             { runs = 10000
             , distribution =
@@ -1216,7 +1216,7 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            (\n -> Expect.pass)
+            (\_ -> Expect.pass)
         ]
 
 
