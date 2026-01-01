@@ -352,24 +352,27 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
                         (\( labels, count ) ->
                             case labels of
                                 [ onlyLabel ] ->
-                                    Dict.get onlyLabel expectedDistributions
-                                        |> Maybe.map (\expectedDistribution -> ( onlyLabel, count, expectedDistribution ))
+                                    case Dict.get onlyLabel expectedDistributions of
+                                        Just Zero ->
+                                            Nothing
+
+                                        Just MoreThanZero ->
+                                            Nothing
+
+                                        Just ((AtLeast n) as expectedDistribution) ->
+                                            if Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100) then
+                                                Just ( onlyLabel, count, expectedDistribution )
+
+                                            else
+                                                Nothing
+
+                                        Nothing ->
+                                            Nothing
 
                                 _ ->
                                     Nothing
                         )
-                    |> List.find
-                        (\( _, count, expectedDistribution ) ->
-                            case expectedDistribution of
-                                Zero ->
-                                    False
-
-                                MoreThanZero ->
-                                    False
-
-                                AtLeast n ->
-                                    Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100)
-                        )
+                    |> List.head
                     |> Maybe.map
                         (\( label, count, expectedDistribution ) ->
                             { label = label
