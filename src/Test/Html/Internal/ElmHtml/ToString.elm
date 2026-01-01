@@ -94,13 +94,6 @@ nodeRecordToString options { tag, children, facts } =
             in
             "<" ++ tag ++ filling ++ ">"
 
-        closeTag =
-            "</" ++ tag ++ ">"
-
-        childrenStrings =
-            List.concatMap (nodeToLines options) children
-                |> List.map ((++) (String.repeat options.indent " "))
-
         styles =
             case Dict.toList facts.styles of
                 [] ->
@@ -150,6 +143,14 @@ nodeRecordToString options { tag, children, facts } =
            element kinds.
         -}
         _ ->
+            let
+                closeTag =
+                    "</" ++ tag ++ ">"
+
+                childrenStrings =
+                    List.concatMap (nodeToLines options) children
+                        |> List.map ((++) (String.repeat options.indent " "))
+            in
             openTag [ classes, styles, stringAttributes, boolAttributes ]
                 :: childrenStrings
                 ++ [ closeTag ]

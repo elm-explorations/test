@@ -228,20 +228,20 @@ joinAsList toStr list =
 
 printIndented : Int -> Int -> ElmHtml msg -> String
 printIndented maxDigits index elmHtml =
-    let
-        caption =
-            (String.fromInt (index + 1) ++ ")")
-                |> String.padRight (maxDigits + 3) ' '
-                |> String.append baseIndentation
-
-        indentation =
-            String.repeat (String.length caption) " "
-    in
     case String.split "\n" (prettyPrint elmHtml) of
         [] ->
             ""
 
         first :: rest ->
+            let
+                caption =
+                    (String.fromInt (index + 1) ++ ")")
+                        |> String.padRight (maxDigits + 3) ' '
+                        |> String.append baseIndentation
+
+                indentation =
+                    String.repeat (String.length caption) " "
+            in
             rest
                 |> List.map (String.append indentation)
                 |> (::) (caption ++ first)

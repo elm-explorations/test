@@ -190,12 +190,12 @@ swapChunks :
     -> RandomRun
     -> Maybe RandomRun
 swapChunks { leftChunk, rightChunk } run =
-    let
-        list =
-            Queue.toList run.data
-    in
     Maybe.map2
         (\lefts rights ->
+            let
+                list =
+                    Queue.toList run.data
+            in
             replaceInList
                 (List.concat
                     [ List.indexedMap (\i n -> ( rightChunk.startIndex + i, n )) lefts
