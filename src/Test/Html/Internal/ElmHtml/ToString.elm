@@ -99,8 +99,7 @@ nodeRecordToString options { tag, children, facts } =
             "</" ++ tag ++ ">"
 
         childrenStrings =
-            List.map (nodeToLines options) children
-                |> List.concat
+            List.concatMap (nodeToLines options) children
                 |> List.map ((++) (String.repeat options.indent " "))
 
         styles =

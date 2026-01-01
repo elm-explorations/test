@@ -25,12 +25,11 @@ selectorToString criteria =
             "\"" ++ s ++ "\""
 
         boolToString b =
-            case b of
-                True ->
-                    "True"
+            if b then
+                "True"
 
-                False ->
-                    "False"
+            else
+                "False"
     in
     case criteria of
         All list ->
