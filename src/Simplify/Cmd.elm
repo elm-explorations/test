@@ -154,17 +154,7 @@ minimizeFloatCmds run length =
     let
         possibleBoolIndexes : Set Int
         possibleBoolIndexes =
-            run
-                |> List.indexedMap Tuple.pair
-                |> List.filterMap
-                    (\( index, value ) ->
-                        if value > 1 then
-                            Nothing
-
-                        else
-                            Just index
-                    )
-                |> Set.fromList
+            computePossibleBoolIndexes run
     in
     List.range 0 (length - 3)
         |> List.filterMap
@@ -178,6 +168,21 @@ minimizeFloatCmds run length =
                 else
                     Nothing
             )
+
+
+computePossibleBoolIndexes : List Int -> Set Int
+computePossibleBoolIndexes run =
+    run
+        |> List.indexedMap Tuple.pair
+        |> List.filterMap
+            (\( index, value ) ->
+                if value > 1 then
+                    Nothing
+
+                else
+                    Just index
+            )
+        |> Set.fromList
 
 
 decrementTogetherCmds : Int -> List SimplifyCmd
