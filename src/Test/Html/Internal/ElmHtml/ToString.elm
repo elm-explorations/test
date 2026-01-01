@@ -152,6 +152,6 @@ nodeRecordToString options { tag, children, facts } =
            element kinds.
         -}
         _ ->
-            [ openTag [ classes, styles, stringAttributes, boolAttributes ] ]
-                ++ childrenStrings
+            openTag [ classes, styles, stringAttributes, boolAttributes ]
+                :: childrenStrings
                 ++ [ closeTag ]
