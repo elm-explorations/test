@@ -122,7 +122,6 @@ type ElementKind
     = VoidElements
     | RawTextElements
     | EscapableRawTextElements
-    | ForeignElements
     | NormalElements
 
 
@@ -148,7 +147,6 @@ type Attribute
     | NamespacedAttribute NamespacedAttributeRecord
     | Property PropertyRecord
     | Style { key : String, value : String }
-    | Event EventRecord
 
 
 {-| Attribute contains a string key and a string value
