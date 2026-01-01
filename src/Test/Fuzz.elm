@@ -339,45 +339,49 @@ findBadZeroRelatedCase c state normalizedDistributionCount =
 
 findInsufficientlyCoveredLabel : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
 findInsufficientlyCoveredLabel c state normalizedDistributionCount =
-    Maybe.map2 Tuple.pair
-        normalizedDistributionCount
-        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
-        |> Maybe.andThen
-            (\( distributionCount, expectedDistributions ) ->
-                -- TODO loop ExpectedDistributions instead of looping the label combinations?
-                distributionCount
-                    -- Needs normalized distribution count:
-                    |> Dict.toList
-                    |> List.findMap
-                        (\( labels, count ) ->
-                            case labels of
-                                [ onlyLabel ] ->
-                                    case Dict.get onlyLabel expectedDistributions of
-                                        Just Zero ->
-                                            Nothing
+    case normalizedDistributionCount of
+        Nothing ->
+            Nothing
 
-                                        Just MoreThanZero ->
-                                            Nothing
+        Just distributionCount ->
+            case Test.Distribution.Internal.getExpectedDistributions c.distribution of
+                Nothing ->
+                    Nothing
 
-                                        Just ((AtLeast n) as expectedDistribution) ->
-                                            if Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100) then
-                                                Just
-                                                    { label = onlyLabel
-                                                    , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
-                                                    , expectedDistribution = expectedDistribution
-                                                    , runsElapsed = state.runsElapsed
-                                                    }
-
-                                            else
+                Just expectedDistributions ->
+                    -- TODO loop ExpectedDistributions instead of looping the label combinations?
+                    distributionCount
+                        -- Needs normalized distribution count:
+                        |> Dict.toList
+                        |> List.findMap
+                            (\( labels, count ) ->
+                                case labels of
+                                    [ onlyLabel ] ->
+                                        case Dict.get onlyLabel expectedDistributions of
+                                            Just Zero ->
                                                 Nothing
 
-                                        Nothing ->
-                                            Nothing
+                                            Just MoreThanZero ->
+                                                Nothing
 
-                                _ ->
-                                    Nothing
-                        )
-            )
+                                            Just ((AtLeast n) as expectedDistribution) ->
+                                                if Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100) then
+                                                    Just
+                                                        { label = onlyLabel
+                                                        , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
+                                                        , expectedDistribution = expectedDistribution
+                                                        , runsElapsed = state.runsElapsed
+                                                        }
+
+                                                else
+                                                    Nothing
+
+                                            Nothing ->
+                                                Nothing
+
+                                    _ ->
+                                        Nothing
+                            )
 
 
 distributionFailRunResult : Maybe (Dict (List String) Int) -> DistributionFailure -> RunResult
