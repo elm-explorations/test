@@ -15,7 +15,6 @@ module Test.Html.Internal.ElmHtml.Query exposing
 -}
 
 import Dict
-import String
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
 

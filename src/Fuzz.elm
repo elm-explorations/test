@@ -75,7 +75,6 @@ can usually find the simplest input that reproduces a bug.
 
 import Array exposing (Array)
 import Bitwise
-import Char
 import Dict exposing (Dict)
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer(..))

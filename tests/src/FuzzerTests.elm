@@ -4,7 +4,7 @@ import Array
 import Expect exposing (Expectation)
 import Fuzz exposing (..)
 import Helpers exposing (..)
-import Random exposing (Generator)
+import Random
 import Test exposing (..)
 import Test.Distribution
 import Test.Runner exposing (Simplifiable)
