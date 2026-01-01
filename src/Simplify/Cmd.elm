@@ -86,12 +86,15 @@ cmdsForRun run =
     let
         length =
             RandomRun.length run
+
+        randomRunList =
+            RandomRun.toList run
     in
     List.fastConcat
         [ deletionCmds length
         , zeroCmds length
-        , minimizeChoiceCmds run
-        , minimizeFloatCmds run length
+        , minimizeChoiceCmds randomRunList
+        , minimizeFloatCmds randomRunList length
         , sortCmds length
         , redistributeCmds length
         , decrementTogetherCmds length
@@ -128,10 +131,9 @@ sortCmds length =
         False
 
 
-minimizeChoiceCmds : RandomRun -> List SimplifyCmd
+minimizeChoiceCmds : List Int -> List SimplifyCmd
 minimizeChoiceCmds run =
     run
-        |> RandomRun.toList
         |> List.indexedMap Tuple.pair
         |> List.filterMap
             (\( index, value ) ->
@@ -147,13 +149,12 @@ minimizeChoiceCmds run =
             )
 
 
-minimizeFloatCmds : RandomRun -> Int -> List SimplifyCmd
+minimizeFloatCmds : List Int -> Int -> List SimplifyCmd
 minimizeFloatCmds run length =
     let
         possibleBoolIndexes : Set Int
         possibleBoolIndexes =
             run
-                |> RandomRun.toList
                 |> List.indexedMap Tuple.pair
                 |> List.filterMap
                     (\( index, value ) ->
