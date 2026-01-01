@@ -256,11 +256,6 @@ allSufficientlyCovered c state normalizedDistributionCount =
         (Test.Distribution.Internal.getExpectedDistributions c.distribution)
         |> Maybe.andThen
             (\( distributionCount, expectedDistributions ) ->
-                let
-                    expectedDistributions_ : Dict String ExpectedDistribution
-                    expectedDistributions_ =
-                        Dict.fromList expectedDistributions
-                in
                 distributionCount
                     -- Needs normalized distribution count:
                     |> Dict.toList
@@ -275,7 +270,7 @@ allSufficientlyCovered c state normalizedDistributionCount =
                         )
                     |> Maybe.traverse
                         (\( labels, count ) ->
-                            Dict.get labels expectedDistributions_
+                            Dict.get labels expectedDistributions
                                 |> Maybe.map (\expectedDistribution -> ( count, expectedDistribution ))
                         )
                     |> Maybe.map
@@ -302,7 +297,7 @@ findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List Strin
 findBadZeroRelatedCase c state normalizedDistributionCount =
     Maybe.map2 Tuple.pair
         normalizedDistributionCount
-        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
+        (Test.Distribution.Internal.getExpectedDistributionsAsList c.distribution)
         |> Maybe.andThen
             (\( distributionCount, expectedDistributions ) ->
                 expectedDistributions
@@ -348,11 +343,6 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
         (Test.Distribution.Internal.getExpectedDistributions c.distribution)
         |> Maybe.andThen
             (\( distributionCount, expectedDistributions ) ->
-                let
-                    expectedDistributions_ : Dict String ExpectedDistribution
-                    expectedDistributions_ =
-                        Dict.fromList expectedDistributions
-                in
                 -- TODO loop ExpectedDistributions instead of looping the label combinations?
                 distributionCount
                     -- Needs normalized distribution count:
@@ -361,7 +351,7 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
                         (\( labels, count ) ->
                             case labels of
                                 [ onlyLabel ] ->
-                                    Dict.get onlyLabel expectedDistributions_
+                                    Dict.get onlyLabel expectedDistributions
                                         |> Maybe.map (\expectedDistribution -> ( onlyLabel, count, expectedDistribution ))
 
                                 _ ->

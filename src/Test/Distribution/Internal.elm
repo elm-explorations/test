@@ -5,9 +5,12 @@ module Test.Distribution.Internal exposing
     , formatPct
     , getDistributionLabels
     , getExpectedDistributions
+    , getExpectedDistributionsAsList
     , insufficientlyCovered
     , sufficientlyCovered
     )
+
+import Dict exposing (Dict)
 
 
 type Distribution a
@@ -48,8 +51,8 @@ getDistributionLabels distribution =
             Just (List.map (\( _, l, p ) -> ( l, p )) list)
 
 
-getExpectedDistributions : Distribution a -> Maybe (List ( String, ExpectedDistribution ))
-getExpectedDistributions distribution =
+getExpectedDistributionsAsList : Distribution a -> Maybe (List ( String, ExpectedDistribution ))
+getExpectedDistributionsAsList distribution =
     case distribution of
         NoDistributionNeeded ->
             Nothing
@@ -59,6 +62,19 @@ getExpectedDistributions distribution =
 
         ExpectDistribution list ->
             Just (List.map (\( e, l, _ ) -> ( l, e )) list)
+
+
+getExpectedDistributions : Distribution a -> Maybe (Dict String ExpectedDistribution)
+getExpectedDistributions distribution =
+    case distribution of
+        NoDistributionNeeded ->
+            Nothing
+
+        ReportDistribution _ ->
+            Nothing
+
+        ExpectDistribution list ->
+            Just (List.foldl (\( e, l, _ ) dict -> Dict.insert l e dict) Dict.empty list)
 
 
 formatPct : Float -> String
