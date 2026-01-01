@@ -51,7 +51,7 @@ getDistributionLabels distribution =
             Just (List.map (\( _, l, p ) -> ( l, p )) list)
 
 
-getExpectedDistributionsAsList : Distribution a -> Maybe (List ( String, ExpectedDistribution ))
+getExpectedDistributionsAsList : Distribution a -> Maybe (List ( ExpectedDistribution, String, a -> Bool ))
 getExpectedDistributionsAsList distribution =
     case distribution of
         NoDistributionNeeded ->
@@ -61,7 +61,7 @@ getExpectedDistributionsAsList distribution =
             Nothing
 
         ExpectDistribution list ->
-            Just (List.map (\( e, l, _ ) -> ( l, e )) list)
+            Just list
 
 
 getExpectedDistributions : Distribution a -> Maybe (Dict String ExpectedDistribution)

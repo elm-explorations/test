@@ -310,7 +310,7 @@ findBadZeroRelatedCase c state normalizedDistributionCount =
                 Just expectedDistributions ->
                     expectedDistributions
                         |> List.find
-                            (\( label, expectedDistribution ) ->
+                            (\( expectedDistribution, label, _ ) ->
                                 case expectedDistribution of
                                     Zero ->
                                         -- TODO short-circuit Zero sooner: as soon as we increment its counter, during runNTimes.
@@ -329,7 +329,7 @@ findBadZeroRelatedCase c state normalizedDistributionCount =
                                         False
                             )
                         |> Maybe.andThen
-                            (\( label, expectedDistribution ) ->
+                            (\( expectedDistribution, label, _ ) ->
                                 Dict.get [ label ] distributionCount
                                     |> Maybe.map
                                         (\count ->
