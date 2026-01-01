@@ -238,7 +238,7 @@ contextDecodeElmHtml context =
 decodeTextTag : Json.Decode.Decoder TextTagRecord
 decodeTextTag =
     field kernelConstants.virtualDom.text
-        (Json.Decode.andThen (\text -> Json.Decode.succeed { text = text }) Json.Decode.string)
+        (Json.Decode.map (\text -> { text = text }) Json.Decode.string)
 
 
 {-| decode a tagger
