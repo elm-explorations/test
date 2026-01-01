@@ -103,18 +103,15 @@ deleteChunk chunk run =
         let
             list =
                 Queue.toList run.data
-
-            result =
-                { run
-                    | length = run.length - chunk.size
-                    , data =
-                        (List.take chunk.startIndex list
-                            ++ List.drop (chunk.startIndex + chunk.size) list
-                        )
-                            |> Queue.fromList
-                }
         in
-        result
+        { run
+            | length = run.length - chunk.size
+            , data =
+                (List.take chunk.startIndex list
+                    ++ List.drop (chunk.startIndex + chunk.size) list
+                )
+                    |> Queue.fromList
+        }
 
     else
         run
