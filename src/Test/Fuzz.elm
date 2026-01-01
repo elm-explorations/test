@@ -104,9 +104,10 @@ initLoopState initialSeed distribution =
             Test.Distribution.Internal.getDistributionLabels distribution
                 |> Maybe.map
                     (\labels ->
-                        labels
-                            |> List.map (\( label, _ ) -> ( [ label ], 0 ))
-                            |> Dict.fromList
+                        List.foldl
+                            (\( label, _ ) dict -> Dict.insert [ label ] 0 dict)
+                            Dict.empty
+                            labels
                     )
     in
     { runsElapsed = 0
