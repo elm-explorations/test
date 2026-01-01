@@ -348,7 +348,7 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
                 distributionCount
                     -- Needs normalized distribution count:
                     |> Dict.toList
-                    |> List.filterMap
+                    |> List.findMap
                         (\( labels, count ) ->
                             case labels of
                                 [ onlyLabel ] ->
@@ -372,7 +372,6 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
                                 _ ->
                                     Nothing
                         )
-                    |> List.head
                     |> Maybe.map
                         (\( label, count, expectedDistribution ) ->
                             { label = label

@@ -2,6 +2,7 @@ module MicroListExtra exposing
     ( fastConcat
     , fastConcatMap
     , find
+    , findMap
     , getAt
     , setAt
     , splitWhen
@@ -54,6 +55,21 @@ find predicate list =
 
             else
                 find predicate rest
+
+
+findMap : (a -> Maybe b) -> List a -> Maybe b
+findMap predicate list =
+    case list of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            case predicate first of
+                Nothing ->
+                    findMap predicate rest
+
+                justB ->
+                    justB
 
 
 splitWhen : (a -> Bool) -> List a -> Maybe ( List a, List a )
