@@ -118,7 +118,6 @@ fromExpectation labels expectation summary =
             { summaryWithDistribution
                 | output = summaryWithDistribution.output ++ newOutput
                 , failed = summaryWithDistribution.failed + 1
-                , passed = summaryWithDistribution.passed
             }
 
 
