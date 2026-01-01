@@ -12,7 +12,7 @@ all : Test
 all =
     let
         output =
-            view exampleModel
+            view
                 |> Query.fromHtml
     in
     describe "view exampleModel"
