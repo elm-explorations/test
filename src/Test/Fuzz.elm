@@ -249,46 +249,51 @@ type alias DistributionFailure =
 
 allSufficientlyCovered : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Bool
 allSufficientlyCovered c state normalizedDistributionCount =
-    Maybe.map2 Tuple.pair
-        normalizedDistributionCount
-        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
-        |> Maybe.andThen
-            (\( distributionCount, expectedDistributions ) ->
-                distributionCount
-                    -- Needs normalized distribution count:
-                    |> Dict.toList
-                    |> List.filterMap
-                        (\( labels, count ) ->
-                            case labels of
-                                [ onlyLabel ] ->
-                                    Just ( onlyLabel, count )
+    case normalizedDistributionCount of
+        Nothing ->
+            False
 
-                                _ ->
-                                    Nothing
-                        )
-                    |> Maybe.traverse
-                        (\( labels, count ) ->
-                            Dict.get labels expectedDistributions
-                                |> Maybe.map (\expectedDistribution -> ( count, expectedDistribution ))
-                        )
-                    |> Maybe.map
-                        (List.all
-                            (\( count, expectedDistribution ) ->
-                                case expectedDistribution of
-                                    -- Zero and MoreThanZero will get checked in the Success case
-                                    Zero ->
-                                        True
+        Just distributionCount ->
+            case Test.Distribution.Internal.getExpectedDistributions c.distribution of
+                Nothing ->
+                    False
 
-                                    MoreThanZero ->
-                                        True
+                Just expectedDistributions ->
+                    (distributionCount
+                        -- Needs normalized distribution count:
+                        |> Dict.toList
+                        |> List.filterMap
+                            (\( labels, count ) ->
+                                case labels of
+                                    [ onlyLabel ] ->
+                                        Just ( onlyLabel, count )
 
-                                    AtLeast n ->
-                                        Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
+                                    _ ->
+                                        Nothing
                             )
-                        )
-            )
-        -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
-        |> Maybe.withDefault False
+                        |> Maybe.traverse
+                            (\( labels, count ) ->
+                                Dict.get labels expectedDistributions
+                                    |> Maybe.map (\expectedDistribution -> ( count, expectedDistribution ))
+                            )
+                        |> Maybe.map
+                            (List.all
+                                (\( count, expectedDistribution ) ->
+                                    case expectedDistribution of
+                                        -- Zero and MoreThanZero will get checked in the Success case
+                                        Zero ->
+                                            True
+
+                                        MoreThanZero ->
+                                            True
+
+                                        AtLeast n ->
+                                            Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
+                                )
+                            )
+                    )
+                        -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
+                        |> Maybe.withDefault False
 
 
 findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
