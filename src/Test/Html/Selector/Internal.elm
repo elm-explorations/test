@@ -1,4 +1,4 @@
-module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString)
+module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, queryAll, queryAllChildren, selectorToString)
 
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
 import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery

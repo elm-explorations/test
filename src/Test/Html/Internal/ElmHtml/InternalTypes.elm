@@ -3,7 +3,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
     , Facts, Tagger, EventHandler, ElementKind(..)
     , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
     , Validation(..), validationMessage, validationFromMessage
-    , decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
+    , decodeElmHtml, toElementKind, decodeAttribute
     )
 
 {-| Internal types used to represent Elm Html in pure Elm
@@ -16,7 +16,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
 
 @docs Validation, validationMessage, validationFromMessage
 
-@docs decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
+@docs decodeElmHtml, toElementKind, decodeAttribute
 
 -}
 

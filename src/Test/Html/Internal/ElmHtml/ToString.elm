@@ -1,13 +1,13 @@
 module Test.Html.Internal.ElmHtml.ToString exposing
-    ( nodeRecordToString, nodeToString, nodeToStringWithOptions
-    , FormatOptions, defaultFormatOptions
+    ( nodeToStringWithOptions
+    , FormatOptions
     )
 
 {-| Convert ElmHtml to string.
 
-@docs nodeRecordToString, nodeToString, nodeToStringWithOptions
+@docs nodeToStringWithOptions
 
-@docs FormatOptions, defaultFormatOptions
+@docs FormatOptions
 
 -}
 

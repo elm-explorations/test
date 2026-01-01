@@ -1,4 +1,4 @@
-module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError(..), SelectorQuery(..), Single(..), addQueryFromHtmlLine, baseIndentation, contains, expectAll, expectAllHelp, failWithQuery, getChildren, getElementAt, getElementAtHelp, getHtmlContext, has, hasNot, isElement, joinAsList, missingDescendants, multipleToExpectation, prefixOutputLine, prependSelector, prettyPrint, printIndented, queryErrorToString, showSelectorOutcome, showSelectorOutcomeInverse, toLines, toLinesHelp, toOutputLine, traverse, traverseSelector, traverseSelectors, verifySingle, withHtmlContext)
+module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError, SelectorQuery(..), Single(..), contains, expectAll, failWithQuery, has, hasNot, joinAsList, multipleToExpectation, prependSelector, prettyPrint, queryErrorToString, traverse, verifySingle)
 
 import Expect exposing (Expectation)
 import Test.Html.Descendant as Descendant

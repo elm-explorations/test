@@ -1,15 +1,13 @@
 module Test.Html.Internal.ElmHtml.Query exposing
     ( Selector(..)
-    , query, queryAll, queryChildren, queryChildrenAll, queryInNode
-    , queryById, queryByClassName, queryByClassList, queryByStyle, queryByTagName, queryByAttribute, queryByBoolAttribute
+    , query, queryChildren
     , getChildren
     )
 
 {-| Query things using ElmHtml
 
 @docs Selector
-@docs query, queryAll, queryChildren, queryChildrenAll, queryInNode
-@docs queryById, queryByClassName, queryByClassList, queryByStyle, queryByTagName, queryByAttribute, queryByBoolAttribute
+@docs query, queryChildren
 @docs getChildren
 
 -}
