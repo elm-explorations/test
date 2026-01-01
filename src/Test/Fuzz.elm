@@ -244,7 +244,6 @@ type alias DistributionFailure =
     , actualPercentage : Float
     , expectedDistribution : ExpectedDistribution
     , runsElapsed : Int
-    , distributionCount : Dict (List String) Int
     }
 
 
@@ -333,7 +332,6 @@ findBadZeroRelatedCase c state normalizedDistributionCount =
                                             , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
                                             , expectedDistribution = expectedDistribution
                                             , runsElapsed = state.runsElapsed
-                                            , distributionCount = distributionCount
                                             }
                                         )
                             )
@@ -378,7 +376,6 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
                             , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
                             , expectedDistribution = expectedDistribution
                             , runsElapsed = state.runsElapsed
-                            , distributionCount = distributionCount
                             }
                         )
             )
