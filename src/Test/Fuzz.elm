@@ -361,7 +361,12 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
 
                                         Just ((AtLeast n) as expectedDistribution) ->
                                             if Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100) then
-                                                Just ( onlyLabel, count, expectedDistribution )
+                                                Just
+                                                    { label = onlyLabel
+                                                    , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
+                                                    , expectedDistribution = expectedDistribution
+                                                    , runsElapsed = state.runsElapsed
+                                                    }
 
                                             else
                                                 Nothing
@@ -371,14 +376,6 @@ findInsufficientlyCoveredLabel c state normalizedDistributionCount =
 
                                 _ ->
                                     Nothing
-                        )
-                    |> Maybe.map
-                        (\( label, count, expectedDistribution ) ->
-                            { label = label
-                            , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
-                            , expectedDistribution = expectedDistribution
-                            , runsElapsed = state.runsElapsed
-                            }
                         )
             )
 
