@@ -156,17 +156,25 @@ minimizeFloatCmds run length =
         possibleBoolIndexes =
             computePossibleBoolIndexes 0 run Set.empty
     in
-    List.range 0 (length - 3)
-        |> List.filterMap
-            (\index ->
-                if Set.member (index + 2) possibleBoolIndexes then
-                    Just
-                        { type_ = MinimizeFloat { leftIndex = index }
-                        , minLength = index + 3
-                        }
+    minimizeFloatCmdsHelp possibleBoolIndexes (length - 3) []
 
-                else
-                    Nothing
+
+minimizeFloatCmdsHelp : Set Int -> Int -> List SimplifyCmd -> List SimplifyCmd
+minimizeFloatCmdsHelp possibleBoolIndexes index list =
+    if index < 0 then
+        list
+
+    else
+        minimizeFloatCmdsHelp possibleBoolIndexes
+            (index - 1)
+            (if Set.member (index + 2) possibleBoolIndexes then
+                { type_ = MinimizeFloat { leftIndex = index }
+                , minLength = index + 3
+                }
+                    :: list
+
+             else
+                list
             )
 
 
