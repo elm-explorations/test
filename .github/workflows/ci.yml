@@ -16,7 +16,7 @@ jobs:
       matrix:
         # Run on Mac and Linux, for multiple Node versions
         os: [macos-latest, ubuntu-latest]
-        node: ['12', '14', '16', '18', '20', '22', '24']
+        node: ['16', '18', '20', '22', '24']
 
     env:
       ELM_HOME: '${{ github.workspace }}/elm-home'
