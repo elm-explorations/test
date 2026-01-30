@@ -578,9 +578,9 @@ equalSets expected actual =
 
 {-| Always passes.
 
+    import Expect
     import Json.Decode exposing (decodeString, int)
     import Test exposing (test)
-    import Expect
 
 
     test "Json.Decode.int can decode the number 42." <|
@@ -600,9 +600,9 @@ pass =
 
 {-| Fails with the given message.
 
+    import Expect
     import Json.Decode exposing (decodeString, int)
     import Test exposing (test)
-    import Expect
 
 
     test "Json.Decode.int can decode the number 42." <|
