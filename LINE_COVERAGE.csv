@@ -1,0 +1,32 @@
+Feature,Task,Priority,Orig Est,Curr Est,Elapsed,Remain
+elm-test coverage-instrument,argument: File.elm+,1,1,1,0,1
+elm-test coverage-instrument,flag: --output,2,1,1,0,1
+elm-test coverage-instrument,default path,1,1,1,0,1
+elm-test coverage-instrument,ask before overwriting default path,2,1,1,0,1
+elm-test coverage-instrument,output coverage-metadata.json,1,2,2,0,2
+elm-test coverage-instrument,actual instrumentation,1,4,4,0,4
+Coverage.enableLineCoverage,dummy Elm code,1,1,1,0,1
+Coverage.enableLineCoverage,patched JS code,1,1,1,0,1
+Coverage.track,dummy Elm code,1,1,1,0,1
+Coverage.track,patched JS code,1,1,1,0,1
+elm-test coverage-patch,argument: compiled.js,1,1,1,0,1
+elm-test coverage-patch,flag: --output,2,1,1,0,1
+elm-test coverage-patch,replace dummy with effectful JS,1,1,1,0,1
+elm-test coverage-report,argument: counter.json,1,1,1,0,1
+elm-test coverage-report,flag: --metadata,1,1,1,0,1
+elm-test coverage-report,flag: --format,2,1,1,0,1
+elm-test coverage-report,flag: --output,2,1,1,0,1
+elm-test coverage-report,format: LCOV,3,2,2,0,2
+elm-test coverage-report,format: HTML (totals),1,2,2,0,2
+elm-test coverage-report,format: HTML (highlighted source),2,4,4,0,4
+elm-test coverage-report,format: CSV,3,2,2,0,2
+elm-test coverage-report,format: plaintext,2,1,1,0,1
+elm-test coverage-report,format: stdout,1,2,2,0,2
+elm-test coverage-report,default path,1,1,1,0,1
+elm-test (e2e),flag: --line-coverage,1,1,1,0,1
+elm-test (e2e),flag: --line-coverage-output,2,1,1,0,1
+elm-test (e2e),instrument files,1,1,1,0,1
+elm-test (e2e),make test project on instrumented files,1,1,1,0,1
+elm-test (e2e),patch test project after compiling,1,1,1,0,1
+elm-test (e2e),read coverage counts after testing,1,1,1,0,1
+elm-test (e2e),report results,1,1,1,0,1
