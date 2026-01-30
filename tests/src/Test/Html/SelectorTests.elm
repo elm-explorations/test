@@ -8,7 +8,7 @@ import Html
 import Html.Attributes as Attr
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
+import Test.Html.Selector as Selector
 
 
 all : Test
@@ -17,6 +17,7 @@ all =
         [ bug13
         , textSelectors
         , exactTextSelectors
+        , selectorAll
         ]
 
 
@@ -32,14 +33,25 @@ bug13 =
                     , Html.text "Text2"
                     ]
                     |> Query.fromHtml
-                    |> Query.has [ text "Text1", text "Text2" ]
+                    |> Query.has
+                        [ Selector.text "Text1"
+                        , Selector.text "Text2"
+                        ]
         , test "the welcome <h1> says hello!" <|
             \() ->
                 Html.div []
-                    [ Html.h1 [ Attr.title "greeting", Attr.class "me" ] [ Html.text "Hello!" ] ]
+                    [ Html.h1
+                        [ Attr.title "greeting"
+                        , Attr.class "me"
+                        ]
+                        [ Html.text "Hello!" ]
+                    ]
                     |> Query.fromHtml
-                    |> Query.find [ attribute (Attr.title "greeting") ]
-                    |> Query.has [ text "Hello!", class "me" ]
+                    |> Query.find [ Selector.attribute (Attr.title "greeting") ]
+                    |> Query.has
+                        [ Selector.text "Hello!"
+                        , Selector.class "me"
+                        ]
         ]
 
 
@@ -56,7 +68,7 @@ textSelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.has [ text str ]
+                    |> Query.has [ Selector.text str ]
         , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
             \before strings after ->
                 let
@@ -67,7 +79,7 @@ textSelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.has (List.map text strings)
+                    |> Query.has (List.map Selector.text strings)
         , fuzz3 (list string) string (list string) "Finds a submatch" <|
             \before str after ->
                 let
@@ -78,7 +90,7 @@ textSelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.has [ text str ]
+                    |> Query.has [ Selector.text str ]
         ]
 
 
@@ -100,7 +112,7 @@ exactTextSelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.has [ exactText str ]
+                    |> Query.has [ Selector.exactText str ]
         , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
             \before strings after ->
                 let
@@ -111,7 +123,7 @@ exactTextSelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.has (List.map exactText strings)
+                    |> Query.has (List.map Selector.exactText strings)
         , fuzz3 (list nonemptyString) nonemptyString (list nonemptyString) "Doesn't find a submatch" <|
             \before str after ->
                 let
@@ -136,12 +148,82 @@ exactTextSelectors =
                 in
                 Html.div [] textNodes
                     |> Query.fromHtml
-                    |> Query.hasNot [ exactText str2 ]
+                    |> Query.hasNot [ Selector.exactText str2 ]
         , test "Trimming is not happening" <|
             \() ->
                 Html.div [] [ Html.text """
                     We like whitespace
                 """ ]
                     |> Query.fromHtml
-                    |> Query.hasNot [ exactText "We like whitespace" ]
+                    |> Query.hasNot [ Selector.exactText "We like whitespace" ]
+        ]
+
+
+selectorAll : Test
+selectorAll =
+    describe "Selector.all"
+        [ test "passes if empty" <|
+            \() ->
+                Html.fieldset [ Attr.disabled False ]
+                    [ Html.button [ Attr.disabled True ]
+                        [ Html.text "Reply"
+                        ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ Selector.all [] ]
+        , test "passes if single selector matches" <|
+            \() ->
+                Html.fieldset [ Attr.disabled False ]
+                    [ Html.button [ Attr.disabled True ]
+                        [ Html.text "Reply"
+                        ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ Selector.all
+                            [ Selector.tag "fieldset"
+                            ]
+                        ]
+        , test "passes if all selectors match" <|
+            \() ->
+                Html.fieldset [ Attr.disabled False ]
+                    [ Html.button [ Attr.disabled True ]
+                        [ Html.text "Reply"
+                        ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ Selector.all
+                            [ Selector.tag "fieldset"
+                            , Selector.attribute (Attr.disabled False)
+                            ]
+                        ]
+        , test "fails if some but not all selectors match (regression for #213)" <|
+            \() ->
+                Html.fieldset [ Attr.disabled False ]
+                    [ Html.button [ Attr.disabled True ]
+                        [ Html.text "Reply"
+                        ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.hasNot
+                        [ Selector.all
+                            [ Selector.tag "fieldset"
+                            , Selector.attribute (Attr.disabled True)
+                            ]
+                        ]
+        , test "fails if no selectors match" <|
+            \() ->
+                Html.fieldset [ Attr.disabled False ]
+                    [ Html.button [ Attr.disabled True ]
+                        [ Html.text "Reply"
+                        ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.hasNot
+                        [ Selector.all
+                            [ Selector.tag "strong"
+                            , Selector.attribute (Attr.disabled True)
+                            ]
+                        ]
         ]
