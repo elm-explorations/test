@@ -16,7 +16,7 @@ jobs:
       matrix:
         # Run on Mac and Linux, for multiple Node versions
         os: [macos-latest, ubuntu-latest]
-        node: ['8', '10', '12', '14']
+        node: ['16', '18', '20', '22', '24']
 
     env:
       ELM_HOME: '${{ github.workspace }}/elm-home'
@@ -32,7 +32,7 @@ jobs:
 
       # Install elm and cache ELM_HOME
       - name: Install elm
-        uses: mpizenberg/elm-tooling-action@v1.2
+        uses: mpizenberg/elm-tooling-action@v1.7
         with:
           cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
@@ -50,7 +50,7 @@ jobs:
 
       # Install elm-format
       - name: Install elm-format
-        uses: mpizenberg/elm-tooling-action@v1.2
+        uses: mpizenberg/elm-tooling-action@v1.7
         with:
           cache-key: format-${{ matrix.os }}-node${{ matrix.node }}-0
           cache-restore-key: format-${{ matrix.os }}-node${{ matrix.node }}

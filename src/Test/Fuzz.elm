@@ -52,16 +52,15 @@ validatedFuzzTest fuzzer getExpectation distribution =
             in
             case runResult.failure of
                 Nothing ->
-                    [ Pass { distributionReport = runResult.distributionReport } ]
+                    Pass { distributionReport = runResult.distributionReport }
 
                 Just failure ->
-                    [ { failure
+                    { failure
                         | expectation =
                             failure.expectation
                                 |> Test.Expectation.withDistributionReport runResult.distributionReport
-                      }
+                    }
                         |> formatExpectation
-                    ]
         )
 
 

@@ -262,8 +262,33 @@ hasStyle style facts =
 
 classnames : Facts msg -> List String
 classnames facts =
-    Dict.get "className" facts.stringAttributes
-        |> Maybe.withDefault ""
+    (case
+        ( Dict.get "class" facts.stringAttributes
+        , Dict.get "className" facts.stringAttributes
+        )
+     of
+        ( Just _, Just _ ) ->
+            -- If you use both the `class` attribute and the `className` property at the same time,
+            -- it’s undefined which classes you end up with. It depends on which order they are specified,
+            -- which order elm/virtual-dom happens to apply them, and which of them changed most recently.
+            -- Mixing both is not a good idea.
+            --
+            -- This code should be impossible to reach because of the validation in
+            -- Test.Html.Internal.ElmHtml.InternalTypes.decodeOthers.
+            --
+            -- If we ever reach this code, silently claim that there are no classes (that no classes match
+            -- the node).
+            ""
+
+        ( Just class, Nothing ) ->
+            class
+
+        ( Nothing, Just className ) ->
+            className
+
+        ( Nothing, Nothing ) ->
+            ""
+    )
         |> String.split " "
 
 

@@ -22,6 +22,8 @@ module Test.Html.Query exposing
 
 import Expect exposing (Expectation)
 import Html exposing (Html)
+import Json.Decode
+import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes
 import Test.Html.Internal.Inert as Inert
 import Test.Html.Query.Internal as Internal exposing (failWithQuery)
 import Test.Html.Selector exposing (Selector)
@@ -71,8 +73,8 @@ type alias Multiple msg =
 typically begin.
 
     import Html
-    import Test.Html.Query as Query
     import Test exposing (test)
+    import Test.Html.Query as Query
     import Test.Html.Selector exposing (text)
 
 
@@ -90,8 +92,11 @@ fromHtml html =
             Ok node ->
                 Internal.Query node []
 
-            Err message ->
-                Internal.InternalError message
+            Err (Inert.DecodeError decodeError) ->
+                Internal.InternalError (Json.Decode.errorToString decodeError)
+
+            Err (Inert.ValidationErrors validations) ->
+                Internal.ValidationErrors validations
 
 
 
@@ -100,12 +105,12 @@ fromHtml html =
 
 {-| Find the descendant elements which match all the given selectors.
 
-    import Html exposing (div, ul, li)
-    import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
-    import Test exposing (test)
-    import Test.Html.Selector exposing (tag)
     import Expect
+    import Html exposing (div, li, text, ul)
+    import Html.Attributes exposing (class)
+    import Test exposing (test)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (tag)
 
 
     test "The list has three items" <|
@@ -131,12 +136,12 @@ findAll selectors (Internal.Single showTrace query) =
 
 {-| Find the descendant elements of the result of `findAll` which match all the given selectors.
 
-    import Html exposing (div, ul, li)
-    import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
-    import Test exposing (test)
-    import Test.Html.Selector exposing (tag)
     import Expect
+    import Html exposing (a, button, div, li, ul)
+    import Html.Attributes exposing (class)
+    import Test exposing (test)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (tag)
 
 
     test "The list has three items" <|
@@ -154,7 +159,7 @@ findAll selectors (Internal.Single showTrace query) =
                 |> Query.keep ( tag "a" )
                 |> Expect.all
                     [ Query.each (Query.has [ tag "a" ])
-                    , Query.first >> Query.has [ text "first item" ]
+                    , Query.first >> Query.has [ Test.Html.Selector.text "first item" ]
                     ]
 
 -}
@@ -167,11 +172,12 @@ keep selector (Internal.Multiple showTrace query) =
 
 {-| Return the matched element's immediate child elements.
 
-    import Html exposing (div, ul, li)
+    import Expect
+    import Html exposing (div, li, text, ul)
     import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, classes)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (classes, tag)
 
 
     test "The <ul> only has <li> children" <|
@@ -199,11 +205,11 @@ children selectors (Internal.Single showTrace query) =
 {-| Find exactly one descendant element which matches all the given selectors.
 If no descendants match, or if more than one matches, the test will fail.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, li, ul)
     import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, classes)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (classes, tag)
 
 
     test "The list has both the classes 'items' and 'active'" <|
@@ -232,11 +238,11 @@ will fail.
 
 `Query.first` is a shorthand for `Query.index 0` - they do the same thing.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, li, ul)
     import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, classes)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (classes, tag)
 
 
     test "The first <li> is called 'first item'" <|
@@ -270,11 +276,11 @@ will match the last element, and `Query.index -2` will match the second-to-last.
 
 If the index falls outside the bounds of the match, the test will fail.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, li, ul)
     import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, classes)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (classes, tag)
 
 
     test "The second <li> is called 'second item'" <|
@@ -305,12 +311,12 @@ index position (Internal.Multiple showTrace query) =
 
 {-| Expect the number of elements matching the query fits the given expectation.
 
-    import Html exposing (div, ul, li)
-    import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
-    import Test exposing (test)
-    import Test.Html.Selector exposing (tag)
     import Expect
+    import Html exposing (div, li, ul)
+    import Html.Attributes exposing (class)
+    import Test exposing (test)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (tag)
 
 
     test "The list has three items" <|
@@ -335,11 +341,11 @@ count expect ((Internal.Multiple showTrace query) as multiple) =
 
 {-| Expect the element to have at least one descendant matching each node in the list.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, li, ul)
     import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, classes)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (classes, tag)
 
 
     test "The list has two li: one with the text \"third item\" and \
@@ -372,12 +378,23 @@ contains expectedHtml (Internal.Single showTrace query) =
                 |> failWithQuery showTrace "Query.contains" query
 
         Err errors ->
-            Expect.fail <|
-                String.join "\n" <|
-                    List.concat
-                        [ [ "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>." ]
-                        , errors
-                        ]
+            errors
+                |> List.map
+                    (\error ->
+                        (case error of
+                            Inert.DecodeError decodeError ->
+                                [ "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>."
+                                , Json.Decode.errorToString decodeError
+                                ]
+
+                            Inert.ValidationErrors { deduped } ->
+                                deduped
+                                    |> List.map InternalTypes.validationMessage
+                        )
+                            |> String.join "\n"
+                    )
+                |> String.join "\n\n"
+                |> Expect.fail
 
 
 collectResults : List (Result x a) -> Result (List x) (List a)
@@ -409,11 +426,11 @@ collectResults listOfResults =
 
 {-| Expect the element to match all of the given selectors.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, li, ul)
     import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, classes)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (classes, tag)
 
 
     test "The list has both the classes 'items' and 'active'" <|
@@ -440,9 +457,9 @@ has selectors (Internal.Single showTrace query) =
 
     import Html exposing (div)
     import Html.Attributes as Attributes
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, class)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (class, tag)
 
 
     test "The div element has no progress-bar class" <|
@@ -466,11 +483,11 @@ hasNot selectors (Internal.Single showTrace query) =
 {-| Expect that a [`Single`](#Single) expectation will hold true for each of the
 [`Multiple`](#Multiple) matched elements.
 
-    import Html exposing (div, ul, li)
+    import Html exposing (div, li, ul)
     import Html.Attributes exposing (class)
-    import Test.Html.Query as Query
     import Test exposing (test)
-    import Test.Html.Selector exposing (tag, classes)
+    import Test.Html.Query as Query
+    import Test.Html.Selector exposing (classes, tag)
 
 
     test "The list has both the classes 'items' and 'active'" <|
