@@ -2,7 +2,7 @@ module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError(..
 
 import Expect exposing (Expectation)
 import Test.Html.Descendant as Descendant
-import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..))
+import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml(..))
 import Test.Html.Internal.ElmHtml.ToString exposing (nodeToStringWithOptions)
 import Test.Html.Internal.Inert as Inert
 import Test.Html.Selector.Internal as InternalSelector exposing (Selector, selectorToString)
@@ -14,6 +14,7 @@ import Test.Runner
 type Query msg
     = Query (Inert.Node msg) (List SelectorQuery)
     | InternalError String
+    | ValidationErrors { deduped : List InternalTypes.Validation }
 
 
 type SelectorQuery
@@ -47,19 +48,32 @@ type QueryError
     = NoResultsForSingle String
     | MultipleResultsForSingle String Int
     | OtherInternalError String
+    | QueryValidationErrors { deduped : List InternalTypes.Validation }
 
 
-toLines : String -> Query msg -> String -> List String
-toLines expectationFailure query queryName =
+toLines : { showQueryError : Bool } -> String -> Query msg -> String -> List String
+toLines { showQueryError } expectationFailure query queryName =
     case query of
         Query node selectors ->
             toLinesHelp expectationFailure [ Inert.toElmHtml node ] (List.reverse selectors) queryName []
                 |> List.reverse
 
         InternalError message ->
-            [ "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>"
-            , message
-            ]
+            if showQueryError then
+                [ "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>.  "
+                , message
+                ]
+
+            else
+                []
+
+        ValidationErrors { deduped } ->
+            if showQueryError then
+                deduped
+                    |> List.map InternalTypes.validationMessage
+
+            else
+                []
 
 
 prettyPrint : ElmHtml msg -> String
@@ -76,6 +90,11 @@ toOutputLine query =
         InternalError message ->
             "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>.  "
                 ++ message
+
+        ValidationErrors { deduped } ->
+            deduped
+                |> List.map InternalTypes.validationMessage
+                |> String.join "\n\n"
 
 
 toLinesHelp : String -> List (ElmHtml msg) -> List SelectorQuery -> String -> List String -> List String
@@ -243,6 +262,9 @@ prependSelector query selector =
         InternalError message ->
             InternalError message
 
+        ValidationErrors validations ->
+            ValidationErrors validations
+
 
 {-| This is a more efficient implementation of the following:
 
@@ -299,6 +321,9 @@ traverse query =
 
         InternalError message ->
             Err (OtherInternalError message)
+
+        ValidationErrors validations ->
+            Err (QueryValidationErrors validations)
 
 
 traverseSelectors : List SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
@@ -452,6 +477,11 @@ queryErrorToString error =
             "Internal Error: failed to decode the virtual dom.  Please report this at <https://github.com/elm-explorations/test/issues>.  "
                 ++ message
 
+        QueryValidationErrors { deduped } ->
+            deduped
+                |> List.map InternalTypes.validationMessage
+                |> String.join "\n\n"
+
 
 contains : List (ElmHtml msg) -> Query msg -> Expectation
 contains expectedDescendants query =
@@ -572,7 +602,7 @@ failWithQuery showTrace queryName query expectation =
         Just { description } ->
             let
                 lines =
-                    toLines description query queryName
+                    toLines { showQueryError = not showTrace } description query queryName
                         |> List.map prefixOutputLine
 
                 tracedLines =

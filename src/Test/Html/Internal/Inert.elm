@@ -1,14 +1,15 @@
-module Test.Html.Internal.Inert exposing (Node, fromElmHtml, fromHtml, parseAttribute, toElmHtml)
+module Test.Html.Internal.Inert exposing (Node, Error(..), fromElmHtml, fromHtml, parseAttribute, toElmHtml)
 
 {-| Inert Html - that is, can't do anything with events.
 
-@docs Node, fromElmHtml, fromHtml, parseAttribute, toElmHtml
+@docs Node, Error, fromElmHtml, fromHtml, parseAttribute, toElmHtml
 
 -}
 
 import Elm.Kernel.HtmlAsJson
 import Html exposing (Html)
 import Json.Decode
+import MicroListExtra as List
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml, EventHandler, Tagger, decodeAttribute, decodeElmHtml)
 import VirtualDom
 
@@ -17,14 +18,45 @@ type Node msg
     = Node (ElmHtml msg)
 
 
-fromHtml : Html msg -> Result String (Node msg)
+type Error
+    = DecodeError Json.Decode.Error
+    | ValidationErrors { deduped : List InternalTypes.Validation }
+
+
+fromHtml : Html msg -> Result Error (Node msg)
 fromHtml html =
     case Json.Decode.decodeValue (decodeElmHtml taggedEventDecoder) (toJson html) of
         Ok elmHtml ->
             Ok (Node elmHtml)
 
         Err jsonError ->
-            Err (Json.Decode.errorToString jsonError)
+            case findValidationErrors jsonError of
+                [] ->
+                    Err (DecodeError jsonError)
+
+                failedValidations ->
+                    Err (ValidationErrors { deduped = List.unique failedValidations })
+
+
+findValidationErrors : Json.Decode.Error -> List InternalTypes.Validation
+findValidationErrors error =
+    case error of
+        Json.Decode.Field _ e ->
+            findValidationErrors e
+
+        Json.Decode.Index _ e ->
+            findValidationErrors e
+
+        Json.Decode.OneOf es ->
+            List.concatMap findValidationErrors es
+
+        Json.Decode.Failure stringError _ ->
+            case InternalTypes.validationFromMessage stringError of
+                Nothing ->
+                    []
+
+                Just validation ->
+                    [ validation ]
 
 
 fromElmHtml : ElmHtml msg -> Node msg

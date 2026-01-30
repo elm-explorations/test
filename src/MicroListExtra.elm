@@ -6,6 +6,7 @@ module MicroListExtra exposing
     , setAt
     , splitWhen
     , transpose
+    , unique
     )
 
 
@@ -98,3 +99,26 @@ rowsLength listOfLists =
 
         x :: _ ->
             List.length x
+
+
+unique : List a -> List a
+unique list =
+    uniqueHelp identity [] list []
+
+
+uniqueHelp : (a -> b) -> List b -> List a -> List a -> List a
+uniqueHelp f existing remaining accumulator =
+    case remaining of
+        [] ->
+            List.reverse accumulator
+
+        first :: rest ->
+            let
+                computedFirst =
+                    f first
+            in
+            if List.member computedFirst existing then
+                uniqueHelp f existing rest accumulator
+
+            else
+                uniqueHelp f (computedFirst :: existing) rest (first :: accumulator)

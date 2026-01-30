@@ -2,6 +2,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
     ( ElmHtml(..), TextTagRecord, NodeRecord, CustomNodeRecord, MarkdownNodeRecord
     , Facts, Tagger, EventHandler, ElementKind(..)
     , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
+    , Validation(..), validationMessage, validationFromMessage
     , decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
     )
 
@@ -12,6 +13,8 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
 @docs Facts, Tagger, EventHandler, ElementKind
 
 @docs Attribute, AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
+
+@docs Validation, validationMessage, validationFromMessage
 
 @docs decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
 
@@ -317,16 +320,56 @@ decodeStyles =
         ]
 
 
+type Validation
+    = ClassVsClassNameValidation
+
+
+classVsClassNameValidationMessage : String
+classVsClassNameValidationMessage =
+    "Found the `class` attribute and the `className` property used in the same HTML node. This would result in unspecified behaviour, and elm-test wouldn't be able to reliably query for classnames. Please only use one of the two."
+
+
+validationMessage : Validation -> String
+validationMessage validation =
+    case validation of
+        ClassVsClassNameValidation ->
+            classVsClassNameValidationMessage
+
+
+validationFromMessage : String -> Maybe Validation
+validationFromMessage message =
+    if message == classVsClassNameValidationMessage then
+        Just ClassVsClassNameValidation
+
+    else
+        Nothing
+
+
 {-| grab things from attributes via a decoder, then anything that isn't filtered on
 the object
 -}
-decodeOthers : Json.Decode.Decoder a -> Json.Decode.Decoder (Dict String a)
-decodeOthers otherDecoder =
+decodeOthers : Json.Decode.Decoder a -> Maybe Validation -> Json.Decode.Decoder (Dict String a)
+decodeOthers otherDecoder validation =
     decodeAttributes otherDecoder
         |> Json.Decode.andThen
             (\attributes ->
                 decodeDictFilterMap otherDecoder
                     |> Json.Decode.map (filterKnownKeys >> Dict.union attributes)
+                    |> (case validation of
+                            Nothing ->
+                                identity
+
+                            Just ClassVsClassNameValidation ->
+                                Json.Decode.andThen
+                                    (\dict ->
+                                        if Dict.member "class" dict && Dict.member "className" dict then
+                                            -- Due to Json.Decode.Error API we need to drop down to strings.
+                                            Json.Decode.fail classVsClassNameValidationMessage
+
+                                        else
+                                            Json.Decode.succeed dict
+                                    )
+                       )
             )
 
 
@@ -374,8 +417,8 @@ decodeFacts (HtmlContext taggers eventDecoder) =
         decodeStyles
         (decodeEvents (eventDecoder taggers))
         (Json.Decode.maybe (Json.Decode.field attributeNamespaceKey Json.Decode.value))
-        (decodeOthers Json.Decode.string)
-        (decodeOthers Json.Decode.bool)
+        (decodeOthers Json.Decode.string (Just ClassVsClassNameValidation))
+        (decodeOthers Json.Decode.bool Nothing)
 
 
 {-| Just empty facts
