@@ -32,7 +32,7 @@ jobs:
 
       # Install elm and cache ELM_HOME
       - name: Install elm
-        uses: mpizenberg/elm-tooling-action@v1.2
+        uses: mpizenberg/elm-tooling-action@v1.7
         with:
           cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
