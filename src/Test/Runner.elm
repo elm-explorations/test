@@ -62,14 +62,14 @@ import Test.Runner.Failure exposing (Reason(..))
 {-| An unevaluated test.
 -}
 type Runnable
-    = Thunk (() -> List Expectation)
+    = Thunk (() -> Expectation)
 
 
 {-| A function which, when evaluated, produces a list of expectations. Also a
 list of labels which apply to this outcome.
 -}
 type alias Runner =
-    { run : () -> List Expectation
+    { run : () -> Expectation
     , labels : List String
     }
 
@@ -136,14 +136,14 @@ countRunnables runnable =
             countRunnables runner
 
 
-run : Runnable -> List Expectation
+run : Runnable -> Expectation
 run (Thunk fn) =
     case runThunk fn of
         Ok test ->
             test
 
         Err message ->
-            [ Expect.fail ("This test failed because it threw an exception: \"" ++ message ++ "\"") ]
+            Expect.fail ("This test failed because it threw an exception: \"" ++ message ++ "\"")
 
 
 runThunk : (() -> a) -> Result String a
