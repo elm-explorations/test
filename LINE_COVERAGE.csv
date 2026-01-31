@@ -1,32 +1,41 @@
-Feature,Task,Priority,Orig Est,Curr Est,Elapsed,Remain
-elm-test coverage-instrument,argument: File.elm+,1,1,1,0,1
-elm-test coverage-instrument,flag: --output,2,1,1,0,1
-elm-test coverage-instrument,default path,1,1,1,0,1
-elm-test coverage-instrument,ask before overwriting default path,2,1,1,0,1
-elm-test coverage-instrument,output coverage-metadata.json,1,2,2,0,2
-elm-test coverage-instrument,actual instrumentation,1,4,4,0,4
-Coverage.enableLineCoverage,dummy Elm code,1,1,1,0,1
-Coverage.enableLineCoverage,patched JS code,1,1,1,0,1
-Coverage.track,dummy Elm code,1,1,1,0,1
-Coverage.track,patched JS code,1,1,1,0,1
-elm-test coverage-patch,argument: compiled.js,1,1,1,0,1
-elm-test coverage-patch,flag: --output,2,1,1,0,1
-elm-test coverage-patch,replace dummy with effectful JS,1,1,1,0,1
-elm-test coverage-report,argument: counter.json,1,1,1,0,1
-elm-test coverage-report,flag: --metadata,1,1,1,0,1
-elm-test coverage-report,flag: --format,2,1,1,0,1
-elm-test coverage-report,flag: --output,2,1,1,0,1
-elm-test coverage-report,format: LCOV,3,2,2,0,2
-elm-test coverage-report,format: HTML (totals),1,2,2,0,2
-elm-test coverage-report,format: HTML (highlighted source),2,4,4,0,4
-elm-test coverage-report,format: CSV,3,2,2,0,2
-elm-test coverage-report,format: plaintext,2,1,1,0,1
-elm-test coverage-report,format: stdout,1,2,2,0,2
-elm-test coverage-report,default path,1,1,1,0,1
-elm-test (e2e),flag: --line-coverage,1,1,1,0,1
-elm-test (e2e),flag: --line-coverage-output,2,1,1,0,1
-elm-test (e2e),instrument files,1,1,1,0,1
-elm-test (e2e),make test project on instrumented files,1,1,1,0,1
-elm-test (e2e),patch test project after compiling,1,1,1,0,1
-elm-test (e2e),read coverage counts after testing,1,1,1,0,1
-elm-test (e2e),report results,1,1,1,0,1
+Feature,Task,Section,Priority,Orig Est,Curr Est,Elapsed,Remain
+(lib) instrumentation,parsing String -> AST,common,1,1,1,0,1
+(lib) instrumentation,instrumenting AST -> AST,common,1,4,4,0,4
+(lib) instrumentation,formatting AST -> String,common,1,1,1,0,1
+(lib) patching,Test.Coverage.track,common,1,1,1,0,1
+(lib) patching,Test.Coverage.resetEdgeCoverage,fuzz,4,1,1,0,1
+(lib) patching,Test.Coverage.getEdgeCoverage,fuzz,4,1,1,0,1
+(lib) reporting,format: LCOV,line,3,2,2,0,2
+(lib) reporting,format: HTML (totals),line,2,2,2,0,2
+(lib) reporting,format: HTML (highlighted source),line,3,4,4,0,4
+(lib) reporting,format: CSV,line,3,2,2,0,2
+(lib) reporting,format: plaintext,line,2,1,1,0,1
+(lib) reporting,format: stdout,line,1,2,2,0,2
+(lib) reporting,writing out files,line,1,1,1,0,1
+(Elm) elm-explorations/test,Test.Coverage.track,common,1,1,1,0,1
+(Elm) elm-explorations/test,Test.Coverage.resetEdgeCoverage,fuzz,4,1,1,0,1
+(Elm) elm-explorations/test,Test.Coverage.getEdgeCoverage,fuzz,4,1,1,0,1
+(Elm) elm-explorations/test,call reset/getEdgeCoverage,fuzz,4,1,1,0,1
+(Elm) elm-explorations/test,use edge coverage info,fuzz,4,8,8,0,8
+(bin) elm-coverage-test,forwarding of other arguments,common,1,1,1,0,1
+(bin) elm-coverage-test,flag: --runner,common,2,1,1,0,1
+(bin) elm-coverage-test,flag: --coverage-format,common,1,1,1,0,1
+(bin) elm-coverage-test,flag: --coverage-output,common,2,1,1,0,1
+(bin) elm-coverage-test,instrument files,common,1,3,3,0,3
+(bin) elm-coverage-test,make test project on instrumented files,common,1,1,1,0,1
+(bin) elm-coverage-test,patch test project after compiling,common,1,1,1,0,1
+(bin) elm-coverage-test,run the test runner,common,1,1,1,0,1
+(bin) elm-coverage-test,read coverage counts after testing,line,1,1,1,0,1
+(bin) elm-coverage-test,report results,line,1,1,1,0,1
+(bin) elm-coverage-test,delete instrumented temp project,common,1,1,1,0,1
+(bin) elm-coverage-make,forwarding of arguments,line (non-test),5,1,1,0,1
+(bin) elm-coverage-make,flag: --compiler,line (non-test),5,1,1,0,1
+(bin) elm-coverage-make,instrument files,line (non-test),5,3,3,0,3
+(bin) elm-coverage-make,run the compiler,line (non-test),5,1,1,0,1
+(bin) elm-coverage-make,delete instrumented temp project,line (non-test),5,1,1,0,1
+(bin) elm-coverage-report,flag: --coverage,line (non-test),5,1,1,0,1
+(bin) elm-coverage-report,flag: --metadata,line (non-test),5,1,1,0,1
+(bin) elm-coverage-report,flag: --format,line (non-test),5,1,1,0,1
+(bin) elm-coverage-report,flag: --output,line (non-test),5,1,1,0,1
+(bin) elm-coverage-report,default path,line (non-test),5,1,1,0,1
+(bin) elm-coverage-report,report results,line (non-test),5,1,1,0,1
