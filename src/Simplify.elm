@@ -32,6 +32,21 @@ import Simplify.Cmd exposing (SimplifyCmd, SimplifyCmdType(..))
 import Test.Expectation exposing (Expectation(..))
 
 
+shouldLogFirstFailure : Bool
+shouldLogFirstFailure =
+    False
+
+
+shouldLogShrinkingProgress : Bool
+shouldLogShrinkingProgress =
+    False
+
+
+shouldLogShrinkedAttempts : Bool
+shouldLogShrinkedAttempts =
+    False
+
+
 type alias State a =
     { getExpectation : a -> Expectation
     , fuzzer : Fuzzer a
@@ -61,12 +76,14 @@ andThen fn { newState } =
 
 simplify : State a -> ( a, RandomRun, Expectation )
 simplify state =
-    {-
-       let
-           _ =
-               Debug.log "--------------" ()
-       in
-    -}
+    let
+        _ =
+            if shouldLogFirstFailure then
+                logRun "Found failure with RandomRun" state.randomRun
+
+            else
+                state.randomRun
+    in
     if RandomRun.isEmpty state.randomRun then
         -- We can't do any better
         ( state.value, state.randomRun, state.expectation )
@@ -77,12 +94,14 @@ simplify state =
 
 simplifyWhileProgress : State a -> ( a, RandomRun, Expectation )
 simplifyWhileProgress state =
-    {-
-       let
-           _ =
-               logState "\ncurrent best" state
-       in
-    -}
+    let
+        _ =
+            if shouldLogShrinkingProgress then
+                logState "\ncurrent best" state
+
+            else
+                state
+    in
     let
         nextState =
             simplifyOnce state
@@ -160,10 +179,14 @@ logState label state =
 runCmd : SimplifyCmd -> State a -> SimplifyResult a
 runCmd cmd state =
     let
-        {-
-           _ =
-               logRun ("trying " ++ Debug.toString cmd.type_ ++ " on") state.randomRun
-        -}
+        _ =
+            if shouldLogShrinkedAttempts then
+                logRun ("trying " ++ Debug.toString cmd.type_ ++ " on") state.randomRun
+
+            else
+                state.randomRun
+    in
+    let
         result =
             case cmd.type_ of
                 DeleteChunkAndMaybeDecrementPrevious chunk ->
@@ -190,16 +213,14 @@ runCmd cmd state =
                 SwapChunkWithNeighbour chunk ->
                     swapChunkWithNeighbour chunk state
     in
-    {-
-       let
-           _ =
-               if result.wasImprovement then
-                   logState "Success" result.newState
+    let
+        _ =
+            if result.wasImprovement && shouldLogShrinkingProgress then
+                logState "Success" result.newState
 
-               else
-                   result.newState
-       in
-    -}
+            else
+                result.newState
+    in
     result
 
 
