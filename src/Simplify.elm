@@ -23,6 +23,7 @@ those cases you can do `andThen`:
 
 -}
 
+import DebugConfig
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
@@ -30,21 +31,6 @@ import PRNG
 import RandomRun exposing (Chunk, RandomRun)
 import Simplify.Cmd exposing (SimplifyCmd, SimplifyCmdType(..))
 import Test.Expectation exposing (Expectation(..))
-
-
-shouldLogFirstFailure : Bool
-shouldLogFirstFailure =
-    False
-
-
-shouldLogShrinkingProgress : Bool
-shouldLogShrinkingProgress =
-    False
-
-
-shouldLogShrinkedAttempts : Bool
-shouldLogShrinkedAttempts =
-    False
 
 
 type alias State a =
@@ -78,7 +64,7 @@ simplify : State a -> ( a, RandomRun, Expectation )
 simplify state =
     let
         _ =
-            if shouldLogFirstFailure then
+            if DebugConfig.shouldLogFirstFailure then
                 logRun "Found failure with RandomRun" state.randomRun
 
             else
@@ -95,18 +81,18 @@ simplify state =
 simplifyWhileProgress : State a -> ( a, RandomRun, Expectation )
 simplifyWhileProgress state =
     let
-        _ =
-            if shouldLogShrinkingProgress then
-                logState "\ncurrent best" state
-
-            else
-                state
-    in
-    let
         nextState =
             simplifyOnce state
     in
     if RandomRun.equal nextState.randomRun state.randomRun then
+        let
+            _ =
+                if DebugConfig.shouldLogShrinkProgress then
+                    logState "shrank successfully" state
+
+                else
+                    state
+        in
         ( nextState.value, nextState.randomRun, nextState.expectation )
 
     else
@@ -180,7 +166,7 @@ runCmd : SimplifyCmd -> State a -> SimplifyResult a
 runCmd cmd state =
     let
         _ =
-            if shouldLogShrinkedAttempts then
+            if DebugConfig.shouldLogShrinkAttempts then
                 logRun ("trying " ++ Debug.toString cmd.type_ ++ " on") state.randomRun
 
             else
@@ -213,14 +199,6 @@ runCmd cmd state =
                 SwapChunkWithNeighbour chunk ->
                     swapChunkWithNeighbour chunk state
     in
-    let
-        _ =
-            if result.wasImprovement && shouldLogShrinkingProgress then
-                logState "Success" result.newState
-
-            else
-                result.newState
-    in
     result
 
 
@@ -234,14 +212,38 @@ keepIfBetter newRandomRun state =
         noImprovement state
 
     else
+        let
+            _ =
+                if DebugConfig.shouldLogShrinkAttempts then
+                    logRun "trying to parse" newRandomRun
+
+                else
+                    newRandomRun
+        in
         case Fuzz.Internal.generate (PRNG.hardcoded newRandomRun) state.fuzzer of
             Generated { value } ->
                 case state.getExpectation value of
                     Pass _ ->
+                        let
+                            _ =
+                                if DebugConfig.shouldLogShrinkAttempts then
+                                    Debug.log "parsed but didn't fail the test" value
+
+                                else
+                                    value
+                        in
                         noImprovement state
 
                     Fail fail ->
                         if RandomRun.compare state.randomRun newRandomRun == GT then
+                            let
+                                _ =
+                                    if DebugConfig.shouldLogShrinkAttempts then
+                                        Debug.log "parsed, failed, shrunk" value
+
+                                    else
+                                        value
+                            in
                             { wasImprovement = True
                             , newState =
                                 { state
@@ -252,6 +254,14 @@ keepIfBetter newRandomRun state =
                             }
 
                         else
+                            let
+                                _ =
+                                    if DebugConfig.shouldLogShrinkAttempts then
+                                        Debug.log "parsed, failed, didn't shrink" value
+
+                                    else
+                                        value
+                            in
                             noImprovement state
 
             Rejected _ ->

@@ -1,5 +1,6 @@
 module Test.Fuzz exposing (fuzzTest)
 
+import DebugConfig
 import Dict exposing (Dict)
 import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
@@ -29,15 +30,23 @@ fuzzTest distribution fuzzer untrimmedDesc getExpectation =
         blankDescriptionFailure
 
     else
-        ElmTestVariant__Labeled desc <| validatedFuzzTest fuzzer getExpectation distribution
+        ElmTestVariant__Labeled desc <| validatedFuzzTest desc fuzzer getExpectation distribution
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
-validatedFuzzTest fuzzer getExpectation distribution =
+validatedFuzzTest : String -> Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
+validatedFuzzTest desc fuzzer getExpectation distribution =
     ElmTestVariant__FuzzTest
         (\seed runs ->
+            let
+                _ =
+                    if DebugConfig.shouldLogFuzzTests then
+                        Debug.log "running fuzz test" desc
+
+                    else
+                        desc
+            in
             let
                 runResult : RunResult
                 runResult =
