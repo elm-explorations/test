@@ -30,6 +30,9 @@ cp -r ../elm.json  "${PACKAGE_PATH}/elm.json"
 cp -r ../README.md "${PACKAGE_PATH}/README.md"
 cp -r ../LICENSE   "${PACKAGE_PATH}/LICENSE"
 
+echo "Patching elm.json to expose some internal modules"
+sed -i.bak 's/"Expect",/"Expect","RandomRun",/' "${PACKAGE_PATH}/elm.json"
+
 if [[ "${RANDOMIZED}" -eq 1 ]]; then
   SEED=$(head -200 /dev/urandom | cksum | cut -f1 -d " ")
   echo "Randomizing seed to ${SEED}"

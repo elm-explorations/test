@@ -5,10 +5,10 @@ import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
+import RandomRunTests
 import RunnerTests
 import ShrinkingChallengeTests exposing (shrinkingChallenges)
 import Test exposing (..)
-import Test.Distribution
 import Test.Html.EventTests
 import Test.Html.ExampleAppTests
 import Test.Html.Query.CustomNodeTests
@@ -30,6 +30,7 @@ all =
         , RunnerTests.all
         , elmHtmlTests
         , shrinkingChallenges
+        , RandomRunTests.all
 
         -- , PerformanceRegressionTests.all -- these are intentionally uncaught failing tests
         ]
