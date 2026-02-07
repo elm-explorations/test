@@ -94,7 +94,15 @@ lengthTests =
 compareTests : Test
 compareTests =
     Test.describe "compare"
-        [ Test.fuzz randomRunFuzzer "if isEmpty r then compare r empty == EQ else compare r empty == GT" <|
+        [ Test.test "compare empty empty == EQ" <|
+            \_ ->
+                RandomRun.compare RandomRun.empty RandomRun.empty
+                    |> Expect.equal EQ
+        , Test.fuzz randomRunFuzzer "compare r r == EQ" <|
+            \r ->
+                RandomRun.compare r r
+                    |> Expect.equal EQ
+        , Test.fuzz randomRunFuzzer "if isEmpty r then compare r empty == EQ else compare r empty == GT" <|
             \r ->
                 let
                     compareResult =

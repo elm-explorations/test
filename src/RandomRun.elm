@@ -20,16 +20,13 @@ module RandomRun exposing
     , update
     )
 
-import MicroListExtra as List
-import Queue exposing (Queue)
+import Elm.Kernel.RandomRun
 
 
-type alias RandomRun =
-    { data : Queue Int
-
-    -- derived precomputed data:
-    , length : Int
-    }
+{-| TypedArray in JS kernel
+-}
+type RandomRun
+    = RandomRun Never
 
 
 type alias Chunk =
@@ -40,177 +37,55 @@ type alias Chunk =
 
 empty : RandomRun
 empty =
-    { data = Queue.empty
-    , length = 0
-    }
+    Elm.Kernel.RandomRun.empty
 
 
 isEmpty : RandomRun -> Bool
-isEmpty run =
-    run.length == 0
+isEmpty =
+    Elm.Kernel.RandomRun.isEmpty
 
 
 nextChoice : RandomRun -> Maybe ( Int, RandomRun )
-nextChoice run =
-    case Queue.dequeue run.data of
-        ( Nothing, _ ) ->
-            Nothing
-
-        ( Just first, rest ) ->
-            Just
-                ( first
-                , { run
-                    | length = run.length - 1
-                    , data = rest
-                  }
-                )
+nextChoice =
+    Elm.Kernel.RandomRun.nextChoice
 
 
 append : Int -> RandomRun -> RandomRun
-append n run =
-    { run
-        | length = run.length + 1
-        , data = Queue.enqueue (max 0 n) run.data
-    }
-
-
-isInBounds : Chunk -> RandomRun -> Bool
-isInBounds { startIndex, size } run =
-    startIndex + size <= run.length
+append =
+    Elm.Kernel.RandomRun.append
 
 
 length : RandomRun -> Int
-length run =
-    run.length
-
-
-getChunk : Chunk -> RandomRun -> Maybe (List Int)
-getChunk chunk run =
-    if isInBounds chunk run then
-        run.data
-            |> Queue.toList
-            |> List.drop chunk.startIndex
-            |> List.take chunk.size
-            |> Just
-
-    else
-        Nothing
+length =
+    Elm.Kernel.RandomRun.length
 
 
 deleteChunk : Chunk -> RandomRun -> RandomRun
-deleteChunk chunk run =
-    if isInBounds chunk run then
-        let
-            list =
-                Queue.toList run.data
-
-            result =
-                { run
-                    | length = run.length - chunk.size
-                    , data =
-                        (List.take chunk.startIndex list
-                            ++ List.drop (chunk.startIndex + chunk.size) list
-                        )
-                            |> Queue.fromList
-                }
-        in
-        result
-
-    else
-        run
+deleteChunk =
+    Elm.Kernel.RandomRun.deleteChunk
 
 
 replaceChunkWithZero : Chunk -> RandomRun -> RandomRun
-replaceChunkWithZero chunk run =
-    if isInBounds chunk run then
-        -- TODO PERF: maybe `replace [...] run` would be faster?
-        let
-            list =
-                Queue.toList run.data
-        in
-        { run
-            | data =
-                List.fastConcat
-                    [ List.take chunk.startIndex list
-                    , List.repeat chunk.size 0
-                    , List.drop (chunk.startIndex + chunk.size) list
-                    ]
-                    |> Queue.fromList
-        }
-
-    else
-        run
+replaceChunkWithZero =
+    Elm.Kernel.RandomRun.replaceChunkWithZero
 
 
 sortChunk : Chunk -> RandomRun -> RandomRun
-sortChunk chunk run =
-    case getChunk chunk run of
-        Nothing ->
-            run
-
-        Just chunkData ->
-            let
-                sortedIndexed : List ( Int, Int )
-                sortedIndexed =
-                    chunkData
-                        |> List.sort
-                        |> List.indexedMap
-                            (\i value -> ( chunk.startIndex + i, value ))
-            in
-            replace sortedIndexed run
+sortChunk =
+    Elm.Kernel.RandomRun.sortChunk
 
 
 replace : List ( Int, Int ) -> RandomRun -> RandomRun
-replace values run =
-    replaceInList values run.length (Queue.toList run.data)
-
-
-{-| An optimization to not do Queue.toList redundantly.
-
-Expects `list == Queue.toList run.data`
-and `len == Queue.size run.data`
-
--}
-replaceInList : List ( Int, Int ) -> Int -> List Int -> RandomRun
-replaceInList values len list =
-    { length = len
-    , data =
-        List.foldl
-            (\( index, newValue ) accList ->
-                List.setAt index (max 0 newValue) len accList
-            )
-            list
-            values
-            |> Queue.fromList
-    }
+replace =
+    Elm.Kernel.RandomRun.replace
 
 
 swapChunks :
     { leftChunk : Chunk, rightChunk : Chunk }
     -> RandomRun
     -> Maybe RandomRun
-swapChunks { leftChunk, rightChunk } run =
-    let
-        list =
-            Queue.toList run.data
-    in
-    Maybe.map2
-        (\lefts rights ->
-            replaceInList
-                (List.concat
-                    [ List.indexedMap (\i n -> ( rightChunk.startIndex + i, n )) lefts
-                    , List.indexedMap (\i n -> ( leftChunk.startIndex + i, n )) rights
-                    ]
-                )
-                run.length
-                list
-        )
-        {- TODO PERF: both of these are doing the Queue.toList etc. operations
-           while we already have that factored out in the `list` var.
-           We could factor that operation out `getChunk`?
-        -}
-        (getChunk leftChunk run)
-        (getChunk rightChunk run)
+swapChunks =
+    Elm.Kernel.RandomRun.swapChunks
 
 
 swapIfOutOfOrder :
@@ -222,84 +97,35 @@ swapIfOutOfOrder :
             , newLeftValue : Int
             , newRightValue : Int
             }
-swapIfOutOfOrder { leftIndex, rightIndex } run =
-    let
-        list =
-            Queue.toList run.data
-    in
-    Maybe.map2
-        (\left right ->
-            if left > right then
-                { newRun =
-                    replaceInList
-                        [ ( leftIndex, right )
-                        , ( rightIndex, left )
-                        ]
-                        run.length
-                        list
-                , newLeftValue = right
-                , newRightValue = left
-                }
-
-            else
-                { newRun = run
-                , newLeftValue = left
-                , newRightValue = right
-                }
-        )
-        (List.getAt leftIndex list)
-        (List.getAt rightIndex list)
+swapIfOutOfOrder =
+    Elm.Kernel.RandomRun.swapIfOutOfOrder
 
 
 get : Int -> RandomRun -> Maybe Int
-get index run =
-    run.data
-        |> Queue.toList
-        |> List.getAt index
+get =
+    Elm.Kernel.RandomRun.get
 
 
 set : Int -> Int -> RandomRun -> RandomRun
-set index value run =
-    if run.length <= index then
-        run
-
-    else
-        { run
-            | data =
-                run.data
-                    |> Queue.toList
-                    |> List.setAt index (max 0 value) run.length
-                    |> Queue.fromList
-        }
-
-
-sortKey : RandomRun -> ( Int, List Int )
-sortKey run =
-    ( run.length
-    , toList run
-    )
+set =
+    Elm.Kernel.RandomRun.set
 
 
 compare : RandomRun -> RandomRun -> Order
-compare a b =
-    Basics.compare (sortKey a) (sortKey b)
+compare =
+    Elm.Kernel.RandomRun.compare
 
 
 toList : RandomRun -> List Int
-toList run =
-    Queue.toList run.data
+toList =
+    Elm.Kernel.RandomRun.toList
 
 
 update : Int -> (Int -> Int) -> RandomRun -> RandomRun
-update index fn run =
-    case get index run of
-        Nothing ->
-            run
-
-        Just value ->
-            replace [ ( index, fn value ) ] run
+update =
+    Elm.Kernel.RandomRun.update
 
 
 equal : RandomRun -> RandomRun -> Bool
-equal run1 run2 =
-    toList run1 == toList run2
+equal =
+    Elm.Kernel.RandomRun.equal

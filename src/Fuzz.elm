@@ -762,7 +762,7 @@ array fuzzer =
 -}
 pair : Fuzzer a -> Fuzzer b -> Fuzzer ( a, b )
 pair fuzzerA fuzzerB =
-    map2 (\a b -> ( a, b )) fuzzerA fuzzerB
+    map2 Tuple.pair fuzzerA fuzzerB
 
 
 {-| Create a fuzzer of triples from three fuzzers.
@@ -1567,10 +1567,10 @@ rollDice maxValue diceGenerator =
     Fuzzer <|
         \prng ->
             case prng of
-                Random r ->
+                Random run seed ->
                     let
                         ( diceRoll, newSeed ) =
-                            Random.step diceGenerator r.seed
+                            Random.step diceGenerator seed
                     in
                     if diceRoll < 0 then
                         Rejected
@@ -1587,15 +1587,11 @@ rollDice maxValue diceGenerator =
                     else
                         Generated
                             { value = diceRoll
-                            , prng =
-                                Random
-                                    { seed = newSeed
-                                    , run = RandomRun.append diceRoll r.run
-                                    }
+                            , prng = Random (RandomRun.append diceRoll run) newSeed
                             }
 
-                Hardcoded h ->
-                    case RandomRun.nextChoice h.unusedPart of
+                Hardcoded wholeRun unusedPart ->
+                    case RandomRun.nextChoice unusedPart of
                         Nothing ->
                             -- This happens if we simplified too much / in an incompatible way
                             Rejected
@@ -1621,7 +1617,7 @@ rollDice maxValue diceGenerator =
                             else
                                 Generated
                                     { value = hardcodedChoice
-                                    , prng = Hardcoded { h | unusedPart = restOfChoices }
+                                    , prng = Hardcoded wholeRun restOfChoices
                                     }
 
 
@@ -1637,14 +1633,14 @@ forcedChoice n =
 
             else
                 case prng of
-                    Random r ->
+                    Random run seed ->
                         Generated
                             { value = n
-                            , prng = Random { r | run = RandomRun.append n r.run }
+                            , prng = Random (RandomRun.append n run) seed
                             }
 
-                    Hardcoded h ->
-                        case RandomRun.nextChoice h.unusedPart of
+                    Hardcoded wholeRun unusedPart ->
+                        case RandomRun.nextChoice unusedPart of
                             Nothing ->
                                 -- This happens if we simplified too much / in an incompatible way
                                 Rejected
@@ -1662,7 +1658,7 @@ forcedChoice n =
                                 else
                                     Generated
                                         { value = n
-                                        , prng = Hardcoded { h | unusedPart = restOfChoices }
+                                        , prng = Hardcoded wholeRun restOfChoices
                                         }
 
 
