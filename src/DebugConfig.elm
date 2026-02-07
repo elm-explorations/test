@@ -8,19 +8,19 @@ module DebugConfig exposing
 
 shouldLogFirstFailure : Bool
 shouldLogFirstFailure =
-    True
+    False
 
 
 shouldLogShrinkProgress : Bool
 shouldLogShrinkProgress =
-    True
+    False
 
 
 shouldLogShrinkAttempts : Bool
 shouldLogShrinkAttempts =
-    True
+    False
 
 
 shouldLogFuzzTests : Bool
 shouldLogFuzzTests =
-    True
+    False
