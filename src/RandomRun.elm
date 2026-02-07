@@ -70,7 +70,7 @@ append : Int -> RandomRun -> RandomRun
 append n run =
     { run
         | length = run.length + 1
-        , data = Queue.enqueue n run.data
+        , data = Queue.enqueue (max 0 n) run.data
     }
 
 
@@ -177,11 +177,7 @@ replaceInList values len list =
     , data =
         List.foldl
             (\( index, newValue ) accList ->
-                if newValue < 0 then
-                    accList
-
-                else
-                    List.setAt index newValue len accList
+                List.setAt index (max 0 newValue) len accList
             )
             list
             values
@@ -272,7 +268,7 @@ set index value run =
             | data =
                 run.data
                     |> Queue.toList
-                    |> List.setAt index value run.length
+                    |> List.setAt index (max 0 value) run.length
                     |> Queue.fromList
         }
 

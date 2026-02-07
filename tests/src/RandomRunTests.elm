@@ -10,7 +10,8 @@ import Test exposing (Test)
 all : Test
 all =
     Test.describe "RandomRun"
-        [ Test.describe "Properties"
+        [ negativeValuesTests
+        , Test.describe "Properties"
             [ isEmptyTests
             , lengthTests
             , compareTests
@@ -28,6 +29,39 @@ all =
             , swapChunksTests
             , swapIfOutOfOrderTests
             ]
+        ]
+
+
+negativeValuesTests : Test
+negativeValuesTests =
+    Test.describe "behaviour of negative values"
+        [ Test.test "append -1" <|
+            \() ->
+                RandomRun.empty
+                    |> RandomRun.append -1
+                    |> RandomRun.get 0
+                    |> Expect.equal (Just 0)
+        , Test.test "set -1" <|
+            \() ->
+                RandomRun.empty
+                    |> RandomRun.append 0
+                    |> RandomRun.set 0 -1
+                    |> RandomRun.get 0
+                    |> Expect.equal (Just 0)
+        , Test.test "update (\\_ -> -1)" <|
+            \() ->
+                RandomRun.empty
+                    |> RandomRun.append 0
+                    |> RandomRun.update 0 (\_ -> -1)
+                    |> RandomRun.get 0
+                    |> Expect.equal (Just 0)
+        , Test.test "replace [(0,-1)]" <|
+            \() ->
+                RandomRun.empty
+                    |> RandomRun.append 0
+                    |> RandomRun.replace [ ( 0, -1 ) ]
+                    |> RandomRun.get 0
+                    |> Expect.equal (Just 0)
         ]
 
 
