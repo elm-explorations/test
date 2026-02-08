@@ -1,6 +1,6 @@
 module Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts)
 
-{-| Edge hit counts capture directed edges alongside code paths (basic blocks
+{-| EdgeHitCounts capture directed edges alongside code paths (basic blocks
 instrumented with `let _ = Test.Coverage.track <pointId> in ...` by coverage
 tooling).
 
@@ -9,7 +9,7 @@ tooling).
 Being directed means, code paths A -> B -> C -> D and A -> C -> B -> D will
 be considered different.
 
-In spirit, this data structure could be thought of as
+In spirit, EdgeHitCounts could be thought of as
 
     type alias EdgeHitCounts =
         Dict ( Loc, Loc ) Int
@@ -52,6 +52,4 @@ with the array size.
 
 
 type EdgeHitCounts
-    = EdgeHitCounts Never
-
-empty : 
+    = EdgeHitCounts

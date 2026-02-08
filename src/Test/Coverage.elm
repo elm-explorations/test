@@ -31,10 +31,14 @@ Examples of coverage tooling implementations compatible with this module:
 
 -}
 
+import Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts)
+import Test.Coverage.SeenHits exposing (SeenHits)
+
 
 type alias EdgeCoverage =
-    -- TODO
-    ()
+    { edgeHitCounts : EdgeHitCounts
+    , seenHits : SeenHits
+    }
 
 
 {-| Calls to this function are injected by coverage tooling next to various expressions.
@@ -64,4 +68,7 @@ resetEdgeCoverage () =
 -}
 getEdgeCoverage : () -> EdgeCoverage
 getEdgeCoverage () =
-    ()
+    -- Dummy meaningless values. This code will be patched after compile-time!
+    { edgeHitCounts = EdgeHitCounts
+    , seenHits = SeenHits
+    }
