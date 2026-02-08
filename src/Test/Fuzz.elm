@@ -501,6 +501,27 @@ runOnce c state =
 
                 Generated { prng, value } ->
                     let
+                        _ =
+                            {- This will make sure we start collecting instrumented edges
+                               with a clean slate if we're collecting edges at all: we might
+                               not be running in an instrumented context, in which case
+                               this will be a no-op.
+
+                               We're specifically interested in the `expectation = c.testFn value`
+                               below - that's going to be our tested "application" code.
+                            -}
+                            Test.Coverage.resetEdgeCoverage ()
+                    in
+                    let
+                        expectation =
+                            c.testFn value
+                    in
+                    let
+                        edgeCoverage : EdgeCoverage
+                        edgeCoverage =
+                            Test.Coverage.getEdgeCoverage ()
+                    in
+                    let
                         failure : Maybe Failure
                         failure =
                             testGeneratedValue
@@ -508,7 +529,7 @@ runOnce c state =
                                 , fuzzer = c.fuzzer
                                 , randomRun = PRNG.getRun prng
                                 , value = value
-                                , expectation = c.testFn value
+                                , expectation = expectation
                                 }
 
                         distributionCounter : Maybe (Dict (List String) Int)
