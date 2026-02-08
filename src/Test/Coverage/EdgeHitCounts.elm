@@ -1,4 +1,8 @@
-module Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts(..), bucketed)
+module Test.Coverage.EdgeHitCounts exposing
+    ( EdgeHitCounts(..)
+    , bucketed
+    , isImprovementOver
+    )
 
 {-| EdgeHitCounts capture directed edges alongside code paths (basic blocks
 instrumented with `let _ = Test.Coverage.track <pointId> in ...` by coverage
@@ -49,3 +53,9 @@ type BucketedEdgeHitCounts
 bucketed : EdgeHitCounts -> BucketedEdgeHitCounts
 bucketed =
     Elm.Kernel.EdgeCoverage.bucketEdgeHitCounts
+
+
+isImprovementOver : BucketedEdgeHitCounts -> BucketedEdgeHitCounts -> Bool
+isImprovementOver =
+    -- (previous, current) to read nicely in pipelines
+    Elm.Kernel.EdgeCoverage.isImprovementOver

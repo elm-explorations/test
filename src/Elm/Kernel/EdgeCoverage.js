@@ -51,11 +51,10 @@ function getEdgeCoverage(_) {
 }
 // Examples of how 3rd party coverage tooling could patch the dummy functions - END
 
-
-
-
-// TODO remove these and use something useful
 var _EdgeCoverage_bucketEdgeHitCounts = function(edgeHitCounts) {
-  // TODO
-  return 0;
+  return 0; // TODO return bucketed
 }
+
+var _EdgeCoverage_isImprovementOver = F2(function(previousBucketed, currentBucketed) {
+  return 0; // TODO return bool
+});

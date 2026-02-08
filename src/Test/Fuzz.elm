@@ -541,14 +541,14 @@ runOnce c state =
                                 Nothing ->
                                     ( Nothing, False )
 
-                                Just _ ->
+                                Just previousBucketed ->
                                     let
                                         bucketed =
                                             Test.Coverage.EdgeHitCounts.bucketed input.edgeHitCounts
                                     in
                                     ( Just bucketed
-                                    , -- TODO START HERE
-                                      TODO
+                                    , bucketed
+                                        |> Test.Coverage.EdgeHitCounts.isImprovementOver previousBucketed
                                     )
 
                         isRunInterestingForCorpus : Bool
@@ -582,6 +582,9 @@ runOnce c state =
 
                                       This is done in buckets:
                                       1,2,3,4-7,8-15,16-31,32-127,128+.
+
+                                      So if it changed from 9 to 11, we don't care,
+                                      but if it changed from 9 to 18, we do!
                                    -}
                                    isInterestingDueToBucketChange
 
