@@ -1,7 +1,7 @@
 module Test.Coverage exposing
-    ( EdgeCoverage, EdgeCoverageJs, getEdgeCoverage
+    ( EdgeCoverage
     , track
-    , resetEdgeCoverage, getEdgeCoverageJs
+    , resetEdgeCoverage, getEdgeCoverage
     )
 
 {-| External API for coverage tooling.
@@ -27,25 +27,19 @@ Examples of coverage tooling implementations compatible with this module:
 
   - [Janiczek/elm-coverage-tooling](https://github.com/Janiczek/elm-coverage-tooling)
 
-@docs EdgeCoverage, EdgeCoverageJs, getEdgeCoverage
+@docs EdgeCoverage
 
 
 # Patched functions
 
 @docs track
 
-@docs resetEdgeCoverage, getEdgeCoverageJs
+@docs resetEdgeCoverage, getEdgeCoverage
 
 -}
 
-import Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts, EdgeHitCountsJs)
-import Test.Coverage.SeenHits exposing (SeenHits, SeenHitsJs)
-
-
-type alias EdgeCoverageJs =
-    { edgeHitCounts : EdgeHitCountsJs
-    , seenHits : SeenHitsJs
-    }
+import Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts(..))
+import Test.Coverage.SeenHits exposing (SeenHits(..))
 
 
 type alias EdgeCoverage =
@@ -77,22 +71,12 @@ resetEdgeCoverage () =
     ()
 
 
-{-| When patched, returns edge coverage data (codebase execution paths).
+{-| When patched, returns edge coverage data, to be further queried using
+functions in Test.Coverage.EdgeHitCounts and Test.Coverage.SeenHits.
 -}
-getEdgeCoverageJs : () -> EdgeCoverageJs
-getEdgeCoverageJs () =
+getEdgeCoverage : () -> EdgeCoverage
+getEdgeCoverage () =
     -- Dummy meaningless values. This code will be patched after compile-time!
     { edgeHitCounts = EdgeHitCounts
     , seenHits = SeenHits
-    }
-
-
-getEdgeCoverage : () -> EdgeCoverage
-getEdgeCoverage () =
-    let
-        js =
-            getEdgeCoverageJs ()
-    in
-    { edgeHitCounts = EdgeHitCounts.fromJs js.edgeHitCounts
-    , seenHits = SeenHits.fromJs js.seenHits
     }

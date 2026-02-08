@@ -10,6 +10,7 @@ import MicroMaybeExtra as Maybe
 import PRNG
 import Random
 import Simplify
+import Test.Coverage exposing (EdgeCoverage)
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
 import Test.Expectation exposing (Expectation(..))

@@ -1,8 +1,13 @@
-module Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts, EdgeHitCountsJs, fromJs)
+module Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts(..), someFn)
 
 {-| EdgeHitCounts capture directed edges alongside code paths (basic blocks
 instrumented with `let _ = Test.Coverage.track <pointId> in ...` by coverage
 tooling).
+
+They could be thought as:
+
+    type alias EdgeHitCounts =
+        Dict EdgeId Int
 
 On JS side, EdgeHitCountsJs is a TypedArray (fixed length, contiguous).
 Specifically,
@@ -11,7 +16,7 @@ Specifically,
 
 
 
-Each index in this array is a possible edge: see docs for Test.Coverage.EdgeId.
+where EdgeIds are the indices to this array: see docs for Test.Coverage.EdgeId.
 
 The array holds a hit counter for each edge (an 8bit unsigned integer, so 0..255)
 that we increment whenever we hit that edge. The clamped array type makes it so
@@ -33,14 +38,10 @@ with the array size.
 import Elm.Kernel.EdgeCoverage
 
 
-type EdgeHitCountsJs
-    = EdgeHitCountsJs
+type EdgeHitCounts
+    = EdgeHitCounts
 
 
-type alias EdgeHitCounts =
-    Dict Int Int
-
-
-fromJs : EdgeHitCountsJs -> EdgeHitCounts
-fromJs =
-    Elm.Kerel.EdgeCoverage.edgeHitCountsFromJs
+someFn : EdgeHitCounts -> Int
+someFn =
+    Elm.Kernel.EdgeCoverage.someFn

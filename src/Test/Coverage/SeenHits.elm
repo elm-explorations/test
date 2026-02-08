@@ -1,4 +1,4 @@
-module Test.Coverage.SeenHits exposing (SeenHits)
+module Test.Coverage.SeenHits exposing (SeenHits(..), anotherFn)
 
 {-| SeenHits track which edges we have seen globally over the course of running
 a fuzz test with various inputs.
@@ -11,16 +11,13 @@ during any previous test run).
 -}
 
 import Elm.Kernel.EdgeCoverage
+import Set exposing (Set)
 
 
-type SeenHitsJs
-    = SeenHitsJs
+type SeenHits
+    = SeenHits
 
 
-type alias SeenHits =
-    Set Int
-
-
-fromJs : SeenHitsJs -> SeenHits
-fromJs =
-    Elm.Kernel.EdgeCoverage.seenHitsFromJs
+anotherFn : SeenHits -> Int
+anotherFn =
+    Elm.Kernel.EdgeCoverage.anotherFn
