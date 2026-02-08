@@ -161,7 +161,7 @@ test untrimmedDesc thunk =
         Internal.blankDescriptionFailure
 
     else
-        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> thunk ()))
+        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk () ]))
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests

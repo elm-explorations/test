@@ -63,7 +63,8 @@ toOutputHelp runner summary =
                Debug.log "TEST" runner.labels
        in
     -}
-    fromExpectation runner.labels (runner.run ()) summary
+    runner.run ()
+        |> List.foldl (fromExpectation runner.labels) summary
 
 
 fromExpectation : List String -> Expectation -> Summary -> Summary
