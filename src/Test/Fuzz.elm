@@ -508,11 +508,13 @@ runOnce c state =
                                this will be a no-op.
 
                                We're specifically interested in the `expectation = c.testFn value`
-                               below - that's going to be our tested "application" code.
+                               below - that's going to call the contents of the tests,
+                               and give us coverage of the tested "application" code.
                             -}
                             Test.Coverage.resetEdgeCoverage ()
                     in
                     let
+                        expectation : Expectation
                         expectation =
                             c.testFn value
                     in
