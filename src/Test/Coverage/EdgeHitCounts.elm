@@ -1,4 +1,4 @@
-module Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts(..), someFn)
+module Test.Coverage.EdgeHitCounts exposing (EdgeHitCounts(..), bucketed)
 
 {-| EdgeHitCounts capture directed edges alongside code paths (basic blocks
 instrumented with `let _ = Test.Coverage.track <pointId> in ...` by coverage
@@ -42,6 +42,10 @@ type EdgeHitCounts
     = EdgeHitCounts
 
 
-someFn : EdgeHitCounts -> Int
-someFn =
-    Elm.Kernel.EdgeCoverage.someFn
+type BucketedEdgeHitCounts
+    = BucketedEdgeHitCounts
+
+
+bucketed : EdgeHitCounts -> BucketedEdgeHitCounts
+bucketed =
+    Elm.Kernel.EdgeCoverage.bucketEdgeHitCounts

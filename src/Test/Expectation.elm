@@ -1,6 +1,7 @@
 module Test.Expectation exposing
     ( Expectation(..)
     , fail
+    , reason
     , withDistributionReport
     , withGiven
     )
@@ -53,3 +54,13 @@ withDistributionReport newDistributionReport expectation =
 
         Pass pass ->
             Pass { pass | distributionReport = newDistributionReport }
+
+
+reason : Expectation -> Maybe Reason
+reason expectation =
+    case expectation of
+        Pass _ ->
+            Nothing
+
+        Fail { reason } ->
+            Just reason

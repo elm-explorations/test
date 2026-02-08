@@ -11,6 +11,7 @@ import PRNG
 import Random
 import Simplify
 import Test.Coverage exposing (EdgeCoverage)
+import Test.Coverage.EdgeHitCounts
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
 import Test.Expectation exposing (Expectation(..))
@@ -524,13 +525,76 @@ runOnce c state =
                         edgeCoverage =
                             Test.Coverage.getEdgeCoverage ()
                     in
+                    {- The three let-exprs above are intentionally separate:
+                       that way we're sure nothing else runs in between them
+                       and pollutes the coverage data.
+                    -}
                     let
+                        failureMessage : Maybe String
+                        failureMessage =
+                            expectation
+                                |> Test.Expectation.reason
+                                |> Maybe.map Test.Internal.toString
+
+                        ( newBucketed, isInterestingDueToBucketChange ) =
+                            case input.previousInputBucketedEdgeHitCounts of
+                                Nothing ->
+                                    ( Nothing, False )
+
+                                Just _ ->
+                                    let
+                                        bucketed =
+                                            Test.Coverage.EdgeHitCounts.bucketed input.edgeHitCounts
+                                    in
+                                    ( Just bucketed
+                                    , -- TODO START HERE
+                                      TODO
+                                    )
+
+                        isRunInterestingForCorpus : Bool
+                        isRunInterestingForCorpus =
+                            {- TODO investigate: we could also think about
+                               whether the test finished too slowly and prevent
+                               it from entering the corpus. But instead, for
+                               now, we're relying on the corpus culling
+                               (marking the most performant "base" of the
+                               corpus as favored).
+
+                               For skipping (even failing) inputs based on the
+                               runtime being too long, we'd need to know a
+                               baseline of how long a test _should_ take.
+                               Unsure what that would be right now.
+                            -}
+                            {- Failing tests are automatically interesting:
+                               we like test failures!
+                            -}
+                            (failureMessage /= Nothing)
+                                || {- If we've hit a new code path, we'd like
+                                      to keep its RandomRun around in the corpus,
+                                      even if it didn't cause the test to fail.
+                                   -}
+                                   (newPaths > 0)
+                                || {- Change in paths covered doesn't need to
+                                      be strictly "found a completely new
+                                      path", we also care about whether the
+                                      input hit a certain edge more often than
+                                      the input it was mutated from.
+
+                                      This is done in buckets:
+                                      1,2,3,4-7,8-15,16-31,32-127,128+.
+                                   -}
+                                   isInterestingDueToBucketChange
+
+                        randomRun : RandomRun
+                        randomRun =
+                            PRNG.getRun prng
+
                         failure : Maybe Failure
                         failure =
                             testGeneratedValue
                                 { getExpectation = c.testFn
                                 , fuzzer = c.fuzzer
-                                , randomRun = PRNG.getRun prng
+                                , randomRun = randomRun
                                 , value = value
                                 , expectation = expectation
                                 }

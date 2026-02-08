@@ -28,7 +28,7 @@ type Reason
         , extra : List String
         , missing : List String
         }
-    | TODO
+    | TODO -- Test.todo was used
     | Invalid InvalidReason
 
 

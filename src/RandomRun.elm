@@ -20,6 +20,12 @@ module RandomRun exposing
     , update
     )
 
+{-| TODO PERF: investigate whether having a List Int for the writing phase
+(PRNG.Random, during generation) and then reversing and having a reversed List
+Int for the reading phase (PRNG.Hardcoded, during shrinking) would be faster
+than the Int32Array approach or the traditional Queue.
+-}
+
 import MicroListExtra as List
 import Queue exposing (Queue)
 
