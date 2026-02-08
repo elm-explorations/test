@@ -1,13 +1,13 @@
 module Test exposing
-    ( Test, test
+    ( Test, test, testWithKey
     , describe, concat, todo, skip, only
-    , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
+    , fuzz, fuzz2, fuzz3, fuzzWithKey, fuzzWith, FuzzOptions
     , Distribution, noDistribution, reportDistribution, expectDistribution
     )
 
 {-| A module containing functions for creating and managing tests.
 
-@docs Test, test
+@docs Test, test, testWithKey
 
 
 ## Organizing Tests
@@ -17,11 +17,13 @@ module Test exposing
 
 ## Fuzz Testing
 
-@docs fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
+@docs fuzz, fuzz2, fuzz3, fuzzWithKey, fuzzWith, FuzzOptions
 @docs Distribution, noDistribution, reportDistribution, expectDistribution
 
 -}
 
+import Browser.Navigation
+import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Set
@@ -59,6 +61,7 @@ concat tests =
         case Internal.duplicatedName tests of
             Err dups ->
                 let
+                    dupDescription : String -> String
                     dupDescription duped =
                         "A test group contains multiple tests named '" ++ duped ++ "'. Do some renaming so that tests have unique names."
                 in
@@ -98,6 +101,7 @@ mistake or are creating a placeholder.
 describe : String -> List Test -> Test
 describe untrimmedDesc tests =
     let
+        desc : String
         desc =
             String.trim untrimmedDesc
     in
@@ -117,6 +121,7 @@ describe untrimmedDesc tests =
         case Internal.duplicatedName tests of
             Err dups ->
                 let
+                    dupDescription : String -> String
                     dupDescription duped =
                         "Contains multiple tests named '" ++ duped ++ "'. Let's rename them so we know which is which."
                 in
@@ -154,6 +159,7 @@ describe untrimmedDesc tests =
 test : String -> (() -> Expectation) -> Test
 test untrimmedDesc thunk =
     let
+        desc : String
         desc =
             String.trim untrimmedDesc
     in
@@ -162,6 +168,43 @@ test untrimmedDesc thunk =
 
     else
         Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> thunk ()))
+
+
+{-| Return a [`Test`](#Test) that provides a [`Browser.Navigation.Key`](https://package.elm-lang.org/packages/elm/browser/latest/Browser-Navigation#Key)
+that evaluates a single [`Expectation`](../Expect#Expectation).
+
+You might need such a key if you're testing functions where a key is contained in the arguments.
+This might be the case when using [`Browser.application`](https://package.elm-lang.org/packages/elm/browser/latest/Browser#application)
+and storing the key in the `Model`.
+If you do not need the key, use [`test`](#test) instead.
+
+    import Test exposing (test)
+    import Expect
+
+
+    test "functionToTest returns 0 when given 0" <|
+        \key ->
+            functionToTest key 0
+                |> Expect.equal 0
+
+-}
+testWithKey : String -> (Browser.Navigation.Key -> Expectation) -> Test
+testWithKey untrimmedDesc thunk =
+    let
+        desc : String
+        desc =
+            String.trim untrimmedDesc
+    in
+    if String.isEmpty desc then
+        Internal.blankDescriptionFailure
+
+    else
+        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> [ thunk testNavigationKey ]))
+
+
+testNavigationKey : Browser.Navigation.Key
+testNavigationKey =
+    Elm.Kernel.Test.navigationKey
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests
@@ -415,6 +458,27 @@ fuzz =
     Test.Fuzz.fuzzTest Test.Distribution.Internal.NoDistributionNeeded
 
 
+{-| Run a [fuzz test](#fuzz) using a [`Browser.Navigation.Key`](https://package.elm-lang.org/packages/elm/browser/latest/Browser-Navigation#Key) and a random input.
+
+You might need such a key if you're testing functions where a key is contained in the arguments.
+This might be the case when using [`Browser.application`](https://package.elm-lang.org/packages/elm/browser/latest/Browser#application)
+and storing the key in the `Model`.
+If you do not need the key, use [`fuzz`](#fuzz) instead.
+
+-}
+fuzzWithKey :
+    Fuzzer a
+    -> String
+    -> (Browser.Navigation.Key -> a -> Expectation)
+    -> Test
+fuzzWithKey fuzzer untrimmedDesc getExpectation =
+    Test.Fuzz.fuzzTest
+        Test.Distribution.Internal.NoDistributionNeeded
+        fuzzer
+        untrimmedDesc
+        (getExpectation testNavigationKey)
+
+
 {-| Run a [fuzz test](#fuzz) using two random inputs.
 
 This is a convenience function that lets you skip calling [`Fuzz.pair`](Fuzz#pair).
@@ -440,6 +504,7 @@ fuzz2 :
     -> Test
 fuzz2 fuzzA fuzzB desc =
     let
+        fuzzer : Fuzzer ( a, b )
         fuzzer =
             Fuzz.pair fuzzA fuzzB
     in
@@ -460,6 +525,7 @@ fuzz3 :
     -> Test
 fuzz3 fuzzA fuzzB fuzzC desc =
     let
+        fuzzer : Fuzzer ( a, b, c )
         fuzzer =
             Fuzz.triple fuzzA fuzzB fuzzC
     in
