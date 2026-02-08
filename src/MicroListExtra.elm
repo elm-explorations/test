@@ -39,7 +39,7 @@ fastConcat =
 
 fastConcatMap : (a -> List b) -> List a -> List b
 fastConcatMap f =
-    List.foldr (f >> (++)) []
+    List.foldr (\e a -> f e ++ a) []
 
 
 find : (a -> Bool) -> List a -> Maybe a
