@@ -161,7 +161,8 @@ expectTestToFail test =
     test
         |> Test.Runner.fromTest 100 seed
         |> getRunners
-        |> List.map (\{ run } () -> expectToFail (run ()))
+        |> List.map (\{ run } -> run ())
+        |> List.map (\expectation () -> expectToFail expectation)
         |> (\expectations -> Expect.all expectations ())
 
 
