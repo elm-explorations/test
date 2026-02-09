@@ -1,5 +1,6 @@
-module Fuzz.InputCorpus exposing (Input, InputCorpus)
+module Fuzz.InputCorpus exposing (Input, InputCorpus, init, isEmpty)
 
+import RandomRun exposing (RandomRun)
 import Test.Coverage.EdgeHitCounts exposing (BucketedEdgeHitCounts)
 
 
@@ -9,6 +10,23 @@ type alias InputCorpus =
     , otherFresh : List Input
     , otherUsed : List Input
     }
+
+
+init : InputCorpus
+init =
+    { favoredFresh = []
+    , favoredUsed = []
+    , otherFresh = []
+    , otherUsed = []
+    }
+
+
+isEmpty : InputCorpus -> Bool
+isEmpty corpus =
+    (corpus.favoredFresh == [])
+        && (corpus.favoredUsed == [])
+        && (corpus.otherFresh == [])
+        && (corpus.otherUsed == [])
 
 
 type alias Input =

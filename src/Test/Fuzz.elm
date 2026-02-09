@@ -2,6 +2,7 @@ module Test.Fuzz exposing (fuzzTest)
 
 import DebugConfig
 import Dict exposing (Dict)
+import Fuzz.InputCorpus exposing (Input, InputCorpus)
 import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
 import MicroDictExtra as Dict
@@ -9,6 +10,7 @@ import MicroListExtra as List
 import MicroMaybeExtra as Maybe
 import PRNG
 import Random
+import RandomRun exposing (RandomRun)
 import Simplify
 import Test.Coverage exposing (EdgeCoverage)
 import Test.Coverage.EdgeHitCounts
@@ -97,6 +99,7 @@ type alias LoopState =
     , nextPowerOfTwo : Int
     , failure : Maybe Failure
     , currentSeed : Random.Seed
+    , inputCorpus : InputCorpus
     }
 
 
@@ -118,6 +121,7 @@ initLoopState initialSeed distribution =
     , nextPowerOfTwo = 1
     , failure = Nothing
     , currentSeed = initialSeed
+    , inputCorpus = Fuzz.InputCorpus.init
     }
 
 
@@ -466,10 +470,11 @@ and optionally categorize the value.
 runOnce : LoopConstants a -> LoopState -> LoopState
 runOnce c state =
     let
+        -- when generating from scratch
         genResult : GenResult a
         genResult =
             Fuzz.Internal.generate
-                (PRNG.random state.currentSeed)
+                (PRNG.random state.currentSeed state.inputCorpus)
                 c.fuzzer
 
         maybeNextSeed : Maybe Random.Seed
@@ -487,7 +492,7 @@ runOnce c state =
                 Nothing ->
                     stepSeed state.currentSeed
 
-        ( maybeFailure, newDistributionCounter ) =
+        ( maybeFailure, newDistributionCounter, newCorpus ) =
             case genResult of
                 Rejected { reason } ->
                     ( Just
@@ -499,9 +504,10 @@ runOnce c state =
                                 }
                         }
                     , state.distributionCount
+                    , state.inputCorpus
                     )
 
-                Generated { prng, value } ->
+                Generated { prng, value, previousInputBucketedEdgeHitCounts } ->
                     let
                         _ =
                             {- This will make sure we start collecting instrumented edges
@@ -533,18 +539,18 @@ runOnce c state =
                         failureMessage : Maybe String
                         failureMessage =
                             expectation
-                                |> Test.Expectation.reason
+                                |> Test.Expectation.getReason
                                 |> Maybe.map Test.Internal.toString
 
                         ( newBucketed, isInterestingDueToBucketChange ) =
-                            case input.previousInputBucketedEdgeHitCounts of
+                            case previousInputBucketedEdgeHitCounts of
                                 Nothing ->
                                     ( Nothing, False )
 
                                 Just previousBucketed ->
                                     let
                                         bucketed =
-                                            Test.Coverage.EdgeHitCounts.bucketed input.edgeHitCounts
+                                            Test.Coverage.EdgeHitCounts.bucketed edgeCoverage.edgeHitCounts
                                     in
                                     ( Just bucketed
                                     , bucketed
@@ -573,7 +579,7 @@ runOnce c state =
                                       to keep its RandomRun around in the corpus,
                                       even if it didn't cause the test to fail.
                                    -}
-                                   (newPaths > 0)
+                                   (edgeCoverage.newPaths > 0)
                                 || {- Change in paths covered doesn't need to
                                       be strictly "found a completely new
                                       path", we also care about whether the
@@ -624,13 +630,14 @@ runOnce c state =
                                 (Test.Distribution.Internal.getDistributionLabels c.distribution)
                                 state.distributionCount
                     in
-                    ( failure, distributionCounter )
+                    ( failure, distributionCounter, todo )
     in
     { state
         | failure = maybeFailure
         , distributionCount = newDistributionCounter
         , currentSeed = nextSeed
         , runsElapsed = state.runsElapsed + 1
+        , inputCorpus = newCorpus
     }
 
 

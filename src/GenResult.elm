@@ -4,12 +4,14 @@ module GenResult exposing (GenResult(..), getPrng)
 -}
 
 import PRNG exposing (PRNG)
+import Test.Coverage.EdgeHitCounts exposing (BucketedEdgeHitCounts)
 
 
 type GenResult a
     = Generated
         { value : a
         , prng : PRNG
+        , previousInputBucketedEdgeHitCounts : Maybe BucketedEdgeHitCounts
         }
     | Rejected
         { reason : String

@@ -1,7 +1,7 @@
 module Test.Expectation exposing
     ( Expectation(..)
     , fail
-    , reason
+    , getReason
     , withDistributionReport
     , withGiven
     )
@@ -56,8 +56,8 @@ withDistributionReport newDistributionReport expectation =
             Pass { pass | distributionReport = newDistributionReport }
 
 
-reason : Expectation -> Maybe Reason
-reason expectation =
+getReason : Expectation -> Maybe Reason
+getReason expectation =
     case expectation of
         Pass _ ->
             Nothing

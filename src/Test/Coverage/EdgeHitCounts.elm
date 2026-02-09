@@ -1,5 +1,5 @@
 module Test.Coverage.EdgeHitCounts exposing
-    ( EdgeHitCounts(..)
+    ( EdgeHitCounts(..), BucketedEdgeHitCounts(..)
     , bucketed
     , isImprovementOver
     )
@@ -36,6 +36,10 @@ test inputs.
 
 There's a chance of collisions, but it was deemed acceptable. Can be tweaked
 with the array size.
+
+@docs EdgeHitCounts, BucketedEdgeHitCounts
+@docs bucketed
+@docs isImprovementOver
 
 -}
 

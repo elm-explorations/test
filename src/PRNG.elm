@@ -1,4 +1,8 @@
-module PRNG exposing (PRNG(..), getRun, getSeed, hardcoded, random)
+module PRNG exposing
+    ( PRNG(..)
+    , random, hardcoded
+    , getRun, getSeed, getInputCorpus
+    )
 
 {-| A way to draw values. There are two ways:
 
@@ -9,8 +13,13 @@ module PRNG exposing (PRNG(..), getRun, getSeed, hardcoded, random)
     when reproducing a failure. This can run out of values to draw, but that
     shouldn't happen during the normal execution.
 
+@docs PRNG
+@docs random, hardcoded
+@docs getRun, getSeed, getInputCorpus
+
 -}
 
+import Fuzz.InputCorpus exposing (InputCorpus)
 import Random
 import RandomRun exposing (RandomRun)
 
@@ -19,6 +28,7 @@ type PRNG
     = Random
         { run : RandomRun
         , seed : Random.Seed
+        , inputCorpus : InputCorpus
         }
     | Hardcoded
         { wholeRun : RandomRun
@@ -26,11 +36,12 @@ type PRNG
         }
 
 
-random : Random.Seed -> PRNG
-random seed =
+random : Random.Seed -> InputCorpus -> PRNG
+random seed corpus =
     Random
         { run = RandomRun.empty
         , seed = seed
+        , inputCorpus = corpus
         }
 
 
@@ -57,6 +68,16 @@ getSeed prng =
     case prng of
         Random { seed } ->
             Just seed
+
+        Hardcoded _ ->
+            Nothing
+
+
+getInputCorpus : PRNG -> Maybe InputCorpus
+getInputCorpus prng =
+    case prng of
+        Random { inputCorpus } ->
+            Just inputCorpus
 
         Hardcoded _ ->
             Nothing
