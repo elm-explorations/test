@@ -12,17 +12,17 @@ module PRNG exposing (PRNG(..), getRun, getSeed, hardcoded, random)
 -}
 
 import Random
-import RandomRun exposing (RandomRun)
+import RandomRun exposing (ReadOnlyRandomRun, WriteOnlyRandomRun)
 
 
 type PRNG
     = Random
-        { run : RandomRun
+        { run : WriteOnlyRandomRun
         , seed : Random.Seed
         }
     | Hardcoded
-        { wholeRun : RandomRun
-        , unusedPart : RandomRun
+        { wholeRun : ReadOnlyRandomRun
+        , unusedPart : ReadOnlyRandomRun
         }
 
 
@@ -34,7 +34,7 @@ random seed =
         }
 
 
-hardcoded : RandomRun -> PRNG
+hardcoded : ReadOnlyRandomRun -> PRNG
 hardcoded run =
     Hardcoded
         { wholeRun = run
@@ -42,11 +42,11 @@ hardcoded run =
         }
 
 
-getRun : PRNG -> RandomRun
+getRun : PRNG -> ReadOnlyRandomRun
 getRun prng =
     case prng of
         Random { run } ->
-            run
+            RandomRun.switchPhase run
 
         Hardcoded { wholeRun } ->
             wholeRun

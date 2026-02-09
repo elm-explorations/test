@@ -28,7 +28,7 @@ import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
 import PRNG
-import RandomRun exposing (Chunk, RandomRun)
+import RandomRun exposing (Chunk, ReadOnlyRandomRun)
 import Simplify.Cmd exposing (SimplifyCmd, SimplifyCmdType(..))
 import Test.Expectation exposing (Expectation(..))
 
@@ -37,7 +37,7 @@ type alias State a =
     { getExpectation : a -> Expectation
     , fuzzer : Fuzzer a
     , value : a
-    , randomRun : RandomRun
+    , randomRun : ReadOnlyRandomRun
     , expectation : Expectation
     }
 
@@ -60,7 +60,7 @@ andThen fn { newState } =
     fn newState
 
 
-simplify : State a -> ( a, RandomRun, Expectation )
+simplify : State a -> ( a, ReadOnlyRandomRun, Expectation )
 simplify state =
     let
         _ =
@@ -78,13 +78,13 @@ simplify state =
         simplifyWhileProgress state
 
 
-simplifyWhileProgress : State a -> ( a, RandomRun, Expectation )
+simplifyWhileProgress : State a -> ( a, ReadOnlyRandomRun, Expectation )
 simplifyWhileProgress state =
     let
         nextState =
             simplifyOnce state
     in
-    if RandomRun.equal nextState.randomRun state.randomRun then
+    if nextState.randomRun == state.randomRun then
         let
             _ =
                 if DebugConfig.shouldLogShrinkProgress then
@@ -131,7 +131,7 @@ runCmds cmds state =
             runCmds newRest newState
 
 
-logRun : String -> RandomRun -> RandomRun
+logRun : String -> ReadOnlyRandomRun -> ReadOnlyRandomRun
 logRun label run =
     let
         _ =
@@ -206,9 +206,9 @@ runCmd cmd state =
 generates a value which fails the test, save it as the currently best
 counterexample.
 -}
-keepIfBetter : RandomRun -> State a -> SimplifyResult a
+keepIfBetter : ReadOnlyRandomRun -> State a -> SimplifyResult a
 keepIfBetter newRandomRun state =
-    if RandomRun.equal state.randomRun newRandomRun then
+    if state.randomRun == newRandomRun then
         noImprovement state
 
     else
@@ -275,12 +275,12 @@ keepIfBetter newRandomRun state =
 deleteChunkAndMaybeDecrementPrevious : Chunk -> State a -> SimplifyResult a
 deleteChunkAndMaybeDecrementPrevious chunk state =
     let
-        runWithDelete : RandomRun
+        runWithDelete : ReadOnlyRandomRun
         runWithDelete =
             state.randomRun
                 |> RandomRun.deleteChunk chunk
 
-        runWithDeleteAndDecrement : RandomRun
+        runWithDeleteAndDecrement : ReadOnlyRandomRun
         runWithDeleteAndDecrement =
             runWithDelete
                 |> RandomRun.update (chunk.startIndex - 1) (\x -> x - 1)
@@ -298,7 +298,7 @@ deleteChunkAndMaybeDecrementPrevious chunk state =
 replaceChunkWithZero : Chunk -> State a -> SimplifyResult a
 replaceChunkWithZero chunk state =
     let
-        simplifiedRun : RandomRun
+        simplifiedRun : ReadOnlyRandomRun
         simplifiedRun =
             RandomRun.replaceChunkWithZero chunk state.randomRun
     in
@@ -308,7 +308,7 @@ replaceChunkWithZero chunk state =
 sortChunk : Chunk -> State a -> SimplifyResult a
 sortChunk chunk state =
     let
-        simplifiedRun : RandomRun
+        simplifiedRun : ReadOnlyRandomRun
         simplifiedRun =
             RandomRun.sortChunk chunk state.randomRun
     in
@@ -436,7 +436,7 @@ minimizeChoice { index } state =
 decrementTogether : { leftIndex : Int, rightIndex : Int, by : Int } -> State a -> SimplifyResult a
 decrementTogether { leftIndex, rightIndex, by } state =
     let
-        simplifiedRun : RandomRun
+        simplifiedRun : ReadOnlyRandomRun
         simplifiedRun =
             state.randomRun
                 |> RandomRun.update leftIndex (\n -> n - by)
@@ -464,7 +464,7 @@ redistributeChoicesAndMaybeIncrement options state =
                 ({ newState } as afterSwap) =
                     keepIfBetter newRun state
 
-                go : RandomRun -> SimplifyResult a
+                go : ReadOnlyRandomRun -> SimplifyResult a
                 go initialRun =
                     binarySearchShrink
                         { low = 0
@@ -522,7 +522,7 @@ redistributeChoicesAndMaybeIncrement options state =
                        We'll first try without the increment, and if there is no
                        improvement, we try with the increment.
                     -}
-                    runWithIncrementedRightBucket : RandomRun
+                    runWithIncrementedRightBucket : ReadOnlyRandomRun
                     runWithIncrementedRightBucket =
                         newState.randomRun
                             |> RandomRun.update (options.rightIndex - 1) (\x -> x + 1)
@@ -545,7 +545,7 @@ type alias BinarySearchOptions a =
     { low : Int
     , high : Int
     , state : State a
-    , updateRun : Int -> RandomRun -> RandomRun
+    , updateRun : Int -> ReadOnlyRandomRun -> ReadOnlyRandomRun
     }
 
 

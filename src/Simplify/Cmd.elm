@@ -5,7 +5,7 @@ module Simplify.Cmd exposing
     )
 
 import MicroListExtra as List
-import RandomRun exposing (Chunk, RandomRun)
+import RandomRun exposing (Chunk, ReadOnlyRandomRun)
 import Set exposing (Set)
 
 
@@ -81,7 +81,7 @@ type SimplifyCmdType
     | SwapChunkWithNeighbour Chunk
 
 
-cmdsForRun : RandomRun -> List SimplifyCmd
+cmdsForRun : ReadOnlyRandomRun -> List SimplifyCmd
 cmdsForRun run =
     let
         length =
@@ -126,7 +126,7 @@ sortCmds length =
         }
 
 
-minimizeChoiceCmds : RandomRun -> Int -> List SimplifyCmd
+minimizeChoiceCmds : ReadOnlyRandomRun -> Int -> List SimplifyCmd
 minimizeChoiceCmds run length =
     run
         |> RandomRun.toList
@@ -145,7 +145,7 @@ minimizeChoiceCmds run length =
             )
 
 
-minimizeFloatCmds : RandomRun -> Int -> List SimplifyCmd
+minimizeFloatCmds : ReadOnlyRandomRun -> Int -> List SimplifyCmd
 minimizeFloatCmds run length =
     let
         possibleBoolIndexes : Set Int

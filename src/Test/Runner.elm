@@ -49,7 +49,7 @@ import Fuzz.Internal
 import GenResult exposing (GenResult(..))
 import PRNG
 import Random
-import RandomRun exposing (RandomRun)
+import RandomRun exposing (ReadOnlyRandomRun)
 import Simplify
 import String
 import Test exposing (Test)
@@ -477,7 +477,7 @@ formatLabels formatDescription formatTest labels =
 -}
 type Simplifiable a
     = Simplifiable
-        { randomRun : RandomRun
+        { randomRun : ReadOnlyRandomRun
         , fuzzer : Fuzzer a
         }
 
@@ -526,7 +526,7 @@ simplify getExpectation ( value, Simplifiable { randomRun, fuzzer } ) =
                 , expectation = getExpectation value
                 }
     in
-    if RandomRun.equal newRandomRun randomRun then
+    if newRandomRun == randomRun then
         Nothing
 
     else

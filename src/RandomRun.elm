@@ -1,11 +1,11 @@
 module RandomRun exposing
     ( Chunk
-    , RandomRun
+    , ReadOnlyRandomRun
+    , WriteOnlyRandomRun
     , append
     , compare
     , deleteChunk
     , empty
-    , equal
     , get
     , isEmpty
     , length
@@ -16,20 +16,37 @@ module RandomRun exposing
     , sortChunk
     , swapChunks
     , swapIfOutOfOrder
+    , switchPhase
     , toList
     , update
     )
 
 import MicroListExtra as List
-import Queue exposing (Queue)
 
 
-type alias RandomRun =
-    { data : Queue Int
+type WriteOnly
+    = WriteOnly Never
 
-    -- derived precomputed data:
-    , length : Int
-    }
+
+type ReadOnly
+    = ReadOnly Never
+
+
+type RandomRun tag
+    = RandomRun
+        { data : List Int
+
+        -- derived precomputed data:
+        , length : Int
+        }
+
+
+type alias WriteOnlyRandomRun =
+    RandomRun WriteOnly
+
+
+type alias ReadOnlyRandomRun =
+    RandomRun ReadOnly
 
 
 type alias Chunk =
@@ -38,57 +55,67 @@ type alias Chunk =
     }
 
 
-empty : RandomRun
+empty : RandomRun tag
 empty =
-    { data = Queue.empty
-    , length = 0
-    }
+    RandomRun
+        { data = []
+        , length = 0
+        }
 
 
-isEmpty : RandomRun -> Bool
-isEmpty run =
+isEmpty : RandomRun tag -> Bool
+isEmpty (RandomRun run) =
     run.length == 0
 
 
-nextChoice : RandomRun -> Maybe ( Int, RandomRun )
-nextChoice run =
-    case Queue.dequeue run.data of
-        ( Nothing, _ ) ->
+nextChoice : ReadOnlyRandomRun -> Maybe ( Int, ReadOnlyRandomRun )
+nextChoice (RandomRun run) =
+    case run.data of
+        [] ->
             Nothing
 
-        ( Just first, rest ) ->
+        first :: rest ->
             Just
                 ( first
-                , { run
-                    | length = run.length - 1
-                    , data = rest
-                  }
+                , RandomRun
+                    { run
+                        | length = run.length - 1
+                        , data = rest
+                    }
                 )
 
 
-append : Int -> RandomRun -> RandomRun
-append n run =
-    { run
-        | length = run.length + 1
-        , data = Queue.enqueue (max 0 n) run.data
-    }
+append : Int -> WriteOnlyRandomRun -> WriteOnlyRandomRun
+append n (RandomRun run) =
+    RandomRun
+        { run
+            | length = run.length + 1
+            , data = max 0 n :: run.data
+        }
 
 
-isInBounds : Chunk -> RandomRun -> Bool
-isInBounds { startIndex, size } run =
+switchPhase : WriteOnlyRandomRun -> ReadOnlyRandomRun
+switchPhase (RandomRun run) =
+    RandomRun
+        { length = run.length
+        , data = List.reverse run.data
+        }
+
+
+isInBounds : Chunk -> RandomRun tag -> Bool
+isInBounds { startIndex, size } (RandomRun run) =
     startIndex + size <= run.length
 
 
-length : RandomRun -> Int
-length run =
+length : RandomRun tag -> Int
+length (RandomRun run) =
     run.length
 
 
-getChunk : Chunk -> RandomRun -> Maybe (List Int)
-getChunk chunk run =
-    if isInBounds chunk run then
+getChunk : Chunk -> ReadOnlyRandomRun -> Maybe (List Int)
+getChunk chunk ((RandomRun run) as orig) =
+    if isInBounds chunk orig then
         run.data
-            |> Queue.toList
             |> List.drop chunk.startIndex
             |> List.take chunk.size
             |> Just
@@ -97,52 +124,40 @@ getChunk chunk run =
         Nothing
 
 
-deleteChunk : Chunk -> RandomRun -> RandomRun
-deleteChunk chunk run =
-    if isInBounds chunk run then
-        let
-            list =
-                Queue.toList run.data
-
-            result =
-                { run
-                    | length = run.length - chunk.size
-                    , data =
-                        (List.take chunk.startIndex list
-                            ++ List.drop (chunk.startIndex + chunk.size) list
-                        )
-                            |> Queue.fromList
-                }
-        in
-        result
+deleteChunk : Chunk -> ReadOnlyRandomRun -> ReadOnlyRandomRun
+deleteChunk chunk ((RandomRun run) as orig) =
+    if isInBounds chunk orig then
+        RandomRun
+            { run
+                | length = run.length - chunk.size
+                , data =
+                    List.take chunk.startIndex run.data
+                        ++ List.drop (chunk.startIndex + chunk.size) run.data
+            }
 
     else
-        run
+        orig
 
 
-replaceChunkWithZero : Chunk -> RandomRun -> RandomRun
-replaceChunkWithZero chunk run =
-    if isInBounds chunk run then
+replaceChunkWithZero : Chunk -> ReadOnlyRandomRun -> ReadOnlyRandomRun
+replaceChunkWithZero chunk ((RandomRun run) as orig) =
+    if isInBounds chunk orig then
         -- TODO PERF: maybe `replace [...] run` would be faster?
-        let
-            list =
-                Queue.toList run.data
-        in
-        { run
-            | data =
-                List.fastConcat
-                    [ List.take chunk.startIndex list
-                    , List.repeat chunk.size 0
-                    , List.drop (chunk.startIndex + chunk.size) list
-                    ]
-                    |> Queue.fromList
-        }
+        RandomRun
+            { run
+                | data =
+                    List.fastConcat
+                        [ List.take chunk.startIndex run.data
+                        , List.repeat chunk.size 0
+                        , List.drop (chunk.startIndex + chunk.size) run.data
+                        ]
+            }
 
     else
-        run
+        orig
 
 
-sortChunk : Chunk -> RandomRun -> RandomRun
+sortChunk : Chunk -> ReadOnlyRandomRun -> ReadOnlyRandomRun
 sortChunk chunk run =
     case getChunk chunk run of
         Nothing ->
@@ -160,39 +175,39 @@ sortChunk chunk run =
             replace sortedIndexed run
 
 
-replace : List ( Int, Int ) -> RandomRun -> RandomRun
-replace values run =
-    replaceInList values run.length (Queue.toList run.data)
+replace : List ( Int, Int ) -> ReadOnlyRandomRun -> ReadOnlyRandomRun
+replace values (RandomRun run) =
+    replaceInList values run.length run.data
 
 
-{-| An optimization to not do Queue.toList redundantly.
+{-| An optimization to not do data list extraction redundantly.
 
-Expects `list == Queue.toList run.data`
-and `len == Queue.size run.data`
+Expects `list == run.data`
+and `len == run.length`
 
 -}
-replaceInList : List ( Int, Int ) -> Int -> List Int -> RandomRun
+replaceInList : List ( Int, Int ) -> Int -> List Int -> ReadOnlyRandomRun
 replaceInList values len list =
-    { length = len
-    , data =
-        List.foldl
-            (\( index, newValue ) accList ->
-                List.setAt index (max 0 newValue) len accList
-            )
-            list
-            values
-            |> Queue.fromList
-    }
+    RandomRun
+        { length = len
+        , data =
+            List.foldl
+                (\( index, newValue ) accList ->
+                    List.setAt index (max 0 newValue) len accList
+                )
+                list
+                values
+        }
 
 
 swapChunks :
     { leftChunk : Chunk, rightChunk : Chunk }
-    -> RandomRun
-    -> Maybe RandomRun
-swapChunks { leftChunk, rightChunk } run =
+    -> ReadOnlyRandomRun
+    -> Maybe ReadOnlyRandomRun
+swapChunks { leftChunk, rightChunk } ((RandomRun run) as orig) =
     let
         list =
-            Queue.toList run.data
+            run.data
     in
     Maybe.map2
         (\lefts rights ->
@@ -205,27 +220,27 @@ swapChunks { leftChunk, rightChunk } run =
                 run.length
                 list
         )
-        {- TODO PERF: both of these are doing the Queue.toList etc. operations
+        {- TODO PERF: both of these are doing the List.drop etc. operations
            while we already have that factored out in the `list` var.
            We could factor that operation out `getChunk`?
         -}
-        (getChunk leftChunk run)
-        (getChunk rightChunk run)
+        (getChunk leftChunk orig)
+        (getChunk rightChunk orig)
 
 
 swapIfOutOfOrder :
     { leftIndex : Int, rightIndex : Int }
-    -> RandomRun
+    -> ReadOnlyRandomRun
     ->
         Maybe
-            { newRun : RandomRun
+            { newRun : ReadOnlyRandomRun
             , newLeftValue : Int
             , newRightValue : Int
             }
-swapIfOutOfOrder { leftIndex, rightIndex } run =
+swapIfOutOfOrder { leftIndex, rightIndex } ((RandomRun run) as orig) =
     let
         list =
-            Queue.toList run.data
+            run.data
     in
     Maybe.map2
         (\left right ->
@@ -242,7 +257,7 @@ swapIfOutOfOrder { leftIndex, rightIndex } run =
                 }
 
             else
-                { newRun = run
+                { newRun = orig
                 , newLeftValue = left
                 , newRightValue = right
                 }
@@ -251,46 +266,44 @@ swapIfOutOfOrder { leftIndex, rightIndex } run =
         (List.getAt rightIndex list)
 
 
-get : Int -> RandomRun -> Maybe Int
-get index run =
+get : Int -> ReadOnlyRandomRun -> Maybe Int
+get index (RandomRun run) =
     run.data
-        |> Queue.toList
         |> List.getAt index
 
 
-set : Int -> Int -> RandomRun -> RandomRun
-set index value run =
+set : Int -> Int -> ReadOnlyRandomRun -> ReadOnlyRandomRun
+set index value ((RandomRun run) as orig) =
     if run.length <= index then
-        run
+        orig
 
     else
-        { run
-            | data =
-                run.data
-                    |> Queue.toList
-                    |> List.setAt index (max 0 value) run.length
-                    |> Queue.fromList
-        }
+        RandomRun
+            { run
+                | data =
+                    run.data
+                        |> List.setAt index (max 0 value) run.length
+            }
 
 
-sortKey : RandomRun -> ( Int, List Int )
-sortKey run =
+sortKey : ReadOnlyRandomRun -> ( Int, List Int )
+sortKey (RandomRun run) =
     ( run.length
-    , toList run
+    , run.data
     )
 
 
-compare : RandomRun -> RandomRun -> Order
+compare : ReadOnlyRandomRun -> ReadOnlyRandomRun -> Order
 compare a b =
     Basics.compare (sortKey a) (sortKey b)
 
 
-toList : RandomRun -> List Int
-toList run =
-    Queue.toList run.data
+toList : ReadOnlyRandomRun -> List Int
+toList (RandomRun run) =
+    run.data
 
 
-update : Int -> (Int -> Int) -> RandomRun -> RandomRun
+update : Int -> (Int -> Int) -> ReadOnlyRandomRun -> ReadOnlyRandomRun
 update index fn run =
     case get index run of
         Nothing ->
@@ -298,8 +311,3 @@ update index fn run =
 
         Just value ->
             replace [ ( index, fn value ) ] run
-
-
-equal : RandomRun -> RandomRun -> Bool
-equal run1 run2 =
-    toList run1 == toList run2
