@@ -1,4 +1,4 @@
-module Fuzz.InputCorpus exposing (Input, InputCorpus, init, isEmpty)
+module Fuzz.InputCorpus exposing (Input, InputCorpus, add, init, isEmpty)
 
 import RandomRun exposing (RandomRun)
 import Test.Coverage.EdgeHitCounts exposing (BucketedEdgeHitCounts)
@@ -31,7 +31,25 @@ isEmpty corpus =
 
 type alias Input =
     { randomRun : RandomRun
-    , durationMs : Int
-    , -- in case this was mutated from a previous input, let's hold their hit counts to compare later
-      previousInputBucketedEdgeHitCounts : BucketedEdgeHitCounts
+    , durationMs : Float
+    , bucketedEdgeHitCounts : BucketedEdgeHitCounts
+    }
+
+
+add : RandomRun -> Float -> BucketedEdgeHitCounts -> InputCorpus -> InputCorpus
+add randomRun durationMs bucketedEdgeHitCounts corpus =
+    let
+        input : Input
+        input =
+            { randomRun = randomRun
+            , durationMs = durationMs
+            , bucketedEdgeHitCounts = bucketedEdgeHitCounts
+            }
+    in
+    { otherFresh = input :: corpus.otherFresh
+
+    -- the rest, unchanged (PERF: not using record update)
+    , favoredFresh = corpus.favoredFresh
+    , favoredUsed = corpus.favoredUsed
+    , otherUsed = corpus.otherUsed
     }

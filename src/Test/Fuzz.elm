@@ -13,7 +13,7 @@ import Random
 import RandomRun exposing (RandomRun)
 import Simplify
 import Test.Coverage exposing (EdgeCoverage)
-import Test.Coverage.EdgeHitCounts
+import Test.Coverage.EdgeHitCounts exposing (BucketedEdgeHitCounts)
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
 import Test.Expectation exposing (Expectation(..))
@@ -464,18 +464,34 @@ runNTimes times c state =
         runNTimes (times - 1) c (runOnce c state)
 
 
+generateOrMutate : Fuzzer a -> LoopState -> ( GenResult a, Maybe BucketedEdgeHitCounts )
+generateOrMutate fuzzer state =
+    let
+        _ =
+            Debug.log () "TODO mutate with some probability"
+    in
+    ( Fuzz.Internal.generate
+        (PRNG.random state.currentSeed)
+        fuzzer
+    , Nothing
+    )
+
+
 {-| Generate a fuzzed value, test it, record the simplified test failure if any
 and optionally categorize the value.
 -}
 runOnce : LoopConstants a -> LoopState -> LoopState
 runOnce c state =
     let
-        -- when generating from scratch
-        genResult : GenResult a
-        genResult =
-            Fuzz.Internal.generate
-                (PRNG.random state.currentSeed state.inputCorpus)
-                c.fuzzer
+        {- It's possible this value was Generated from a mutated RandomRun from
+           some previous interesting corpus input.
+
+           In that case we need the previous input's coverage (edge hit
+           counts), to see if the new input's coverage hit some paths way more
+           often.
+        -}
+        ( genResult, previousInputBucketedEdgeHitCounts ) =
+            generateOrMutate c.fuzzer state
 
         maybeNextSeed : Maybe Random.Seed
         maybeNextSeed =
@@ -507,7 +523,7 @@ runOnce c state =
                     , state.inputCorpus
                     )
 
-                Generated { prng, value, previousInputBucketedEdgeHitCounts } ->
+                Generated { prng, value } ->
                     let
                         _ =
                             {- This will make sure we start collecting instrumented edges
@@ -594,6 +610,24 @@ runOnce c state =
                                    -}
                                    isInterestingDueToBucketChange
 
+                        newCorpus_ : InputCorpus
+                        newCorpus_ =
+                            if isRunInterestingForCorpus then
+                                state.inputCorpus
+                                    |> Fuzz.InputCorpus.add
+                                        randomRun
+                                        edgeCoverage.durationMs
+                                        (case newBucketed of
+                                            Just newBucketed_ ->
+                                                newBucketed_
+
+                                            Nothing ->
+                                                Test.Coverage.EdgeHitCounts.bucketed edgeCoverage.edgeHitCounts
+                                        )
+
+                            else
+                                state.inputCorpus
+
                         randomRun : RandomRun
                         randomRun =
                             PRNG.getRun prng
@@ -630,7 +664,7 @@ runOnce c state =
                                 (Test.Distribution.Internal.getDistributionLabels c.distribution)
                                 state.distributionCount
                     in
-                    ( failure, distributionCounter, todo )
+                    ( failure, distributionCounter, newCorpus_ )
     in
     { state
         | failure = maybeFailure

@@ -1,7 +1,7 @@
 module PRNG exposing
     ( PRNG(..)
     , random, hardcoded
-    , getRun, getSeed, getInputCorpus
+    , getRun, getSeed
     )
 
 {-| A way to draw values. There are two ways:
@@ -15,11 +15,10 @@ module PRNG exposing
 
 @docs PRNG
 @docs random, hardcoded
-@docs getRun, getSeed, getInputCorpus
+@docs getRun, getSeed
 
 -}
 
-import Fuzz.InputCorpus exposing (InputCorpus)
 import Random
 import RandomRun exposing (RandomRun)
 
@@ -28,7 +27,6 @@ type PRNG
     = Random
         { run : RandomRun
         , seed : Random.Seed
-        , inputCorpus : InputCorpus
         }
     | Hardcoded
         { wholeRun : RandomRun
@@ -36,12 +34,11 @@ type PRNG
         }
 
 
-random : Random.Seed -> InputCorpus -> PRNG
-random seed corpus =
+random : Random.Seed -> PRNG
+random seed =
     Random
         { run = RandomRun.empty
         , seed = seed
-        , inputCorpus = corpus
         }
 
 
@@ -68,16 +65,6 @@ getSeed prng =
     case prng of
         Random { seed } ->
             Just seed
-
-        Hardcoded _ ->
-            Nothing
-
-
-getInputCorpus : PRNG -> Maybe InputCorpus
-getInputCorpus prng =
-    case prng of
-        Random { inputCorpus } ->
-            Just inputCorpus
 
         Hardcoded _ ->
             Nothing
