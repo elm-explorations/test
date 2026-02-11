@@ -105,11 +105,25 @@ generator corpus =
                 |> List.filterMap identity
             )
             |> Random.andThen identity
-            |> Random.map
-                (Maybe.map
-                    (\input ->
-                        ( input.randomRun
-                        , input.bucketedEdgeHitCounts
-                        )
-                    )
+            |> Random.andThen
+                (\maybeInput ->
+                    case maybeInput of
+                        Nothing ->
+                            Random.constant Nothing
+
+                        Just input ->
+                            mutate input.randomRun
+                                |> Random.map
+                                    (\mutatedRandomRun ->
+                                        Just
+                                            ( mutatedRandomRun
+                                            , input.bucketedEdgeHitCounts
+                                            )
+                                    )
                 )
+
+
+mutate : RandomRun -> Generator RandomRun
+mutate randomRun =
+    -- TODO mutate
+    Random.constant ()
