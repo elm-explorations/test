@@ -125,5 +125,4 @@ generator corpus =
 
 mutate : RandomRun -> Generator RandomRun
 mutate randomRun =
-    -- TODO mutate
     Random.constant ()
