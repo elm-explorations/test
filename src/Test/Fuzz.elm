@@ -464,17 +464,44 @@ runNTimes times c state =
         runNTimes (times - 1) c (runOnce c state)
 
 
-generateOrMutate : Fuzzer a -> LoopState -> ( GenResult a, Maybe BucketedEdgeHitCounts )
+generateOrMutate :
+    Fuzzer a
+    -> LoopState
+    ->
+        ( GenResult a
+        , Maybe BucketedEdgeHitCounts
+        , Maybe Random.Seed
+        )
 generateOrMutate fuzzer state =
     let
-        _ =
-            Debug.log () "TODO mutate with some probability"
+        ( corpusInput, newSeed ) =
+            Random.step
+                (Fuzz.InputCorpus.generator state.inputCorpus)
+                state.currentSeed
     in
-    ( Fuzz.Internal.generate
-        (PRNG.random state.currentSeed)
-        fuzzer
-    , Nothing
-    )
+    case corpusInput of
+        Nothing ->
+            let
+                genResult : GenResult a
+                genResult =
+                    Fuzz.Internal.generate
+                        (PRNG.random newSeed)
+                        fuzzer
+            in
+            ( genResult
+            , Nothing
+            , genResult
+                |> GenResult.getPrng
+                |> PRNG.getSeed
+            )
+
+        Just ( randomRun, previousInputBucketedEdgeHitCounts ) ->
+            ( Fuzz.Internal.generate
+                (PRNG.hardcoded randomRun)
+                fuzzer
+            , Just previousInputBucketedEdgeHitCounts
+            , Just newSeed
+            )
 
 
 {-| Generate a fuzzed value, test it, record the simplified test failure if any
@@ -490,14 +517,8 @@ runOnce c state =
            counts), to see if the new input's coverage hit some paths way more
            often.
         -}
-        ( genResult, previousInputBucketedEdgeHitCounts ) =
+        ( genResult, previousInputBucketedEdgeHitCounts, maybeNextSeed ) =
             generateOrMutate c.fuzzer state
-
-        maybeNextSeed : Maybe Random.Seed
-        maybeNextSeed =
-            genResult
-                |> GenResult.getPrng
-                |> PRNG.getSeed
 
         nextSeed : Random.Seed
         nextSeed =
