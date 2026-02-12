@@ -102,13 +102,13 @@ deterministicallyMutateWith cmd randomRun onMutatedRandomRun initState =
             do negateWholeNumber
 
         Arithmetic1 ->
-            Debug.todo "arithmetic 1"
+            do <| addNumbersToBytes 1
 
         Arithmetic2 ->
-            Debug.todo "arithmetic 2"
+            do <| addNumbersToBytes 2
 
         Arithmetic4 ->
-            Debug.todo "arithmetic 4"
+            do <| addNumbersToBytes 4
 
         Interesting1 ->
             Debug.todo "interesting 1"
@@ -120,6 +120,8 @@ deterministicallyMutateWith cmd randomRun onMutatedRandomRun initState =
             Debug.todo "interesting 4"
 
 
+{-| Helpful for functions that only mutate each RandomRun int32 in isolation.
+-}
 onEachRandomRunInt : RandomRun -> (Int -> Int -> a -> a) -> a -> a
 onEachRandomRunInt randomRun onInt32 initState =
     randomRun
@@ -192,11 +194,86 @@ negateWholeNumber randomRun onMutatedRandomRun initState =
 
 negateWholeNumberAux : Int -> Int
 negateWholeNumberAux int32 =
-    -- We need to shiftRightZfBy 0 to convert from negative to a positive number.
+    -- We need to shiftRightZfBy 0 to convert from int to uint.
     {- 0x0000000A = 10 -}
     int32
         |> {- 0xFFFFFFF5 = -11 -} Bitwise.complement
         |> {- 0xFFFFFFF5 = 4294967285 -} Bitwise.shiftRightZfBy 0
+
+
+addNumbersToBytes : Int -> RandomRun -> (RandomRun -> a -> a) -> a -> a
+addNumbersToBytes nBytes randomRun onMutatedRandomRun initState =
+    let
+        -- AFL numbers
+        minAddend =
+            -35
+
+        maxAddend =
+            35
+
+        maxByteIndex =
+            4 - nBytes + 1
+
+        go : Int -> Int -> Int -> Int -> a -> a
+        go addend byteIndex int32Index int32 accState =
+            if addend > maxAddend then
+                accState
+
+            else if byteIndex > maxByteIndex then
+                go (addend + 1) 0 int32Index int32 accState
+
+            else
+                let
+                    newInt32 =
+                        addNumbersToBytesAux addend nBytes byteIndex int32
+                in
+                if newInt32 < 0 then
+                    go addend (byteIndex + 1) int32Index int32 accState
+
+                else
+                    go addend
+                        (byteIndex + 1)
+                        int32Index
+                        int32
+                        (onMutatedRandomRun
+                            (randomRun
+                                |> RandomRun.set int32Index newInt32
+                            )
+                            accState
+                        )
+    in
+    onEachRandomRunInt randomRun (go minAddend 0) initState
+
+
+addNumbersToBytesAux : Int -> Int -> Int -> Int -> Int
+addNumbersToBytesAux addend nBytes byteIndex int32 =
+    let
+        bitIndex =
+            8 * byteIndex
+
+        mask =
+            -- let's say, for n=2 and byteIndex=1
+            {- 0x00000001 -}
+            1
+                |> {- 0x00000100 -} Bitwise.shiftLeftBy (8 * nBytes)
+                |> {- 0x000000FF -} (\powerOf2 -> powerOf2 - 1)
+                |> {- 0x00000FF0 -} Bitwise.shiftLeftBy bitIndex
+
+        extractedBytes =
+            {- 0x12345678 -}
+            int32
+                |> {- 0x00000670 -} Bitwise.and mask
+                |> {- 0x00000067 -} Bitwise.shiftRightZfBy bitIndex
+
+        withoutExtractedBytes =
+            {- 0x12345678 -}
+            int32
+                |> {- 0x12345008 -} Bitwise.and (Bitwise.complement mask)
+    in
+    {- 0x000000FF -}
+    (extractedBytes + addend)
+        |> {- 0x00000FF0 -} Bitwise.shiftLeftBy bitIndex
+        |> {- 0x12345FF8 -} Bitwise.or withoutExtractedBytes
 
 
 
