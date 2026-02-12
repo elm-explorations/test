@@ -5,6 +5,7 @@ module Fuzz.Mutate.Cmd exposing (DeterministicMutateCmd(..), MutateCmd(..), dete
 -}
 
 import Bitwise
+import MicroListExtra
 import RandomRun exposing (RandomRun)
 
 
@@ -83,22 +84,22 @@ deterministicallyMutateWith cmd randomRun onMutatedRandomRun initState =
     in
     case cmd of
         BitFlip1 ->
-            do <| flipBits 1
+            do <| flipBits 1 1
 
         BitFlip2 ->
-            do <| flipBits 2
+            do <| flipBits 2 1
 
         BitFlip4 ->
-            do <| flipBits 4
+            do <| flipBits 4 1
 
         ByteFlip1 ->
-            Debug.todo "byte flip 1"
+            do <| flipBits 8 8
 
         ByteFlip2 ->
-            Debug.todo "byte flip 2"
+            do <| flipBits 16 8
 
         ByteFlip4 ->
-            Debug.todo "byte flip 4"
+            do negateWholeNumber
 
         Arithmetic1 ->
             Debug.todo "arithmetic 1"
@@ -119,38 +120,49 @@ deterministicallyMutateWith cmd randomRun onMutatedRandomRun initState =
             Debug.todo "interesting 4"
 
 
-flipBits : Int -> RandomRun -> (RandomRun -> a -> a) -> a -> a
-flipBits n randomRun onMutatedRandomRun initState =
-    let
-        maxInt32Index =
-            RandomRun.length randomRun - 1
+onEachRandomRunInt : RandomRun -> (Int -> Int -> a -> a) -> a -> a
+onEachRandomRunInt randomRun onInt32 initState =
+    randomRun
+        |> {- TODO PERF: expose a RandomRun.indexedFoldl function? -} RandomRun.toList
+        |> MicroListExtra.indexedFoldl onInt32 initState
 
+
+flipBits : Int -> Int -> RandomRun -> (RandomRun -> a -> a) -> a -> a
+flipBits n step randomRun onMutatedRandomRun initState =
+    let
         maxBitIndex =
             31 - n + 1
 
-        go : Int -> Int -> a -> a
-        go int32Index bitIndex accState =
-            if int32Index > maxInt32Index then
+        go : Int -> Int -> Int -> a -> a
+        go bitIndex int32Index int32 accState =
+            if bitIndex > maxBitIndex then
                 accState
-
-            else if bitIndex > maxBitIndex then
-                go (int32Index + 1) 0 accState
 
             else
                 let
                     mutatedRun =
                         randomRun
-                            |> RandomRun.update int32Index (flipBitsAux n bitIndex)
+                            |> RandomRun.set int32Index (flipBitsAux n bitIndex int32)
                 in
-                go int32Index (bitIndex + 1) (onMutatedRandomRun mutatedRun accState)
+                go
+                    (bitIndex + step)
+                    int32Index
+                    int32
+                    (onMutatedRandomRun mutatedRun accState)
     in
-    go 0 0 initState
+    onEachRandomRunInt randomRun (go 0) initState
 
 
 flipBitsAux : Int -> Int -> Int -> Int
 flipBitsAux n bitIndex int32 =
-    -- Create a mask with 1 for all bits you want to flip and 0 for the rest
-    -- XOR this mask with the original number
+    {- Beware: will break at n==32. Use negateWholeNumberAux instead.
+       It wouldn't work because all Elm bitwise functions are clamped to 32b,
+       and we get outside that range for a moment.
+
+       Algorithm:
+       Create a mask with 1 for all bits you want to flip and 0 for the rest
+       XOR this mask with the original number
+    -}
     let
         mask =
             -- let's say, for n=3 and bitIndex=1
@@ -161,6 +173,30 @@ flipBitsAux n bitIndex int32 =
                 |> {- 0b00001110 -} Bitwise.shiftLeftBy bitIndex
     in
     Bitwise.xor int32 mask
+
+
+negateWholeNumber : RandomRun -> (RandomRun -> a -> a) -> a -> a
+negateWholeNumber randomRun onMutatedRandomRun initState =
+    let
+        go : Int -> Int -> a -> a
+        go int32Index int32 accState =
+            let
+                mutatedRun =
+                    randomRun
+                        |> RandomRun.set int32Index (negateWholeNumberAux int32)
+            in
+            onMutatedRandomRun mutatedRun accState
+    in
+    onEachRandomRunInt randomRun go initState
+
+
+negateWholeNumberAux : Int -> Int
+negateWholeNumberAux int32 =
+    -- We need to shiftRightZfBy 0 to convert from negative to a positive number.
+    {- 0x0000000A = 10 -}
+    int32
+        |> {- 0xFFFFFFF5 = -11 -} Bitwise.complement
+        |> {- 0xFFFFFFF5 = 4294967285 -} Bitwise.shiftRightZfBy 0
 
 
 
