@@ -1,4 +1,4 @@
-module Fuzz.Mutate.Cmd exposing (DeterministicMutateCmd(..), MutateCmd(..), deterministicallyMutateWith)
+module Fuzz.Mutate.Cmd exposing (DeterministicMutateCmd(..), MutateCmd(..), deterministicallyMutate)
 
 {-| Inspired by:
 <https://lcamtuf.blogspot.com/2014/08/binary-fuzzing-strategies-what-works.html>
@@ -111,13 +111,13 @@ deterministicallyMutateWith cmd randomRun onMutatedRandomRun initState =
             do <| addNumbersToBytes 4
 
         Interesting1 ->
-            Debug.todo "interesting 1"
+            do <| interesting interesting8bit
 
         Interesting2 ->
-            Debug.todo "interesting 2"
+            do <| interesting interesting16bit
 
         Interesting4 ->
-            Debug.todo "interesting 4"
+            do <| interesting interesting32bit
 
 
 {-| Helpful for functions that only mutate each RandomRun int32 in isolation.
@@ -276,11 +276,24 @@ addNumbersToBytesAux addend nBytes byteIndex int32 =
         |> {- 0x12345FF8 -} Bitwise.or withoutExtractedBytes
 
 
-
--- Interesting 8bit, 16bit, 32bit values to replace parts of RandomRuns with.
--- interesting8bit will be used for all Interesting1, 2 and 4,
--- interesting16bit will be used for Interesting2 and 4,
--- interesting32bit will be used for Interesting4.
+interesting : List Int -> RandomRun -> (RandomRun -> a -> a) -> a -> a
+interesting numbers randomRun onMutatedRandomRun initState =
+    let
+        go : Int -> Int -> a -> a
+        go int32Index int32 accState =
+            numbers
+                |> List.foldl
+                    (\n accState_ ->
+                        let
+                            mutatedRun =
+                                randomRun
+                                    |> RandomRun.set int32Index n
+                        in
+                        onMutatedRandomRun mutatedRun accState_
+                    )
+                    accState
+    in
+    onEachRandomRunInt randomRun go initState
 
 
 interesting8bit : List Int
@@ -290,11 +303,11 @@ interesting8bit =
 
 interesting16bit : List Int
 interesting16bit =
-    {- present in AFL but duplicated in interesting8bit: 128, 255 -}
     [ 256, 512, 1000, 1024, 4096, 32767, 32768, 65407 ]
+        ++ interesting8bit
 
 
 interesting32bit : List Int
 interesting32bit =
-    {- present in AFL but duplicated in interesting8bit: 32768 -}
     [ 65535, 65536, 100663045, 2147483647, 2147483648, 4194304250, 4294934527 ]
+        ++ interesting16bit
