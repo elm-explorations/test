@@ -209,7 +209,7 @@ contextDecodeElmHtml context =
         |> Json.Decode.andThen
             (\nodeType ->
                 if nodeType == kernelConstants.virtualDom.nodeTypeText then
-                    Json.Decode.map TextTag decodeTextTag
+                    decodeTextTag
 
                 else if nodeType == kernelConstants.virtualDom.nodeTypeKeyedNode then
                     Json.Decode.map NodeEntry (decodeKeyedNode context)
@@ -233,10 +233,11 @@ contextDecodeElmHtml context =
 
 {-| decode text tag
 -}
-decodeTextTag : Json.Decode.Decoder TextTagRecord
+decodeTextTag : Json.Decode.Decoder (ElmHtml msg)
 decodeTextTag =
     field kernelConstants.virtualDom.text
         (Json.Decode.map (\text -> { text = text }) Json.Decode.string)
+        |> Json.Decode.map TextTag
 
 
 {-| decode a tagger
