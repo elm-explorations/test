@@ -150,7 +150,7 @@ queryInNodeHelp maxDescendantDepth selector node =
             else
                 childEntries
 
-        TextTag { text } ->
+        TextTag text ->
             case selector of
                 ContainsText innerText ->
                     if String.contains innerText text then

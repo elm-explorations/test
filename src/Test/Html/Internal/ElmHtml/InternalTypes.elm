@@ -1,5 +1,5 @@
 module Test.Html.Internal.ElmHtml.InternalTypes exposing
-    ( ElmHtml(..), TextTagRecord, NodeRecord, CustomNodeRecord, MarkdownNodeRecord
+    ( ElmHtml(..), NodeRecord, CustomNodeRecord, MarkdownNodeRecord
     , Facts, Tagger, EventHandler, ElementKind(..)
     , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
     , Validation(..), validationMessage, validationFromMessage
@@ -8,7 +8,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
 
 {-| Internal types used to represent Elm Html in pure Elm
 
-@docs ElmHtml, TextTagRecord, NodeRecord, CustomNodeRecord, MarkdownNodeRecord
+@docs ElmHtml, NodeRecord, CustomNodeRecord, MarkdownNodeRecord
 
 @docs Facts, Tagger, EventHandler, ElementKind
 
@@ -38,16 +38,10 @@ import VirtualDom
 
 -}
 type ElmHtml msg
-    = TextTag TextTagRecord
+    = TextTag String
     | NodeEntry (NodeRecord msg)
     | CustomNode (CustomNodeRecord msg)
     | MarkdownNode (MarkdownNodeRecord msg)
-
-
-{-| Text tags just contain text
--}
-type alias TextTagRecord =
-    { text : String }
 
 
 {-| A node contains the `tag` as a string, the children, the facts (e.g attributes) and descendantsCount
@@ -236,8 +230,7 @@ contextDecodeElmHtml context =
 decodeTextTag : Json.Decode.Decoder (ElmHtml msg)
 decodeTextTag =
     field kernelConstants.virtualDom.text
-        (Json.Decode.map (\text -> { text = text }) Json.Decode.string)
-        |> Json.Decode.map TextTag
+        (Json.Decode.map TextTag Json.Decode.string)
 
 
 {-| decode a tagger
