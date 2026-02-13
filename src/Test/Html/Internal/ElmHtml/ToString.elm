@@ -80,9 +80,7 @@ nodeRecordToString options { tag, children, facts } =
         openTag extras =
             let
                 trimmedExtras =
-                    List.filterMap (\x -> x) extras
-                        |> List.map String.trim
-                        |> List.filter ((/=) "")
+                    List.filterMap (Maybe.andThen (String.trim >> nothingIfEmpty)) extras
 
                 filling =
                     case trimmedExtras of
@@ -154,3 +152,12 @@ nodeRecordToString options { tag, children, facts } =
             openTag [ classes, styles, stringAttributes, boolAttributes ]
                 :: childrenStrings
                 ++ [ closeTag ]
+
+
+nothingIfEmpty : String -> Maybe String
+nothingIfEmpty str =
+    if str == "" then
+        Nothing
+
+    else
+        Just str
