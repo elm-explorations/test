@@ -217,7 +217,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
 
 withHtmlContext : String -> String -> String
 withHtmlContext htmlStr str =
-    String.join "\n\n" [ str, htmlStr ]
+    str ++ "\n\n" ++ htmlStr
 
 
 getHtmlContext : List (ElmHtml msg) -> String
