@@ -240,11 +240,12 @@ getHtmlContext elmHtmlList =
 
 joinAsList : (a -> String) -> List a -> String
 joinAsList toStr list =
-    if List.isEmpty list then
-        "[]"
+    case list of
+        [] ->
+            "[]"
 
-    else
-        "[ " ++ String.join ", " (List.map toStr list) ++ " ]"
+        first :: tail ->
+            List.foldl (\x str -> str ++ ", " ++ toStr x) ("[ " ++ toStr first) tail ++ " ]"
 
 
 printIndented : Int -> Int -> ElmHtml msg -> String
