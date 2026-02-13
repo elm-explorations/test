@@ -105,14 +105,6 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
             -- sees is Query.find rather than something like
             -- Query.has, to reflect how we didn't make it that far.
             String.join "\n\n\n✗ " [ result, expectationFailure ] :: results
-
-        recurse newElmHtmlList rest result =
-            toLinesHelp
-                expectationFailure
-                newElmHtmlList
-                rest
-                queryName
-                (result :: results)
     in
     case selectorQueries of
         [] ->
@@ -126,10 +118,17 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                             elmHtmlList
                                 |> List.concatMap getChildren
                                 |> InternalSelector.queryAll selectors
+
+                        result =
+                            ("Query.findAll " ++ joinAsList selectorToString selectors)
+                                |> withHtmlContext (getHtmlContext elements)
                     in
-                    ("Query.findAll " ++ joinAsList selectorToString selectors)
-                        |> withHtmlContext (getHtmlContext elements)
-                        |> recurse elements rest
+                    toLinesHelp
+                        expectationFailure
+                        elements
+                        rest
+                        queryName
+                        (result :: results)
 
                 Find selectors ->
                     let
@@ -143,7 +142,12 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                                 |> withHtmlContext (getHtmlContext elements)
                     in
                     if List.length elements == 1 then
-                        recurse elements rest result
+                        toLinesHelp
+                            expectationFailure
+                            elements
+                            rest
+                            queryName
+                            (result :: results)
 
                     else
                         bailOut result
@@ -154,10 +158,17 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                             elmHtmlList
                                 |> List.concatMap getChildren
                                 |> InternalSelector.queryAllChildren selectors
+
+                        result =
+                            ("Query.children " ++ joinAsList selectorToString selectors)
+                                |> withHtmlContext (getHtmlContext elements)
                     in
-                    ("Query.children " ++ joinAsList selectorToString selectors)
-                        |> withHtmlContext (getHtmlContext elements)
-                        |> recurse elements rest
+                    toLinesHelp
+                        expectationFailure
+                        elements
+                        rest
+                        queryName
+                        (result :: results)
 
                 First ->
                     let
@@ -172,7 +183,12 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                                 |> withHtmlContext (getHtmlContext elements)
                     in
                     if List.length elements == 1 then
-                        recurse elements rest result
+                        toLinesHelp
+                            expectationFailure
+                            elements
+                            rest
+                            queryName
+                            (result :: results)
 
                     else
                         bailOut result
@@ -188,7 +204,12 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                                 |> withHtmlContext (getHtmlContext elements)
                     in
                     if List.length elements == 1 then
-                        recurse elements rest result
+                        toLinesHelp
+                            expectationFailure
+                            elements
+                            rest
+                            queryName
+                            (result :: results)
 
                     else
                         bailOut result
