@@ -421,18 +421,6 @@ decodeFacts (HtmlContext taggers eventDecoder) =
         (decodeOthers Json.Decode.bool Nothing)
 
 
-{-| Just empty facts
--}
-emptyFacts : Facts msg
-emptyFacts =
-    { styles = Dict.empty
-    , events = Dict.empty
-    , attributeNamespace = Nothing
-    , stringAttributes = Dict.empty
-    , boolAttributes = Dict.empty
-    }
-
-
 {-| Decode a JSON object into an Attribute. You have to pass a function that
 decodes events from event attributes. If you don't want to decode event msgs,
 you can ignore it:
