@@ -157,9 +157,13 @@ nodeRecordToString options { tag, children, facts } =
                 closeTag =
                     "</" ++ tag ++ ">"
 
+                indent : String
+                indent =
+                    String.repeat options.indent " "
+
                 childrenStrings =
                     List.concatMap (nodeToLines options) children
-                        |> List.map ((++) (String.repeat options.indent " "))
+                        |> List.map ((++) indent)
             in
             openTag_
                 :: childrenStrings
