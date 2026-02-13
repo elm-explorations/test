@@ -93,16 +93,16 @@ nodeRecordToString options { tag, children, facts } =
             "<" ++ tag ++ filling ++ ">"
 
         styles =
-            case Dict.toList facts.styles of
-                [] ->
-                    Nothing
+            if Dict.isEmpty facts.styles then
+                Nothing
 
-                styleValues ->
-                    styleValues
-                        |> List.map (\( key, value ) -> key ++ ":" ++ value ++ ";")
-                        |> String.join ""
-                        |> (\styleString -> "style=\"" ++ styleString ++ "\"")
-                        |> Just
+            else
+                let
+                    styleString : String
+                    styleString =
+                        Dict.foldl (\key value str -> str ++ key ++ ":" ++ value ++ ";") "" facts.styles
+                in
+                Just ("style=\"" ++ styleString ++ "\"")
 
         classes =
             Dict.get "className" facts.stringAttributes
