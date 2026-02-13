@@ -109,10 +109,17 @@ nodeRecordToString options { tag, children, facts } =
                 |> Maybe.map (\name -> "class=\"" ++ name ++ "\"")
 
         stringAttributes =
-            Dict.filter (\k _ -> k /= "className") facts.stringAttributes
-                |> Dict.toList
-                |> List.map (\( k, v ) -> k ++ "=\"" ++ v ++ "\"")
-                |> String.join " "
+            Dict.foldl
+                (\k v str ->
+                    if k == "className" then
+                        str
+
+                    else
+                        str ++ " " ++ k ++ "=\"" ++ v ++ "\""
+                )
+                ""
+                facts.stringAttributes
+                |> String.trimLeft
                 |> Just
 
         boolAttributes =
