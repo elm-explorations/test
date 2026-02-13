@@ -76,6 +76,8 @@ ifNotEmpty n xs =
         |> Maybe.map (\gen -> ( n, gen ))
 
 
+{-| Either generates a brand new input, or picks a mutated input from the queue.
+-}
 generator : InputCorpus -> Generator (Maybe ( RandomRun, BucketedEdgeHitCounts ))
 generator corpus =
     if isEmpty corpus then
@@ -105,24 +107,18 @@ generator corpus =
                 |> List.filterMap identity
             )
             |> Random.andThen identity
-            |> Random.andThen
-                (\maybeInput ->
-                    case maybeInput of
-                        Nothing ->
-                            Random.constant Nothing
-
-                        Just input ->
-                            mutate input.randomRun
-                                |> Random.map
-                                    (\mutatedRandomRun ->
-                                        Just
-                                            ( mutatedRandomRun
-                                            , input.bucketedEdgeHitCounts
-                                            )
-                                    )
+            |> Random.map
+                (Maybe.map
+                    (\input ->
+                        let
+                            _ =
+                                Debug.log "have picked up an input from the corpus"
+                                    (RandomRun.toList input.randomRun)
+                        in
+                        -- TODO where do we move the inputs across Corpus categories?
+                        -- TODO where do we mutate the input after testing and add all the new inputs into the corpus?
+                        ( input.randomRun
+                        , input.bucketedEdgeHitCounts
+                        )
+                    )
                 )
-
-
-mutate : RandomRun -> Generator RandomRun
-mutate randomRun =
-    Random.constant ()
