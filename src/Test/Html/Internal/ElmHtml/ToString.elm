@@ -163,7 +163,7 @@ nodeRecordToString options { tag, children, facts } =
 
                 childrenStrings =
                     List.concatMap (nodeToLines options) children
-                        |> List.map ((++) indent)
+                        |> List.map (\x -> indent ++ x ++ "")
             in
             openTag_
                 :: childrenStrings
