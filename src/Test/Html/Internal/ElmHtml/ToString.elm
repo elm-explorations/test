@@ -163,11 +163,9 @@ nodeRecordToString options { tag, children, facts } =
 
                 childrenStrings =
                     List.concatMap (nodeToLines options) children
-                        |> List.map (\x -> indent ++ x ++ "")
+                        |> List.foldr (\x list -> (indent ++ x ++ "") :: list) [ closeTag ]
             in
-            openTag_
-                :: childrenStrings
-                ++ [ closeTag ]
+            openTag_ :: childrenStrings
 
 
 nothingIfEmpty : String -> Maybe String
