@@ -123,16 +123,17 @@ nodeRecordToString options { tag, children, facts } =
                 |> Just
 
         boolAttributes =
-            Dict.toList facts.boolAttributes
-                |> List.filterMap
-                    (\( k, v ) ->
-                        if v then
-                            Just k
+            Dict.foldl
+                (\k v str ->
+                    if v then
+                        str ++ " " ++ k
 
-                        else
-                            Nothing
-                    )
-                |> String.join " "
+                    else
+                        str
+                )
+                ""
+                facts.boolAttributes
+                |> String.trimLeft
                 |> Just
     in
     case toElementKind tag of
