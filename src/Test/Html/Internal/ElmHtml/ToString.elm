@@ -135,13 +135,17 @@ nodeRecordToString options { tag, children, facts } =
                 facts.boolAttributes
                 |> String.trimLeft
                 |> Just
+
+        openTag_ : String
+        openTag_ =
+            openTag [ classes, styles, stringAttributes, boolAttributes ]
     in
     case toElementKind tag of
         {- Void elements only have a start tag; end tags must not be
            specified for void elements.
         -}
         VoidElements ->
-            [ openTag [ classes, styles, stringAttributes, boolAttributes ] ]
+            [ openTag_ ]
 
         {- TODO: implement restrictions for RawTextElements,
            EscapableRawTextElements. Also handle ForeignElements correctly.
@@ -157,7 +161,7 @@ nodeRecordToString options { tag, children, facts } =
                     List.concatMap (nodeToLines options) children
                         |> List.map ((++) (String.repeat options.indent " "))
             in
-            openTag [ classes, styles, stringAttributes, boolAttributes ]
+            openTag_
                 :: childrenStrings
                 ++ [ closeTag ]
 
