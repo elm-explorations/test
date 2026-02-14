@@ -24,16 +24,13 @@ import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
 -}
 type Selector
-    = Id String
-    | ClassName String
-    | ClassList (List String)
+    = ClassList (List String)
     | Tag String
     | Attribute String String
     | BoolAttribute String Bool
     | Style { key : String, value : String }
     | ContainsText String
     | ContainsExactText String
-    | Multiple (List Selector)
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
@@ -143,13 +140,6 @@ predicateFromSelector selector html =
             False
 
 
-hasAllSelectors : List Selector -> ElmHtml msg -> Bool
-hasAllSelectors selectors record =
-    List.map predicateFromSelector selectors
-        |> List.map (\selector -> selector record)
-        |> List.all identity
-
-
 hasAttribute : String -> String -> Facts msg -> Bool
 hasAttribute attribute queryString facts =
     case Dict.get attribute facts.stringAttributes of
@@ -168,11 +158,6 @@ hasBoolAttribute attribute value facts =
 
         Nothing ->
             False
-
-
-hasClass : String -> Facts msg -> Bool
-hasClass queryString facts =
-    List.member queryString (classnames facts)
 
 
 hasClasses : List String -> Facts msg -> Bool
@@ -227,14 +212,6 @@ containsAll a b =
 nodeRecordPredicate : Selector -> (NodeRecord msg -> Bool)
 nodeRecordPredicate selector =
     case selector of
-        Id id ->
-            .facts
-                >> hasAttribute "id" id
-
-        ClassName classname ->
-            .facts
-                >> hasClass classname
-
         ClassList classList ->
             .facts
                 >> hasClasses classList
@@ -261,22 +238,10 @@ nodeRecordPredicate selector =
         ContainsExactText _ ->
             always False
 
-        Multiple selectors ->
-            NodeEntry
-                >> hasAllSelectors selectors
-
 
 markdownPredicate : Selector -> (MarkdownNodeRecord msg -> Bool)
 markdownPredicate selector =
     case selector of
-        Id id ->
-            .facts
-                >> hasAttribute "id" id
-
-        ClassName classname ->
-            .facts
-                >> hasClass classname
-
         ClassList classList ->
             .facts
                 >> hasClasses classList
@@ -305,7 +270,3 @@ markdownPredicate selector =
             .model
                 >> .markdown
                 >> (==) text
-
-        Multiple selectors ->
-            MarkdownNode
-                >> hasAllSelectors selectors
