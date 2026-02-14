@@ -25,17 +25,6 @@ invalid =
 
 selectorToString : Selector -> String
 selectorToString criteria =
-    let
-        quoteString s =
-            "\"" ++ s ++ "\""
-
-        boolToString b =
-            if b then
-                "True"
-
-            else
-                "False"
-    in
     case criteria of
         All list ->
             list
@@ -83,6 +72,20 @@ selectorToString criteria =
 
         Invalid () ->
             "invalid"
+
+
+quoteString : String -> String
+quoteString s =
+    "\"" ++ s ++ "\""
+
+
+boolToString : Bool -> String
+boolToString b =
+    if b then
+        "True"
+
+    else
+        "False"
 
 
 styleToString : { key : String, value : String } -> String
