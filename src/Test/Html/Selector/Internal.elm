@@ -125,8 +125,8 @@ queryAllChildren selectors list =
             list
 
         selector :: rest ->
-            query ElmHtmlQuery.queryChildren queryAllChildren selector list
-                |> queryAllChildren rest
+            queryAllChildren rest
+                (query ElmHtmlQuery.queryChildren queryAllChildren selector list)
 
 
 query :
