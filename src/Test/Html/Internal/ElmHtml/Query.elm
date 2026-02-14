@@ -90,7 +90,7 @@ as well as all of its descendants.
 -}
 query : Selector -> ElmHtml msg -> List (ElmHtml msg)
 query selector =
-    queryInNodeHelp Nothing selector
+    queryInNode Nothing selector
 
 
 {-| Query an ElmHtml node using multiple selectors, considering both the node itself
@@ -106,7 +106,7 @@ as well as all of its descendants.
 -}
 queryChildren : Selector -> ElmHtml msg -> List (ElmHtml msg)
 queryChildren =
-    queryInNodeHelp (Just 1)
+    queryInNode (Just 1)
 
 
 {-| Returns just the immediate children of an ElmHtml node
@@ -126,11 +126,11 @@ any descendants lower than its immediate children.
 -}
 queryChildrenAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
 queryChildrenAll selectors =
-    queryInNodeHelp (Just 1) (Multiple selectors)
+    queryInNode (Just 1) (Multiple selectors)
 
 
-queryInNodeHelp : Maybe Int -> Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryInNodeHelp maxDescendantDepth selector node =
+queryInNode : Maybe Int -> Selector -> ElmHtml msg -> List (ElmHtml msg)
+queryInNode maxDescendantDepth selector node =
     case node of
         NodeEntry record ->
             let
@@ -179,14 +179,14 @@ descendInQuery maxDescendantDepth selector children =
         Nothing ->
             -- No maximum, so continue.
             List.concatMap
-                (queryInNodeHelp Nothing selector)
+                (queryInNode Nothing selector)
                 children
 
         Just depth ->
             if depth > 0 then
                 -- Continue with maximum depth reduced by 1.
                 List.concatMap
-                    (queryInNodeHelp (Just (depth - 1)) selector)
+                    (queryInNode (Just (depth - 1)) selector)
                     children
 
             else
