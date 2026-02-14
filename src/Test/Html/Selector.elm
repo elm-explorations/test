@@ -198,11 +198,12 @@ attribute attr =
 
         Ok (InternalTypes.Property { key, value }) ->
             if key == "className" then
-                value
-                    |> Json.Decode.decodeValue Json.Decode.string
-                    |> Result.map (String.split " ")
-                    |> Result.withDefault []
-                    |> Classes
+                case Json.Decode.decodeValue Json.Decode.string value of
+                    Ok classesStr ->
+                        Classes (String.split " " classesStr)
+
+                    Err _ ->
+                        Classes []
 
             else
                 value
