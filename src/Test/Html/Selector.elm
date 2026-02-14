@@ -214,16 +214,16 @@ attribute attr =
                                 |> Json.Decode.decodeValue Json.Decode.bool
                                 |> Result.map (namedBoolAttr key)
                         )
-                    |> Result.withDefault Invalid
+                    |> Result.withDefault Internal.invalid
 
         Ok (InternalTypes.Style { key, value }) ->
             Style { key = key, value = value }
 
         Ok (InternalTypes.NamespacedAttribute _) ->
-            Invalid
+            Internal.invalid
 
         Err _ ->
-            Invalid
+            Internal.invalid
 
 
 {-| Matches elements that have the given style properties (and possibly others as well).

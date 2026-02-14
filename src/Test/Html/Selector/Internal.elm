@@ -1,4 +1,4 @@
-module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, queryAll, queryAllChildren, selectorToString)
+module Test.Html.Selector.Internal exposing (Selector(..), hasAll, invalid, namedAttr, namedBoolAttr, queryAll, queryAllChildren, selectorToString)
 
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
 import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
@@ -15,7 +15,12 @@ type Selector
     | Text String
     | ExactText String
     | Containing (List Selector)
-    | Invalid
+    | Invalid ()
+
+
+invalid : Selector
+invalid =
+    Invalid ()
 
 
 selectorToString : Selector -> String
@@ -76,7 +81,7 @@ selectorToString criteria =
             in
             "containing [ " ++ selectors ++ " ] "
 
-        Invalid ->
+        Invalid () ->
             "invalid"
 
 
@@ -183,7 +188,7 @@ query fn fnAll selector list =
                     in
                     List.filter anyDescendantsMatch elems
 
-                Invalid ->
+                Invalid () ->
                     []
 
 
