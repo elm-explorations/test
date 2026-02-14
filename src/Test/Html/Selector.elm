@@ -187,14 +187,14 @@ given their semantics in `Html`.
 attribute : Attribute Never -> Selector
 attribute attr =
     case Inert.parseAttribute attr of
-        Ok (InternalTypes.Attribute { key, value }) ->
-            if String.toLower key == "class" then
+        Ok (InternalTypes.Attribute { name, value }) ->
+            if String.toLower name == "class" then
                 value
                     |> String.split " "
                     |> Classes
 
             else
-                namedAttr key value
+                namedAttr name value
 
         Ok (InternalTypes.Property { key, value }) ->
             if key == "className" then

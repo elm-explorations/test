@@ -146,7 +146,7 @@ type Attribute
 {-| Attribute contains a string key and a string value
 -}
 type alias AttributeRecord =
-    { key : String
+    { name : String
     , value : String
     }
 
@@ -432,7 +432,7 @@ decodeAttribute =
 
 attributeDecoder : Json.Decode.Decoder Attribute
 attributeDecoder =
-    Json.Decode.map2 (\key val -> Attribute (AttributeRecord key val))
+    Json.Decode.map2 (\name val -> Attribute (AttributeRecord name val))
         (Json.Decode.field "n" Json.Decode.string)
         (Json.Decode.field "o" Json.Decode.string)
 
