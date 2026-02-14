@@ -208,12 +208,12 @@ attribute attr =
             else
                 value
                     |> Json.Decode.decodeValue Json.Decode.string
-                    |> Result.map (namedAttr key)
+                    |> Result.map (\v -> namedAttr key v)
                     |> orElseLazy
                         (\() ->
                             value
                                 |> Json.Decode.decodeValue Json.Decode.bool
-                                |> Result.map (namedBoolAttr key)
+                                |> Result.map (\b -> namedBoolAttr key b)
                         )
                     |> Result.withDefault Internal.invalid
 
