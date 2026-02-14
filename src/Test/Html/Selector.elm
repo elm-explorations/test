@@ -177,8 +177,8 @@ id =
 
 -}
 tag : String -> Selector
-tag name =
-    Tag name
+tag =
+    Tag
 
 
 {-| Matches elements that have the given attribute in a way that makes sense
