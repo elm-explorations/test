@@ -386,10 +386,12 @@ traverseSelector selectorQuery elmHtmlList =
                 |> Ok
 
         First ->
-            elmHtmlList
-                |> List.head
-                |> Maybe.map (\elem -> Ok [ elem ])
-                |> Maybe.withDefault (Err (NoResultsForSingle "Query.first"))
+            case elmHtmlList of
+                elem :: _ ->
+                    Ok [ elem ]
+
+                [] ->
+                    Err (NoResultsForSingle "Query.first")
 
         Index index ->
             let
