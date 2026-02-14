@@ -85,11 +85,12 @@ queryByBoolAttribute key value =
     query (BoolAttribute key value)
 
 
-{-| Query an ElmHtml element using a selector, searching all children.
+{-| Query an ElmHtml node using a selector, considering both the node itself
+as well as all of its descendants.
 -}
 query : Selector -> ElmHtml msg -> List (ElmHtml msg)
 query selector =
-    queryInNode selector
+    queryInNodeHelp Nothing selector
 
 
 {-| Query an ElmHtml node using multiple selectors, considering both the node itself
@@ -98,14 +99,6 @@ as well as all of its descendants.
 queryAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
 queryAll selectors =
     query (Multiple selectors)
-
-
-{-| Query an ElmHtml node using a selector, considering both the node itself
-as well as all of its descendants.
--}
-queryInNode : Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryInNode =
-    queryInNodeHelp Nothing
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
