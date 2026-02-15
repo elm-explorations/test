@@ -219,8 +219,8 @@ decrementTogetherCmds length =
                     |> List.fastConcatMap
                         (\offset ->
                             [ 4, 2, 1 ]
-                                |> List.map
-                                    (\by ->
+                                |> List.foldr
+                                    (\by acc ->
                                         let
                                             rightIndex =
                                                 index + offset
@@ -233,7 +233,9 @@ decrementTogetherCmds length =
                                                 }
                                         , minLength = rightIndex + 1
                                         }
+                                            :: acc
                                     )
+                                    []
                         )
             )
 
