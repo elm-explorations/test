@@ -247,10 +247,10 @@ redistributeCmds length =
                 cmds
 
             else
-                (List.range 0 (length - 1 - offset)
+                List.range 0 (length - 1 - offset)
                     |> List.reverse
-                    |> List.map
-                        (\leftIndex ->
+                    |> List.foldr
+                        (\leftIndex acc ->
                             { type_ =
                                 RedistributeChoicesAndMaybeIncrement
                                     { leftIndex = leftIndex
@@ -258,9 +258,9 @@ redistributeCmds length =
                                     }
                             , minLength = leftIndex + offset + 1
                             }
+                                :: acc
                         )
-                )
-                    ++ cmds
+                        cmds
     in
     []
         |> forOffset 3
