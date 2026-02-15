@@ -218,8 +218,8 @@ decrementTogetherCmds length =
                 List.range 1 maxOffset
                     |> List.fastConcatMap
                         (\offset ->
-                            [ 4, 2, 1 ]
-                                |> List.foldr
+                            [ 1, 2, 4 ]
+                                |> List.foldl
                                     (\by acc ->
                                         let
                                             rightIndex =
