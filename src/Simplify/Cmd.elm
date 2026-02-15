@@ -248,8 +248,7 @@ redistributeCmds length =
 
             else
                 List.range 0 (length - 1 - offset)
-                    |> List.reverse
-                    |> List.foldr
+                    |> List.foldl
                         (\leftIndex acc ->
                             { type_ =
                                 RedistributeChoicesAndMaybeIncrement
