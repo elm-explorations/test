@@ -240,31 +240,31 @@ decrementTogetherCmds length =
 
 redistributeCmds : Int -> List SimplifyCmd
 redistributeCmds length =
-    let
-        forOffset : Int -> List SimplifyCmd -> List SimplifyCmd
-        forOffset offset cmds =
-            if offset >= length then
-                cmds
-
-            else
-                List.range 0 (length - 1 - offset)
-                    |> List.foldl
-                        (\leftIndex acc ->
-                            { type_ =
-                                RedistributeChoicesAndMaybeIncrement
-                                    { leftIndex = leftIndex
-                                    , rightIndex = leftIndex + offset
-                                    }
-                            , minLength = leftIndex + offset + 1
-                            }
-                                :: acc
-                        )
-                        cmds
-    in
     []
-        |> forOffset 3
-        |> forOffset 2
-        |> forOffset 1
+        |> forOffset length 3
+        |> forOffset length 2
+        |> forOffset length 1
+
+
+forOffset : Int -> Int -> List SimplifyCmd -> List SimplifyCmd
+forOffset length offset cmds =
+    if offset >= length then
+        cmds
+
+    else
+        List.range 0 (length - 1 - offset)
+            |> List.foldl
+                (\leftIndex acc ->
+                    { type_ =
+                        RedistributeChoicesAndMaybeIncrement
+                            { leftIndex = leftIndex
+                            , rightIndex = leftIndex + offset
+                            }
+                    , minLength = leftIndex + offset + 1
+                    }
+                        :: acc
+                )
+                cmds
 
 
 swapCmds : Int -> List SimplifyCmd
