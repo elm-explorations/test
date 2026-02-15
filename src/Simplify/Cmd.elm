@@ -241,13 +241,13 @@ decrementTogetherCmds length =
 redistributeCmds : Int -> List SimplifyCmd
 redistributeCmds length =
     let
-        forOffset : Int -> List SimplifyCmd
-        forOffset offset =
+        forOffset : Int -> List SimplifyCmd -> List SimplifyCmd
+        forOffset offset cmds =
             if offset >= length then
-                []
+                cmds
 
             else
-                List.range 0 (length - 1 - offset)
+                (List.range 0 (length - 1 - offset)
                     |> List.reverse
                     |> List.map
                         (\leftIndex ->
@@ -259,8 +259,13 @@ redistributeCmds length =
                             , minLength = leftIndex + offset + 1
                             }
                         )
+                )
+                    ++ cmds
     in
-    forOffset 3 ++ forOffset 2 ++ forOffset 1
+    []
+        |> forOffset 3
+        |> forOffset 2
+        |> forOffset 1
 
 
 swapCmds : Int -> List SimplifyCmd
