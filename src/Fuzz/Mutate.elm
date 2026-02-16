@@ -1,4 +1,4 @@
-module Fuzz.Mutate.Cmd exposing (DeterministicMutateCmd(..), MutateCmd(..), deterministicallyMutate)
+module Fuzz.Mutate exposing (DeterministicMutateCmd(..), deterministicallyMutate)
 
 {-| Inspired by:
 <https://lcamtuf.blogspot.com/2014/08/binary-fuzzing-strategies-what-works.html>
@@ -9,8 +9,49 @@ import MicroListExtra
 import RandomRun exposing (RandomRun)
 
 
-type MutateCmd
-    = Deterministic DeterministicMutateCmd
+
+{- TODO: add non-deterministic mutations. Reading from the AFL doc above:
+
+
+   ## Stacked tweaks
+
+   With deterministic strategies exhausted for a particular input file, the fuzzer
+   continues with a never-ending loop of randomized operations that consist of a
+   stacked sequence of:
+
+   * Single-bit flips,
+   * Attempts to set "interesting" bytes, words, or dwords (both endians),
+   * Addition or subtraction of small integers to bytes, words, or dwords (both
+     endians),
+   * Completely random single-byte sets,
+   * Block deletion,
+   * Block duplication via overwrite or insertion,
+   * Block memset.
+
+   Based on a fair amount of testing, the optimal execution path yields appear to
+   be achieved when the probability of each operation is roughly the same; the
+   number of stacked operations is chosen as a power-of-two between 1 and 64; and
+   the block size for block operations is capped at around 1 kB.
+
+   The absolute yield for this stage is typically comparable or higher than the
+   total number of execution paths discovered by all deterministic stages earlier
+   on.
+
+
+   ## Test case splicing
+
+   This is a last-resort strategy that involves taking two distinct input files
+   from the queue that differ in at least two locations; and splicing them at a
+   random location in the middle before sending this transient input file through
+   a short run of the "stacked tweaks" algorithm. This strategy usually discovers
+   around 20% additional execution paths that are unlikely to trigger using the
+   previous operation alone.
+
+   (Of course, this method requires a good, varied corpus of input files to begin
+   with; afl generates one automatically, but for other tools, you may have to
+   construct it manually.)
+
+-}
 
 
 type DeterministicMutateCmd
@@ -67,15 +108,15 @@ enabledDeterministicMutations =
 -}
 
 
-deterministicallyMutate : RandomRun -> (RandomRun -> a -> a) -> a -> a
-deterministicallyMutate randomRun onMutatedRandomRun initState =
+deterministicallyMutate : RandomRun -> List RandomRun
+deterministicallyMutate randomRun =
     enabledDeterministicMutations
         |> List.foldl
             (\cmd accState -> deterministicallyMutateWith cmd randomRun onMutatedRandomRun accState)
             initState
 
 
-deterministicallyMutateWith : DeterministicMutateCmd -> RandomRun -> (RandomRun -> a -> a) -> a -> a
+deterministicallyMutateWith : DeterministicMutateCmd -> RandomRun -> List RandomRun
 deterministicallyMutateWith cmd randomRun onMutatedRandomRun initState =
     let
         do : (RandomRun -> (RandomRun -> a -> a) -> a -> a) -> a

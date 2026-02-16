@@ -176,7 +176,7 @@ fuzzLoop c state =
                 let
                     newState : LoopState
                     newState =
-                        runNTimes (c.runsNeeded - state.runsElapsed) c state
+                        runNTimesOrUntilFailure (c.runsNeeded - state.runsElapsed) c state
                 in
                 fuzzLoop c newState
 
@@ -239,7 +239,7 @@ fuzzLoop c state =
                                     let
                                         newState : LoopState
                                         newState =
-                                            runNTimes (2 ^ state.nextPowerOfTwo) c state
+                                            runNTimesOrUntilFailure (2 ^ state.nextPowerOfTwo) c state
                                     in
                                     fuzzLoop c { newState | nextPowerOfTwo = newState.nextPowerOfTwo + 1 }
 
@@ -453,26 +453,24 @@ distributionInsufficientFailure failure =
     }
 
 
-{-| Short-circuits on failure.
--}
-runNTimes : Int -> LoopConstants a -> LoopState -> LoopState
-runNTimes times c state =
+runNTimesOrUntilFailure : Int -> LoopConstants a -> LoopState -> LoopState
+runNTimesOrUntilFailure times c state =
     if times <= 0 || state.failure /= Nothing then
         state
 
     else
-        runNTimes (times - 1) c (runOnce c state)
+        runNTimesOrUntilFailure (times - 1) c (runOnce c state)
 
 
-generateOrMutate :
+generateOrPickFromCorpus :
     Fuzzer a
     -> LoopState
     ->
-        ( GenResult a
+        ( Maybe RandomRun
         , Maybe BucketedEdgeHitCounts
-        , Maybe Random.Seed
+        , Random.Seed
         )
-generateOrMutate fuzzer state =
+generateOrPickFromCorpus fuzzer state =
     let
         ( corpusInput, newSeed ) =
             Random.step
@@ -481,53 +479,33 @@ generateOrMutate fuzzer state =
     in
     case corpusInput of
         Nothing ->
-            let
-                genResult : GenResult a
-                genResult =
-                    Fuzz.Internal.generate
-                        (PRNG.random newSeed)
-                        fuzzer
-            in
-            ( genResult
+            ( Nothing
             , Nothing
-            , genResult
-                |> GenResult.getPrng
-                |> PRNG.getSeed
+            , newSeed
             )
 
         Just ( randomRun, previousInputBucketedEdgeHitCounts ) ->
-            ( Fuzz.Internal.generate
-                (PRNG.hardcoded randomRun)
-                fuzzer
+            ( Just randomRun
             , Just previousInputBucketedEdgeHitCounts
-            , Just newSeed
+            , newSeed
             )
 
 
-{-| Generate a fuzzed value, test it, record the simplified test failure if any
+{-| Generate a fuzzed value (fully random or picked from , test it, record the simplified test failure if any
 and optionally categorize the value.
 -}
 runOnce : LoopConstants a -> LoopState -> LoopState
 runOnce c state =
     let
-        {- It's possible this value was Generated from a mutated RandomRun from
+        {- It's possible this value was picked from  from a mutated RandomRun from
            some previous interesting corpus input.
 
            In that case we need the previous input's coverage (edge hit
            counts), to see if the new input's coverage hit some paths way more
            often.
         -}
-        ( genResult, previousInputBucketedEdgeHitCounts, maybeNextSeed ) =
-            generateOrMutate c.fuzzer state
-
-        nextSeed : Random.Seed
-        nextSeed =
-            case maybeNextSeed of
-                Just seed ->
-                    seed
-
-                Nothing ->
-                    stepSeed state.currentSeed
+        ( randomRun, previousInputBucketedEdgeHitCounts, nextSeed ) =
+            generateOrPickFromCorpus c.fuzzer state
 
         ( maybeFailure, newDistributionCounter, newCorpus ) =
             case genResult of
@@ -579,20 +557,20 @@ runOnce c state =
                                 |> Test.Expectation.getReason
                                 |> Maybe.map Test.Internal.toString
 
-                        ( newBucketed, isInterestingDueToBucketChange ) =
+                        newBucketed : BucketedEdgeHitCounts
+                        newBucketed =
+                            Test.Coverage.EdgeHitCounts.bucketed edgeCoverage.edgeHitCounts
+
+                        isInterestingDueToBucketChange : Bool
+                        isInterestingDueToBucketChange =
                             case previousInputBucketedEdgeHitCounts of
                                 Nothing ->
-                                    ( Nothing, False )
+                                    False
 
                                 Just previousBucketed ->
-                                    let
-                                        bucketed =
-                                            Test.Coverage.EdgeHitCounts.bucketed edgeCoverage.edgeHitCounts
-                                    in
-                                    ( Just bucketed
-                                    , bucketed
-                                        |> Test.Coverage.EdgeHitCounts.isImprovementOver previousBucketed
-                                    )
+                                    Test.Coverage.EdgeHitCounts.isImprovementOver
+                                        previousBucketed
+                                        newBucketed
 
                         isRunInterestingForCorpus : Bool
                         isRunInterestingForCorpus =
@@ -635,15 +613,12 @@ runOnce c state =
                         newCorpus_ =
                             if isRunInterestingForCorpus then
                                 state.inputCorpus
-                                    |> Fuzz.InputCorpus.add
-                                        randomRun
-                                        edgeCoverage.durationMs
-                                        (case newBucketed of
-                                            Just newBucketed_ ->
-                                                newBucketed_
-
-                                            Nothing ->
-                                                Test.Coverage.EdgeHitCounts.bucketed edgeCoverage.edgeHitCounts
+                                    |> Fuzz.Mutate.deterministicallyMutate randomRun
+                                        (\newRun ->
+                                            Fuzz.InputCorpus.add
+                                                newRun
+                                                edgeCoverage.durationMs
+                                                newBucketed
                                         )
 
                             else
@@ -734,15 +709,6 @@ type alias RunResult =
     { distributionReport : DistributionReport
     , failure : Maybe Failure
     }
-
-
-{-| Random.next is private ¯\_(ツ)\_/¯
--}
-stepSeed : Random.Seed -> Random.Seed
-stepSeed seed =
-    seed
-        |> Random.step (Random.int 0 0)
-        |> Tuple.second
 
 
 testGeneratedValue : Simplify.State a -> Maybe Failure

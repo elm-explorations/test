@@ -1,4 +1,8 @@
-module Fuzz.InputCorpus exposing (Input, InputCorpus, add, generator, init, isEmpty)
+module Fuzz.InputCorpus exposing (Input, InputCorpus, addMany, generator, init, isEmpty)
+
+{-| InputCorpus is for already-tested and interesting (failing the test or
+finding new edges) inputs.
+-}
 
 import MicroRandomExtra
 import Random exposing (Generator)
@@ -41,6 +45,8 @@ type alias Input =
     }
 
 
+{-| This RandomRun wasn't tested yet, it's put into a queue to be run later.
+-}
 add : RandomRun -> Float -> BucketedEdgeHitCounts -> InputCorpus -> InputCorpus
 add randomRun durationMs bucketedEdgeHitCounts corpus =
     let

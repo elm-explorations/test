@@ -1,5 +1,5 @@
 // Examples of how 3rd party coverage tooling could patch the dummy functions - START
-// TODO remove these
+// TODO remove this block
 var _EdgeCoverage_previousSeenHits;
 var _EdgeCoverage_currentSeenHits;
 var _EdgeCoverage_edgeHitCounts;
@@ -43,12 +43,12 @@ function getEdgeCoverage(_) {
   var durationMs = performance.now() - _EdgeCoverage_testStartTime;
 
   return {
-    // TODO What more?
-    edgeHitCounts: _EdgeCoverage_edgeHitCounts, // Does Elm just hold this for the corpus?
+    edgeHitCounts: _EdgeCoverage_edgeHitCounts,
     durationMs: durationMs,
     newPaths: newPaths,
   };
 }
+// TODO remove this block
 // Examples of how 3rd party coverage tooling could patch the dummy functions - END
 
 var _EdgeCoverage_bucketEdgeHitCounts = function(edgeHitCounts) {
