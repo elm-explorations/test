@@ -435,30 +435,50 @@ decodeAttribute =
         |> Json.Decode.andThen
             (\tag ->
                 if tag == Constants.attributeKey then
-                    Json.Decode.map2 (\key val -> Attribute (AttributeRecord key val))
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.field "o" Json.Decode.string)
+                    attributeDecoder
 
                 else if tag == Constants.attributeNamespaceKey then
-                    Json.Decode.map3 NamespacedAttributeRecord
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.at [ "o", "o" ] Json.Decode.string)
-                        (Json.Decode.at [ "o", "f" ] Json.Decode.string)
-                        |> Json.Decode.map NamespacedAttribute
+                    namespacedAttributeDecoder
 
                 else if tag == Constants.styleKey then
-                    Json.Decode.map2 (\key val -> Style { key = key, value = val })
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.field "o" Json.Decode.string)
+                    styleDecoder
 
                 else if tag == Constants.propKey then
-                    Json.Decode.map2 (\key val -> Property (PropertyRecord key val))
-                        (Json.Decode.field "n" Json.Decode.string)
-                        (Json.Decode.at [ "o", "a" ] Json.Decode.value)
+                    propertyDecoder
 
                 else
                     Json.Decode.fail ("Unexpected Html.Attribute tag: " ++ tag)
             )
+
+
+attributeDecoder : Json.Decode.Decoder Attribute
+attributeDecoder =
+    Json.Decode.map2 (\key val -> Attribute (AttributeRecord key val))
+        (Json.Decode.field "n" Json.Decode.string)
+        (Json.Decode.field "o" Json.Decode.string)
+
+
+namespacedAttributeDecoder : Json.Decode.Decoder Attribute
+namespacedAttributeDecoder =
+    Json.Decode.map3 NamespacedAttributeRecord
+        (Json.Decode.field "n" Json.Decode.string)
+        (Json.Decode.at [ "o", "o" ] Json.Decode.string)
+        (Json.Decode.at [ "o", "f" ] Json.Decode.string)
+        |> Json.Decode.map NamespacedAttribute
+
+
+styleDecoder : Json.Decode.Decoder Attribute
+styleDecoder =
+    Json.Decode.map2 (\key val -> Style { key = key, value = val })
+        (Json.Decode.field "n" Json.Decode.string)
+        (Json.Decode.field "o" Json.Decode.string)
+
+
+propertyDecoder : Json.Decode.Decoder Attribute
+propertyDecoder =
+    Json.Decode.map2 (\key val -> Property (PropertyRecord key val))
+        (Json.Decode.field "n" Json.Decode.string)
+        (Json.Decode.at [ "o", "a" ] Json.Decode.value)
 
 
 {-| A list of Void elements as defined by the HTML5 specification. These
