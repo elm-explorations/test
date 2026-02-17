@@ -215,8 +215,8 @@ decrementTogetherCmds length =
                             maxOffsetLimit
                             (length - index - 1)
                 in
-                List.range 1 maxOffset
-                    |> List.foldr
+                reverseRange maxOffset 1 []
+                    |> List.foldl
                         (\offset acc1 ->
                             [ 1, 2, 4 ]
                                 |> List.foldl
@@ -239,6 +239,15 @@ decrementTogetherCmds length =
                         )
                         []
             )
+
+
+reverseRange : Int -> Int -> List Int -> List Int
+reverseRange hi lo list =
+    if hi >= lo then
+        reverseRange hi (lo + 1) (lo :: list)
+
+    else
+        list
 
 
 redistributeCmds : Int -> List SimplifyCmd
