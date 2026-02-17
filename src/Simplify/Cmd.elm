@@ -207,8 +207,8 @@ decrementTogetherCmds length =
                 2
     in
     List.range 0 (length - 2)
-        |> List.fastConcatMap
-            (\index ->
+        |> List.foldr
+            (\index acc ->
                 let
                     maxOffset =
                         min
@@ -237,8 +237,9 @@ decrementTogetherCmds length =
                                     )
                                     acc1
                         )
-                        []
+                        acc
             )
+            []
 
 
 reverseRange : Int -> Int -> List Int -> List Int
