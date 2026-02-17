@@ -98,7 +98,7 @@ dequeue : Queue a -> ( Maybe a, Queue a )
 dequeue (Queue fl rl) =
     case fl of
         [] ->
-            ( Nothing, Queue [] [] )
+            ( Nothing, empty )
 
         head :: tail ->
             ( Just head, queue tail rl )
