@@ -653,5 +653,5 @@ addQueryFromHtmlLine query =
 
 
 prefixOutputLine : String -> String
-prefixOutputLine =
-    (++) "▼ "
+prefixOutputLine line =
+    "▼ " ++ line
