@@ -647,7 +647,7 @@ addQueryFromHtmlLine query =
         [ prefixOutputLine "Query.fromHtml"
         , toOutputLine query
             |> String.split "\n"
-            |> List.map ((++) baseIndentation)
+            |> List.map (\str -> baseIndentation ++ str ++ "")
             |> String.join "\n"
         ]
 
