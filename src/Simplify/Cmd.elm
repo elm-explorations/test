@@ -206,8 +206,8 @@ decrementTogetherCmds length =
             else
                 2
     in
-    List.range 0 (length - 2)
-        |> List.foldr
+    reverseRange (length - 2) 0 []
+        |> List.foldl
             (\index acc ->
                 let
                     maxOffset =
