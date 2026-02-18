@@ -525,7 +525,7 @@ contains expectedDescendants query =
 
             else
                 Expect.fail
-                    (String.join ""
+                    (String.concat
                         [ "\t✗ /"
                         , String.fromInt <| List.length missing
                         , "\\ missing descendants: \n\n"
