@@ -1,19 +1,10 @@
-module Test.Html.ExampleApp exposing (exampleModel, view)
+module Test.Html.ExampleApp exposing (view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Html.Keyed as Keyed
 import Html.Lazy as Lazy
-
-
-type alias Model =
-    ()
-
-
-exampleModel : Model
-exampleModel =
-    ()
 
 
 type Msg

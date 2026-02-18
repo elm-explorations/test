@@ -23,15 +23,6 @@ type alias FormatOptions =
     }
 
 
-{-| default formatting options
--}
-defaultFormatOptions : FormatOptions
-defaultFormatOptions =
-    { indent = 0
-    , newLines = False
-    }
-
-
 nodeToLines : FormatOptions -> ElmHtml msg -> List String
 nodeToLines options nodeType =
     case nodeType of
@@ -46,13 +37,6 @@ nodeToLines options nodeType =
 
         MarkdownNode record ->
             [ record.model.markdown ]
-
-
-{-| Convert a given html node to a string based on the type
--}
-nodeToString : ElmHtml msg -> String
-nodeToString =
-    nodeToStringWithOptions defaultFormatOptions
 
 
 {-| same as nodeToString, but with options

@@ -36,69 +36,12 @@ type Selector
     | Multiple (List Selector)
 
 
-{-| Query for a node with a given tag in a Html element
--}
-queryByTagName : String -> ElmHtml msg -> List (ElmHtml msg)
-queryByTagName tagname =
-    query (Tag tagname)
-
-
-{-| Query for a node with a given id in a Html element
--}
-queryById : String -> ElmHtml msg -> List (ElmHtml msg)
-queryById id =
-    query (Id id)
-
-
-{-| Query for a node with a given classname in a Html element
--}
-queryByClassName : String -> ElmHtml msg -> List (ElmHtml msg)
-queryByClassName classname =
-    query (ClassName classname)
-
-
-{-| Query for a node with all the given classnames in a Html element
--}
-queryByClassList : List String -> ElmHtml msg -> List (ElmHtml msg)
-queryByClassList classList =
-    query (ClassList classList)
-
-
-{-| Query for a node with the given style in a Html element
--}
-queryByStyle : { key : String, value : String } -> ElmHtml msg -> List (ElmHtml msg)
-queryByStyle style =
-    query (Style style)
-
-
-{-| Query for a node with a given attribute in a Html element
--}
-queryByAttribute : String -> String -> ElmHtml msg -> List (ElmHtml msg)
-queryByAttribute key value =
-    query (Attribute key value)
-
-
-{-| Query for a node with a given attribute in a Html element
--}
-queryByBoolAttribute : String -> Bool -> ElmHtml msg -> List (ElmHtml msg)
-queryByBoolAttribute key value =
-    query (BoolAttribute key value)
-
-
 {-| Query an ElmHtml node using a selector, considering both the node itself
 as well as all of its descendants.
 -}
 query : Selector -> ElmHtml msg -> List (ElmHtml msg)
 query selector =
     queryInNode Nothing selector
-
-
-{-| Query an ElmHtml node using multiple selectors, considering both the node itself
-as well as all of its descendants.
--}
-queryAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryAll selectors =
-    query (Multiple selectors)
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
@@ -119,14 +62,6 @@ getChildren elmHtml =
 
         _ ->
             []
-
-
-{-| Query to ensure an ElmHtml node has all selectors given, without considering
-any descendants lower than its immediate children.
--}
-queryChildrenAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryChildrenAll selectors =
-    queryInNode (Just 1) (Multiple selectors)
 
 
 queryInNode : Maybe Int -> Selector -> ElmHtml msg -> List (ElmHtml msg)

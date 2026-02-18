@@ -1,7 +1,7 @@
 module Test.Html.Internal.ElmHtml.InternalTypes exposing
     ( ElmHtml(..), NodeRecord, CustomNodeRecord, MarkdownNodeRecord
     , Facts, Tagger, EventHandler, ElementKind(..)
-    , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
+    , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord
     , Validation(..), validationMessage, validationFromMessage
     , decodeElmHtml, toElementKind, decodeAttribute
     )
@@ -12,7 +12,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
 
 @docs Facts, Tagger, EventHandler, ElementKind
 
-@docs Attribute, AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
+@docs Attribute, AttributeRecord, NamespacedAttributeRecord, PropertyRecord
 
 @docs Validation, validationMessage, validationFromMessage
 
@@ -165,21 +165,6 @@ type alias NamespacedAttributeRecord =
 type alias PropertyRecord =
     { key : String
     , value : Json.Decode.Value
-    }
-
-
-{-| Event contains a string key, a decoder for a msg and event options
--}
-type alias EventRecord =
-    { key : String
-    , decoder : Json.Decode.Value
-    , options : EventOptions
-    }
-
-
-type alias EventOptions =
-    { stopPropagation : Bool
-    , preventDefault : Bool
     }
 
 

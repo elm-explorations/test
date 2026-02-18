@@ -407,16 +407,6 @@ getChildren elmHtml =
             []
 
 
-isElement : ElmHtml msg -> Bool
-isElement elmHtml =
-    case elmHtml of
-        NodeEntry _ ->
-            True
-
-        _ ->
-            False
-
-
 verifySingle : String -> List a -> Result QueryError a
 verifySingle queryName list =
     case list of

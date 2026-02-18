@@ -1,8 +1,7 @@
 module Queue exposing
-    ( Queue, empty, singleton
-    , isEmpty, size, enqueue, dequeue, front
+    ( Queue, empty
+    , enqueue, dequeue
     , fromList, toList
-    , map, filter, updateFront
     )
 
 {-| NOTE: Vendored from turboMaCk/queue 1.1.0
@@ -14,12 +13,12 @@ Queue is simple FIFO (first in, first out) datastructure.
 
 # Type
 
-@docs Queue, empty, singleton
+@docs Queue, empty
 
 
 # Query
 
-@docs isEmpty, size, enqueue, dequeue, front
+@docs enqueue, dequeue
 
 
 # Lists
@@ -28,8 +27,6 @@ Queue is simple FIFO (first in, first out) datastructure.
 
 
 # Transformations
-
-@docs map, filter, updateFront
 
 -}
 
@@ -74,42 +71,8 @@ empty =
     Queue [] []
 
 
-{-| Construct Queue containing single value
-
-    Queue.toList (Queue.singleton 1) == [ 1 ]
-
--}
-singleton : a -> Queue a
-singleton a =
-    Queue [ a ] []
-
-
 
 -- Query
-
-
-{-| Determine if `Queue` is empty
-
-    Queue.isEmpty Queue.empty == True
-
-    Queue.isEmpty (Queue.fromList [ 1, 2 ]) == False
-
--}
-isEmpty : Queue a -> Bool
-isEmpty (Queue fl rl) =
-    List.isEmpty fl && List.isEmpty rl
-
-
-{-| Get size of `Queue`
-
-    Queue.size Queue.empty == 0
-
-    Queue.size (Queue.fromList [ 1, 2 ]) == 2
-
--}
-size : Queue a -> Int
-size (Queue fl rl) =
-    List.length fl + List.length rl
 
 
 {-| Add item to `Queue`
@@ -139,46 +102,6 @@ dequeue (Queue fl rl) =
 
         head :: tail ->
             ( Just head, queue tail rl )
-
-
-{-| Ask for front item without removing it from `Queue`
-
-    Queue.front Queue.empty == Nothing
-
-    Queue.front (Queue.fromList [ 1, 2 ]) == Just 1
-
--}
-front : Queue a -> Maybe a
-front (Queue fl _) =
-    List.head fl
-
-
-{-| Update value at the front of the queue
-
-    Queue.toList (Queue.updateFront (Maybe.map (\x -> x + 1)) (Queue.singleton 3)) == [ 4 ]
-
-    Queue.toList (Queue.updateFront (Maybe.map (\_ -> Just 42)) Queue.empty) == [ 42 ]
-
-    Queue.toList (Queue.updateFront (Maybe.map (\_ -> Nothing)) (Queue.singleton 3)) == []
-
--}
-updateFront : (Maybe a -> Maybe a) -> Queue a -> Queue a
-updateFront f (Queue fl rl) =
-    let
-        update_ maybe t =
-            case f maybe of
-                Just a ->
-                    a :: t
-
-                Nothing ->
-                    t
-    in
-    case fl of
-        h :: t ->
-            Queue (update_ (Just h) t) rl
-
-        [] ->
-            Queue (update_ Nothing []) rl
 
 
 
@@ -211,35 +134,3 @@ toList (Queue fl rl) =
 
 
 -- Transform
-
-
-{-| Map function over `Queue`
-
-    Queue.toList (Queue.map identity (Queue.fromList [ 1, 2 ])) == [ 1, 2 ]
-
-    Queue.toList (Queue.map ((+) 1) (Queue.fromList [ 1, 2 ])) == [ 2, 3 ]
-
--}
-map : (a -> b) -> Queue a -> Queue b
-map fc (Queue fl rl) =
-    let
-        map_ =
-            List.map fc
-    in
-    queue (map_ fl) (map_ rl)
-
-
-{-| Filter items items in `Queue`
-
-    Queue.toList (Queue.filter identity (Queue.fromList [ True, False ])) == [ True ]
-
-    Queue.toList (Queue.filter ((<) 1) (Queue.fromList [ 1, 2 ])) == [ 2 ]
-
--}
-filter : (a -> Bool) -> Queue a -> Queue a
-filter fc (Queue fl rl) =
-    let
-        f =
-            List.filter fc
-    in
-    queue (f fl) (f rl)
