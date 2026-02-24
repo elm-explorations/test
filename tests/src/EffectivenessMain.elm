@@ -18,7 +18,7 @@ import Runner.String exposing (Summary)
 config : { targetFailures : Int, totalSeeds : Int, maxFuzz : Int }
 config =
     { targetFailures = 10
-    , totalSeeds = 100
+    , totalSeeds = 1000
     , maxFuzz = 1000000
     }
 
