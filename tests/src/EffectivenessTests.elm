@@ -37,21 +37,6 @@ makeSuite :
     -> (BST Int Int -> BST Int Int -> BST Int Int)
     -> Test
 makeSuite label toList insert delete union =
-    --    -- Model-based testing against a List model
-    --    Test.describe label
-    --        [ Test.fuzz2 bstFuzzer pairFuzzer "insert" <|
-    --            \t ( k, v ) ->
-    --                toList (insert k v t)
-    --                    |> Expect.equal (insertInOrder k v (deleteAll k (toList t)))
-    --        , Test.fuzz2 bstFuzzer keyFuzzer "delete" <|
-    --            \t k ->
-    --                toList (delete k t)
-    --                    |> Expect.equal (deleteFirst k (toList t))
-    --        , Test.fuzz2 bstFuzzer bstFuzzer "union" <|
-    --            \t1 t2 ->
-    --                toList (union t1 t2)
-    --                    |> Expect.equal (List.sort (unionL (toList t1) (toList t2)))
-    --        ]
     -- Oracle test
     Test.describe label
         [ Test.fuzz2 bstFuzzer pairFuzzer "insert" <|
@@ -67,55 +52,6 @@ makeSuite label toList insert delete union =
                 union t1 t2
                     |> Expect.equal (Bst.union t1 t2)
         ]
-
-
-insertInOrder : Int -> Int -> List ( Int, Int ) -> List ( Int, Int )
-insertInOrder k v l =
-    case l of
-        [] ->
-            [ ( k, v ) ]
-
-        (( k1, _ ) as x) :: xs ->
-            case compare k k1 of
-                GT ->
-                    x :: insertInOrder k v xs
-
-                _ ->
-                    ( k, v ) :: l
-
-
-deleteAll : Int -> List ( Int, Int ) -> List ( Int, Int )
-deleteAll k l =
-    List.filter (\( k1, _ ) -> k1 /= k) l
-
-
-deleteFirst : Int -> List ( Int, Int ) -> List ( Int, Int )
-deleteFirst k l =
-    case l of
-        [] ->
-            []
-
-        (( k1, _ ) as x) :: xs ->
-            if k == k1 then
-                xs
-
-            else
-                x :: deleteFirst k xs
-
-
-unionL : List ( Int, Int ) -> List ( Int, Int ) -> List ( Int, Int )
-unionL l1 l2 =
-    l1 ++ List.foldl (\( k, v ) acc -> deleteFirst k acc) (nub l2) l1
-
-
-nub : List a -> List a
-nub l =
-    case l of
-        [] ->
-            []
-
-        x :: xs ->
-            x :: nub (List.filter (\y -> x /= y) xs)
 
 
 bstFuzzer : Fuzzer (BST Int Int)
