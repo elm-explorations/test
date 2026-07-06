@@ -202,7 +202,7 @@ fromTest =
                                 |> Expect.equal
                                     (Just
                                         { given = Nothing
-                                        , description = "This test failed because it threw an exception: \"Error: TODO in module `RunnerTests` on line 197\n\ncrash\""
+                                        , description = "This test failed because it threw an exception: \"Error: TODO in module `RunnerTests` on line 196\n\ncrash\""
                                         , reason = Test.Runner.Failure.Custom
                                         }
                                     )
