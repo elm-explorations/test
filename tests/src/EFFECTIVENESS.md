@@ -1,10 +1,23 @@
 # Fuzzer effectiveness benchmark
 
+**Build and run (single process, all seeds):**
+
 ```
 $ cd tests
 $ elm make src/EffectivenessMain.elm --output effectiveness-runner.js
-$ node effectiveness-runner.js
+$ node run-effectiveness.js [totalSeeds] [multiplier] [addend]
 ```
+
+Defaults: totalSeeds=1000, multiplier=1, addend=0. Seeds run are `i*multiplier+addend` for i=0,1,... while ≤ totalSeeds.
+
+**Parallel runs:** Run multiple instances with different addends (e.g. 8 workers → addends 0..7, multiplier=8). Use the bash script to orchestrate, merge output, and run analysis:
+
+```
+$ cd tests
+$ ./run-effectiveness-parallel.sh <workers> <totalSeeds>
+```
+
+This runs `workers` instances in parallel, merges "  Seed " lines into `src/effectiveness-analysis/max_{totalSeeds}_runs.txt`, extracts minimal fuzz numbers into `max_{totalSeeds}.txt`, runs the histogram and fit Python scripts, and renames outputs to `max_{totalSeeds}_histogram.png` and `max_{totalSeeds}_fit.png`. Requires `uv` (or install matplotlib/numpy/scipy) for the Python scripts.
 
 Inspired by chapter 5 of "How to Specify It!: A Guide to Writing Properties of
 Pure Functions"

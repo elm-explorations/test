@@ -1,4 +1,4 @@
-module EffectivenessSUT.Bst4 exposing (delete, fromList, insert, keys, member, toList, union)
+module EffectivenessSUT.Bst4 exposing (delete, fromList, insert, member, union)
 
 {-| Bug #4: delete fails to rebuild the tree above the key being deleted,
 returning only the remainder of the tree from that point on. (An easy mistake
@@ -156,21 +156,6 @@ member k tree =
                 True
 
 
-toList : BST k v -> List ( k, v )
-toList tree =
-    case tree of
-        Leaf ->
-            []
-
-        Node left k v right ->
-            toList left ++ [ ( k, v ) ] ++ toList right
-
-
 fromList : List ( comparable, v ) -> BST comparable v
 fromList pairs =
     List.foldl (\( k, v ) acc -> insert k v acc) Leaf pairs
-
-
-keys : BST k v -> List k
-keys tree =
-    List.map Tuple.first (toList tree)

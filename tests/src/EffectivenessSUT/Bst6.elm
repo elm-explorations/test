@@ -1,4 +1,4 @@
-module EffectivenessSUT.Bst6 exposing (delete, fromList, insert, keys, member, toList, union)
+module EffectivenessSUT.Bst6 exposing (delete, fromList, insert, member, union)
 
 {-| Bug #6: union wrongly assumes that all the keys in the first argument
 precede those in the second. It just appends t2 as the rightmost subtree of t1
@@ -121,21 +121,6 @@ member k tree =
                 True
 
 
-toList : BST k v -> List ( k, v )
-toList tree =
-    case tree of
-        Leaf ->
-            []
-
-        Node left k v right ->
-            toList left ++ [ ( k, v ) ] ++ toList right
-
-
 fromList : List ( comparable, v ) -> BST comparable v
 fromList pairs =
     List.foldl (\( k, v ) acc -> insert k v acc) Leaf pairs
-
-
-keys : BST k v -> List k
-keys tree =
-    List.map Tuple.first (toList tree)

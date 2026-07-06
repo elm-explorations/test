@@ -3,64 +3,126 @@ module EffectivenessMain exposing (main)
 {-| Effectiveness test runner: finds the minimal fuzz count per seed
 to reach a target number of failed test cases, then reports min/max/avg/median.
 
-$ cd tests
-$ elm make src/EffectivenessMain.elm --output effectiveness-runner.js
-$ node effectiveness-runner.js
+Accepts flags: totalSeeds, multiplier, addend (seeds = i*multiplier+addend for i=0,1,... ≤ totalSeeds).
+Use the Node script to pass flags from the CLI:
+
+  $ cd tests
+  $ elm make src/EffectivenessMain.elm --output effectiveness-runner.js
+  $ node run-effectiveness.js [totalSeeds] [multiplier] [addend]
+
+Defaults: 1000, 1, 0. For parallel runs use run-effectiveness-parallel.sh <workers> <totalSeeds>.
 
 -}
 
 import EffectivenessTests
+import Json.Decode as Decode
 import Platform
 import Random
 import Runner.String exposing (Summary)
 
 
-config : { targetFailures : Int, totalSeeds : Int, maxFuzz : Int }
-config =
-    { targetFailures = 10
-    , totalSeeds = 1000
+type alias RunConfig =
+    { totalSeeds : Int
+    , multiplier : Int
+    , addend : Int
+    , targetFailures : Int
+    , maxFuzz : Int
+    }
+
+
+defaultConfig : RunConfig
+defaultConfig =
+    { totalSeeds = 1000
+    , multiplier = 1
+    , addend = 0
+    , targetFailures = 10
     , maxFuzz = 1000000
     }
 
 
-main : Program () () ()
-main =
+decodeFlags : Decode.Decoder RunConfig
+decodeFlags =
+    Decode.map5 RunConfig
+        (Decode.field "totalSeeds" Decode.int |> Decode.maybe |> Decode.map (Maybe.withDefault defaultConfig.totalSeeds))
+        (Decode.field "multiplier" Decode.int |> Decode.maybe |> Decode.map (Maybe.withDefault defaultConfig.multiplier))
+        (Decode.field "addend" Decode.int |> Decode.maybe |> Decode.map (Maybe.withDefault defaultConfig.addend))
+        (Decode.succeed defaultConfig.targetFailures)
+        (Decode.succeed defaultConfig.maxFuzz)
+
+
+decodeFlagsWithDefaults : Decode.Decoder RunConfig
+decodeFlagsWithDefaults =
+    Decode.oneOf
+        [ decodeFlags
+        , Decode.succeed defaultConfig
+        ]
+
+
+{-| Seeds for this slice: i*multiplier+addend for i=0,1,... while <= totalSeeds.
+-}
+seedList : Int -> Int -> Int -> List Int
+seedList totalSeeds multiplier addend =
     let
-        _ =
-            run ()
+        k =
+            (totalSeeds - addend) // multiplier
     in
+    if addend > totalSeeds || k < 0 then
+        []
+
+    else
+        List.range 0 k |> List.map (\i -> addend + i * multiplier)
+
+
+main : Program Decode.Value () ()
+main =
     Platform.worker
-        { init = \() -> ( (), Cmd.none )
+        { init = \flagsValue ->
+            let
+                cfg =
+                    case Decode.decodeValue decodeFlagsWithDefaults flagsValue of
+                        Ok c ->
+                            c
+
+                        Err _ ->
+                            defaultConfig
+
+                _ =
+                    run cfg
+            in
+            ( (), Cmd.none )
         , update = \_ s -> ( s, Cmd.none )
         , subscriptions = \() -> Sub.none
         }
 
 
-run : () -> ()
-run () =
+run : RunConfig -> ()
+run cfg =
     let
+        seeds =
+            seedList cfg.totalSeeds cfg.multiplier cfg.addend
+
         _ =
             Debug.log
-                ("Target {target} failures, seeds 1..{total}"
-                    |> String.replace "{target}" (String.fromInt config.targetFailures)
-                    |> String.replace "{total}" (String.fromInt config.totalSeeds)
+                ("Target {target} failures, seeds (addend {addend}): {count} seeds"
+                    |> String.replace "{target}" (String.fromInt cfg.targetFailures)
+                    |> String.replace "{addend}" (String.fromInt cfg.addend)
+                    |> String.replace "{count}" (String.fromInt (List.length seeds))
                 )
                 ()
     in
-    case report (measure ()) of
+    case report (List.length seeds) (measure cfg seeds) of
         Nothing ->
             Debug.log
-                ("No seed in {total} reached {target} failures (maxFuzz = {maxFuzz})."
-                    |> String.replace "{total}" (String.fromInt config.totalSeeds)
-                    |> String.replace "{target}" (String.fromInt config.targetFailures)
-                    |> String.replace "{maxFuzz}" (String.fromInt config.maxFuzz)
+                ("No seed in slice reached {target} failures (maxFuzz = {maxFuzz})."
+                    |> String.replace "{target}" (String.fromInt cfg.targetFailures)
+                    |> String.replace "{maxFuzz}" (String.fromInt cfg.maxFuzz)
                 )
                 ()
 
         Just { reached, min, max, avg, median } ->
             Debug.log
                 ("""
-{reached}/{total} reached target
+{reached}/{total} reached target (addend {addend})
 min = {min}
 max = {max}
 avg = {avg}
@@ -68,7 +130,8 @@ p50 = {median}
 
 Finished!"""
                     |> String.replace "{reached}" (String.fromInt reached)
-                    |> String.replace "{total}" (String.fromInt config.totalSeeds)
+                    |> String.replace "{total}" (String.fromInt (List.length seeds))
+                    |> String.replace "{addend}" (String.fromInt cfg.addend)
                     |> String.replace "{min}" (String.fromInt min)
                     |> String.replace "{max}" (String.fromInt max)
                     |> String.replace "{avg}" (String.fromFloat (roundTo 1 avg))
@@ -77,14 +140,14 @@ Finished!"""
                 ()
 
 
-measure : () -> List Int
-measure () =
+measure : RunConfig -> List Int -> List Int
+measure cfg seeds =
     let
         digits =
-            String.length (String.fromInt config.totalSeeds)
+            String.length (String.fromInt cfg.totalSeeds)
 
         step seed acc =
-            case minimalFuzzForSeed config.targetFailures config.maxFuzz seed of
+            case minimalFuzzForSeed cfg.targetFailures cfg.maxFuzz seed of
                 Just n ->
                     let
                         _ =
@@ -107,7 +170,7 @@ measure () =
                     in
                     acc
     in
-    List.foldl step [] (List.range 1 config.totalSeeds)
+    List.foldl step [] seeds
 
 
 {-| Find smallest fuzz such that runWithOptions(fuzz, seed) yields >= target failures.
@@ -180,8 +243,8 @@ binarySearch seed target low high =
             binarySearch seed target (mid + 1) high
 
 
-report : List Int -> Maybe { reached : Int, min : Int, max : Int, avg : Float, median : Int }
-report values =
+report : Int -> List Int -> Maybe { reached : Int, min : Int, max : Int, avg : Float, median : Int }
+report total values =
     let
         reached =
             List.length values

@@ -17,26 +17,27 @@ import Test exposing (Test)
 
 all : Test
 all =
-    Test.describe "Fuzzer effectiveness benchmark - Binary Search Tree"
-        [ makeSuite "bug 1" Bst1.toList Bst1.insert Bst1.delete Bst1.union
-        , makeSuite "bug 2" Bst2.toList Bst2.insert Bst2.delete Bst2.union
-        , makeSuite "bug 3" Bst3.toList Bst3.insert Bst3.delete Bst3.union
-        , makeSuite "bug 4" Bst4.toList Bst4.insert Bst4.delete Bst4.union
-        , makeSuite "bug 5" Bst5.toList Bst5.insert Bst5.delete Bst5.union
-        , makeSuite "bug 6" Bst6.toList Bst6.insert Bst6.delete Bst6.union
-        , makeSuite "bug 7" Bst7.toList Bst7.insert Bst7.delete Bst7.union
-        , makeSuite "bug 8" Bst8.toList Bst8.insert Bst8.delete Bst8.union
+    Test.describe "Fuzzer effectiveness benchmark"
+        [ Test.describe "Binary Search Tree"
+            [ makeBstSuite "bug 1" Bst1.insert Bst1.delete Bst1.union
+            , makeBstSuite "bug 2" Bst2.insert Bst2.delete Bst2.union
+            , makeBstSuite "bug 3" Bst3.insert Bst3.delete Bst3.union
+            , makeBstSuite "bug 4" Bst4.insert Bst4.delete Bst4.union
+            , makeBstSuite "bug 5" Bst5.insert Bst5.delete Bst5.union
+            , makeBstSuite "bug 6" Bst6.insert Bst6.delete Bst6.union
+            , makeBstSuite "bug 7" Bst7.insert Bst7.delete Bst7.union
+            , makeBstSuite "bug 8" Bst8.insert Bst8.delete Bst8.union
+            ]
         ]
 
 
-makeSuite :
+makeBstSuite :
     String
-    -> (BST Int Int -> List ( Int, Int ))
     -> (Int -> Int -> BST Int Int -> BST Int Int)
     -> (Int -> BST Int Int -> BST Int Int)
     -> (BST Int Int -> BST Int Int -> BST Int Int)
     -> Test
-makeSuite label toList insert delete union =
+makeBstSuite label insert delete union =
     -- Oracle test
     Test.describe label
         [ Test.fuzz2 bstFuzzer pairFuzzer "insert" <|

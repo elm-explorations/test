@@ -1,4 +1,4 @@
-module EffectivenessSUT.Bst8 exposing (delete, fromList, insert, keys, member, toList, union)
+module EffectivenessSUT.Bst8 exposing (delete, fromList, insert, member, union)
 
 {-| Bug #8: union works correctly, except that when both trees contain the
 same key, the left argument does not always take priority. Specifically, the
@@ -99,7 +99,7 @@ that t1's values are already present and won't be overwritten.
 union : BST comparable v -> BST comparable v -> BST comparable v
 union t1 t2 =
     -- BUG: inserting t1 entries INTO t2 means t2 values survive for shared keys
-    List.foldl (\( k, v ) acc -> insert k v acc) t2 (toList t1)
+    List.foldl (\( k, v ) acc -> insert k v acc) t2 (treeToList t1)
 
 
 member : comparable -> BST comparable v -> Bool
@@ -119,21 +119,16 @@ member k tree =
                 True
 
 
-toList : BST k v -> List ( k, v )
-toList tree =
+treeToList : BST k v -> List ( k, v )
+treeToList tree =
     case tree of
         Leaf ->
             []
 
         Node left k v right ->
-            toList left ++ [ ( k, v ) ] ++ toList right
+            treeToList left ++ [ ( k, v ) ] ++ treeToList right
 
 
 fromList : List ( comparable, v ) -> BST comparable v
 fromList pairs =
     List.foldl (\( k, v ) acc -> insert k v acc) Leaf pairs
-
-
-keys : BST k v -> List k
-keys tree =
-    List.map Tuple.first (toList tree)
