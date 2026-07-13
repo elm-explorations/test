@@ -1,5 +1,6 @@
 module Tests exposing (all)
 
+import BrowserTests
 import Expect
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
@@ -28,6 +29,7 @@ all =
         , fuzzerTests
         , floatWithinTests
         , RunnerTests.all
+        , BrowserTests.all
         , elmHtmlTests
         , shrinkingChallenges
         , RandomRunTests.all
