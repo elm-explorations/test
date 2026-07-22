@@ -23,16 +23,16 @@ jobs:
 
     steps:
       # Clone the repository
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       # Setup Node JS
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
 
       # Install elm and cache ELM_HOME
       - name: Install elm
-        uses: mpizenberg/elm-tooling-action@v1.7
+        uses: mpizenberg/elm-tooling-action@v2
         with:
           cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
           cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
@@ -46,11 +46,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Clone the repository
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
 
       # Install elm-format
       - name: Install elm-format
-        uses: mpizenberg/elm-tooling-action@v1.7
+        uses: mpizenberg/elm-tooling-action@v2
         with:
           cache-key: format-${{ matrix.os }}-node${{ matrix.node }}-0
           cache-restore-key: format-${{ matrix.os }}-node${{ matrix.node }}
