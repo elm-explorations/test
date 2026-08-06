@@ -171,34 +171,30 @@ runCmd cmd state =
             else
                 state.randomRun
     in
-    let
-        result =
-            case cmd.type_ of
-                DeleteChunkAndMaybeDecrementPrevious chunk ->
-                    deleteChunkAndMaybeDecrementPrevious chunk state
+    case cmd.type_ of
+        DeleteChunkAndMaybeDecrementPrevious chunk ->
+            deleteChunkAndMaybeDecrementPrevious chunk state
 
-                ReplaceChunkWithZero chunk ->
-                    replaceChunkWithZero chunk state
+        ReplaceChunkWithZero chunk ->
+            replaceChunkWithZero chunk state
 
-                SortChunk chunk ->
-                    sortChunk chunk state
+        SortChunk chunk ->
+            sortChunk chunk state
 
-                MinimizeFloat options ->
-                    minimizeFloat options state
+        MinimizeFloat options ->
+            minimizeFloat options state
 
-                MinimizeChoice options ->
-                    minimizeChoice options state
+        MinimizeChoice options ->
+            minimizeChoice options state
 
-                RedistributeChoicesAndMaybeIncrement options ->
-                    redistributeChoicesAndMaybeIncrement options state
+        RedistributeChoicesAndMaybeIncrement options ->
+            redistributeChoicesAndMaybeIncrement options state
 
-                DecrementTogether options ->
-                    decrementTogether options state
+        DecrementTogether options ->
+            decrementTogether options state
 
-                SwapChunkWithNeighbour chunk ->
-                    swapChunkWithNeighbour chunk state
-    in
-    result
+        SwapChunkWithNeighbour chunk ->
+            swapChunkWithNeighbour chunk state
 
 
 {-| Tries the new RandomRun with the given fuzzer and test fn, and if the run
