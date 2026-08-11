@@ -10,7 +10,7 @@ import Test.Runner.Failure exposing (Reason)
 
 
 type Expectation
-    = Pass { distributionReport : DistributionReport }
+    = Pass DistributionReport
     | Fail
         { given : Maybe String
         , description : String
@@ -51,5 +51,5 @@ withDistributionReport newDistributionReport expectation =
         Fail failure ->
             Fail { failure | distributionReport = newDistributionReport }
 
-        Pass pass ->
-            Pass { pass | distributionReport = newDistributionReport }
+        Pass _ ->
+            Pass newDistributionReport

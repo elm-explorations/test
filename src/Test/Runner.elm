@@ -415,7 +415,7 @@ getFailureReason expectation =
 getDistributionReport : Expectation -> DistributionReport
 getDistributionReport expectation =
     case expectation of
-        Test.Expectation.Pass { distributionReport } ->
+        Test.Expectation.Pass distributionReport ->
             distributionReport
 
         Test.Expectation.Fail { distributionReport } ->
