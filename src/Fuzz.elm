@@ -1144,15 +1144,14 @@ frequencyHelp functionName fuzzers =
                 intFrequency (List.map (Tuple.mapFirst round) nonzeroFuzzers)
 
             else
-                let
-                    weightSum : Float
-                    weightSum =
-                        List.foldl (\( w, _ ) acc -> w + acc) 0 nonzeroFuzzers
-                in
                 percentage
                     |> andThen
                         (\p ->
                             let
+                                weightSum : Float
+                                weightSum =
+                                    List.foldl (\( w, _ ) acc -> w + acc) 0 nonzeroFuzzers
+
                                 f : Float
                                 f =
                                     p * weightSum
