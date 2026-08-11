@@ -1810,16 +1810,15 @@ labelExamples n labels fuzzer =
                 combinations : List ( List String, Maybe a )
                 combinations =
                     foundExamples
-                        |> Dict.foldl
-                            (\k v d ->
-                                if List.length k > 1 then
-                                    Dict.insert k v d
+                        |> Dict.foldr
+                            (\label example l ->
+                                if List.length label > 1 then
+                                    ( label, Just example ) :: l
 
                                 else
-                                    d
+                                    l
                             )
-                            Dict.empty
-                        |> Dict.foldr (\label example l -> ( label, Just example ) :: l) []
+                            []
             in
             List.filterMap
                 (\( label, _ ) ->
