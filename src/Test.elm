@@ -437,12 +437,8 @@ fuzz2 :
     -> Fuzzer b
     -> (a -> b -> Expectation)
     -> Test
-fuzz2 desc fuzzA fuzzB =
-    let
-        fuzzer =
-            Fuzz.pair fuzzA fuzzB
-    in
-    (\f ( a, b ) -> f a b) >> fuzz desc fuzzer
+fuzz2 desc fuzzA fuzzB getExpectation =
+    fuzz desc (Fuzz.pair fuzzA fuzzB) (\( a, b ) -> getExpectation a b)
 
 
 {-| Run a [fuzz test](#fuzz) using three random inputs.
@@ -457,12 +453,8 @@ fuzz3 :
     -> Fuzzer c
     -> (a -> b -> c -> Expectation)
     -> Test
-fuzz3 desc fuzzA fuzzB fuzzC =
-    let
-        fuzzer =
-            Fuzz.triple fuzzA fuzzB fuzzC
-    in
-    uncurry3 >> fuzz desc fuzzer
+fuzz3 desc fuzzA fuzzB fuzzC getExpectation =
+    fuzz desc (Fuzz.triple fuzzA fuzzB fuzzC) (\( a, b, c ) -> getExpectation a b c)
 
 
 
@@ -555,12 +547,3 @@ Currently the statistical test is tuned to allow a false positive/negative in
 expectDistribution : List ( ExpectedDistribution, String, a -> Bool ) -> Distribution a
 expectDistribution =
     Test.Distribution.Internal.ExpectDistribution
-
-
-
--- INTERNAL HELPERS --
-
-
-uncurry3 : (a -> b -> c -> d) -> ( a, b, c ) -> d
-uncurry3 fn ( a, b, c ) =
-    fn a b c
