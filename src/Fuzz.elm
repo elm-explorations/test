@@ -1818,7 +1818,7 @@ labelExamples n labels fuzzer =
                     case Dict.get [ label ] foundExamples of
                         Nothing ->
                             if Dict.any (\k _ -> List.member label k) foundExamples then
-                                -- don't show this example: all its occurences were included in combination with some other label
+                                -- don't show this example: all its occurrences were included in combination with some other label
                                 Nothing
 
                             else
