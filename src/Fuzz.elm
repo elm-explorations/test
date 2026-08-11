@@ -1823,8 +1823,8 @@ labelExamples n labels fuzzer =
                                 -- show that we didn't find it (in any combination nor alone)
                                 Just ( [ label ], Nothing )
 
-                        Just example ->
-                            Just ( [ label ], Just example )
+                        (Just _) as justExample ->
+                            Just ( [ label ], justExample )
                 )
                 labels
                 ++ combinations
