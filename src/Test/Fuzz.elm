@@ -260,7 +260,7 @@ allSufficientlyCovered c state normalizedDistributionCount =
                     False
 
                 Just expectedDistributions ->
-                    (distributionCount
+                    distributionCount
                         -- Needs normalized distribution count:
                         |> Dict.toList
                         |> List.filterMap
@@ -292,7 +292,6 @@ allSufficientlyCovered c state normalizedDistributionCount =
                                             Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
                                 )
                             )
-                    )
                         -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
                         |> Maybe.withDefault False
 
