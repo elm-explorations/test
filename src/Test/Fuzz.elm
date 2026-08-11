@@ -261,7 +261,7 @@ allSufficientlyCovered c state normalizedDistributionCount =
                 Just expectedDistributions ->
                     distributionCount
                         -- Needs normalized distribution count:
-                        |> Dict.toList
+                        |> Dict.foldr (\labels count list -> ( labels, count ) :: list) []
                         |> List.filterMap
                             (\( labels, count ) ->
                                 case labels of
