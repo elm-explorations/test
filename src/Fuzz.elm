@@ -1802,7 +1802,7 @@ labelExamples n labels fuzzer =
                 combinations =
                     Dict.foldr
                         (\label example l ->
-                            if List.length label > 1 then
+                            if List.hasMultipleItems label then
                                 ( label, Just example ) :: l
 
                             else

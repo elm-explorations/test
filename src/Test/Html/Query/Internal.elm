@@ -1,6 +1,7 @@
 module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError, SelectorQuery(..), Single(..), contains, expectAll, failWithQuery, has, hasNot, joinAsList, multipleToExpectation, prependSelector, prettyPrint, queryErrorToString, traverse, verifySingle)
 
 import Expect exposing (Expectation)
+import MicroListExtra as List
 import Test.Html.Descendant as Descendant
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml(..))
 import Test.Html.Internal.ElmHtml.ToString exposing (nodeToStringWithOptions)
@@ -141,7 +142,7 @@ toLinesHelp expectationFailure elmHtmlList selectorQueries queryName results =
                             ("Query.find " ++ joinAsList selectorToString selectors)
                                 |> withHtmlContext (getHtmlContext elements)
                     in
-                    if List.length elements == 1 then
+                    if List.isSingleton elements then
                         toLinesHelp
                             expectationFailure
                             elements

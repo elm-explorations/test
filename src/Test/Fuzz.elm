@@ -551,7 +551,7 @@ includeCombinationsInBaseCounts distribution =
                             combinations : List Int
                             combinations =
                                 distribution
-                                    |> Dict.filter (\k _ -> List.length k > 1 && List.member single k)
+                                    |> Dict.filter (\k _ -> List.hasMultipleItems k && List.member single k)
                                     |> Dict.values
                         in
                         count + List.sum combinations
