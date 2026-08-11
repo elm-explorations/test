@@ -1790,10 +1790,7 @@ labelExamples n labels fuzzer =
                                                         Nothing
                                                 )
                                 in
-                                if List.isEmpty categories then
-                                    acc
-
-                                else if Dict.member categories acc then
+                                if List.isEmpty categories || Dict.member categories acc then
                                     acc
 
                                 else
