@@ -1793,17 +1793,11 @@ labelExamples n labels fuzzer =
                                 if List.isEmpty categories then
                                     acc
 
-                                else
+                                else if Dict.member categories acc then
                                     acc
-                                        |> Dict.update categories
-                                            (\maybeExample ->
-                                                case maybeExample of
-                                                    Nothing ->
-                                                        Just item
 
-                                                    Just original ->
-                                                        Just original
-                                            )
+                                else
+                                    Dict.insert categories item acc
                             )
                             Dict.empty
 
