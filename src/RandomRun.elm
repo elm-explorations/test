@@ -59,18 +59,16 @@ nextChoice run =
         ( Just first, rest ) ->
             Just
                 ( first
-                , { run
-                    | length = run.length - 1
-                    , data = rest
+                , { length = run.length - 1
+                  , data = rest
                   }
                 )
 
 
 append : Int -> RandomRun -> RandomRun
 append n run =
-    { run
-        | length = run.length + 1
-        , data = Queue.enqueue (max 0 n) run.data
+    { length = run.length + 1
+    , data = Queue.enqueue (max 0 n) run.data
     }
 
 
@@ -104,13 +102,12 @@ deleteChunk chunk run =
             list =
                 Queue.toList run.data
         in
-        { run
-            | length = run.length - chunk.size
-            , data =
-                (List.take chunk.startIndex list
-                    ++ List.drop (chunk.startIndex + chunk.size) list
-                )
-                    |> Queue.fromList
+        { length = run.length - chunk.size
+        , data =
+            (List.take chunk.startIndex list
+                ++ List.drop (chunk.startIndex + chunk.size) list
+            )
+                |> Queue.fromList
         }
 
     else
@@ -125,14 +122,14 @@ replaceChunkWithZero chunk run =
             list =
                 Queue.toList run.data
         in
-        { run
-            | data =
-                List.fastConcat
-                    [ List.take chunk.startIndex list
-                    , List.repeat chunk.size 0
-                    , List.drop (chunk.startIndex + chunk.size) list
-                    ]
-                    |> Queue.fromList
+        { length = run.length
+        , data =
+            List.fastConcat
+                [ List.take chunk.startIndex list
+                , List.repeat chunk.size 0
+                , List.drop (chunk.startIndex + chunk.size) list
+                ]
+                |> Queue.fromList
         }
 
     else
@@ -261,12 +258,12 @@ set index value run =
         run
 
     else
-        { run
-            | data =
-                run.data
-                    |> Queue.toList
-                    |> List.setAt index (max 0 value) run.length
-                    |> Queue.fromList
+        { length = run.length
+        , data =
+            run.data
+                |> Queue.toList
+                |> List.setAt index (max 0 value) run.length
+                |> Queue.fromList
         }
 
 
