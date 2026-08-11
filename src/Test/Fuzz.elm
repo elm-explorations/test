@@ -262,16 +262,15 @@ allSufficientlyCovered c state normalizedDistributionCount =
                     distributionCount
                         -- Needs normalized distribution count:
                         |> Dict.foldr
-                            (\labels count list ->
+                            (\labels count soFar ->
                                 case labels of
                                     [ onlyLabel ] ->
-                                        ( onlyLabel, count ) :: list
+                                        soFar && isLabelSufficientlyCovered state.runsElapsed expectedDistributions onlyLabel count
 
                                     _ ->
-                                        list
+                                        soFar
                             )
-                            []
-                        |> List.all (\( labels, count ) -> isLabelSufficientlyCovered state.runsElapsed expectedDistributions labels count)
+                            True
 
 
 isLabelSufficientlyCovered : Int -> Dict String ExpectedDistribution -> String -> Int -> Bool
