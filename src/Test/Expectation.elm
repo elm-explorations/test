@@ -37,7 +37,12 @@ withGiven : String -> Expectation -> Expectation
 withGiven newGiven expectation =
     case expectation of
         Fail failure ->
-            Fail { failure | given = Just newGiven }
+            Fail
+                { given = Just newGiven
+                , description = failure.description
+                , reason = failure.reason
+                , distributionReport = failure.distributionReport
+                }
 
         Pass _ ->
             expectation
@@ -49,7 +54,12 @@ withDistributionReport : DistributionReport -> Expectation -> Expectation
 withDistributionReport newDistributionReport expectation =
     case expectation of
         Fail failure ->
-            Fail { failure | distributionReport = newDistributionReport }
+            Fail
+                { given = failure.given
+                , description = failure.description
+                , reason = failure.reason
+                , distributionReport = newDistributionReport
+                }
 
         Pass _ ->
             Pass newDistributionReport
