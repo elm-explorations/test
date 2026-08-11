@@ -263,15 +263,13 @@ allSufficientlyCovered c state normalizedDistributionCount =
                         -- Needs normalized distribution count:
                         |> Dict.foldr (\labels count list -> ( labels, count ) :: list) []
                         |> List.foldr
-                            (maybeCons
-                                (\( labels, count ) ->
-                                    case labels of
-                                        [ onlyLabel ] ->
-                                            Just ( onlyLabel, count )
+                            (\( labels, count ) list ->
+                                case labels of
+                                    [ onlyLabel ] ->
+                                        ( onlyLabel, count ) :: list
 
-                                        _ ->
-                                            Nothing
-                                )
+                                    _ ->
+                                        list
                             )
                             []
                         |> List.all
@@ -293,16 +291,6 @@ allSufficientlyCovered c state normalizedDistributionCount =
                                             AtLeast n ->
                                                 Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
                             )
-
-
-maybeCons : (a -> Maybe b) -> a -> List b -> List b
-maybeCons f mx xs =
-    case f mx of
-        Just x ->
-            x :: xs
-
-        Nothing ->
-            xs
 
 
 findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
