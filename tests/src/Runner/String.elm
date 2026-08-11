@@ -75,27 +75,21 @@ fromExpectation labels expectation summary =
                 |> Test.Runner.getDistributionReport
                 |> Runner.String.Distribution.report labels
 
-        summaryWithDistribution : Summary
-        summaryWithDistribution =
+        output : String
+        output =
             case distributionReport of
                 Nothing ->
-                    summary
+                    summary.output
 
                 Just distribution ->
-                    { summary
-                        | output =
-                            summary.output
-                                ++ "\n\n"
-                                ++ distribution
-                                ++ "\n"
-                    }
+                    summary.output ++ "\n\n" ++ distribution ++ "\n"
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { output = summaryWithDistribution.output
-            , failed = summaryWithDistribution.failed
-            , passed = summaryWithDistribution.passed + 1
-            , autoFail = summaryWithDistribution.autoFail
+            { output = output
+            , failed = summary.failed
+            , passed = summary.passed + 1
+            , autoFail = summary.autoFail
             }
 
         Just { given, description, reason } ->
@@ -118,10 +112,10 @@ fromExpectation labels expectation summary =
                         ++ (prefix ++ indentLines message)
                         ++ "\n"
             in
-            { output = summaryWithDistribution.output ++ newOutput
-            , failed = summaryWithDistribution.failed + 1
-            , passed = summaryWithDistribution.passed
-            , autoFail = summaryWithDistribution.autoFail
+            { output = output ++ newOutput
+            , failed = summary.failed + 1
+            , passed = summary.passed
+            , autoFail = summary.autoFail
             }
 
 
