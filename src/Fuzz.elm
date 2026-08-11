@@ -1813,7 +1813,12 @@ labelExamples n labels fuzzer =
             in
             List.filterMap
                 (\( label, _ ) ->
-                    case Dict.get [ label ] foundExamples of
+                    let
+                        thisLabel : List String
+                        thisLabel =
+                            [ label ]
+                    in
+                    case Dict.get thisLabel foundExamples of
                         Nothing ->
                             if Dict.any (\k _ -> List.member label k) foundExamples then
                                 -- don't show this example: all its occurrences were included in combination with some other label
@@ -1821,10 +1826,10 @@ labelExamples n labels fuzzer =
 
                             else
                                 -- show that we didn't find it (in any combination nor alone)
-                                Just ( [ label ], Nothing )
+                                Just ( thisLabel, Nothing )
 
                         (Just _) as justExample ->
-                            Just ( [ label ], justExample )
+                            Just ( thisLabel, justExample )
                 )
                 labels
                 ++ combinations
