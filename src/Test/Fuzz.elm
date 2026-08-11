@@ -271,25 +271,27 @@ allSufficientlyCovered c state normalizedDistributionCount =
                                         list
                             )
                             []
-                        |> List.all
-                            (\( labels, count ) ->
-                                case Dict.get labels expectedDistributions of
-                                    Nothing ->
-                                        -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
-                                        False
+                        |> List.all (\( labels, count ) -> isLabelSufficientlyCovered state.runsElapsed expectedDistributions labels count)
 
-                                    Just expectedDistribution ->
-                                        case expectedDistribution of
-                                            -- Zero and MoreThanZero will get checked in the Success case
-                                            Zero ->
-                                                True
 
-                                            MoreThanZero ->
-                                                True
+isLabelSufficientlyCovered : Int -> Dict String ExpectedDistribution -> String -> Int -> Bool
+isLabelSufficientlyCovered runsElapsed expectedDistributions labels count =
+    case Dict.get labels expectedDistributions of
+        Nothing ->
+            -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
+            False
 
-                                            AtLeast n ->
-                                                Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
-                            )
+        Just expectedDistribution ->
+            case expectedDistribution of
+                -- Zero and MoreThanZero will get checked in the Success case
+                Zero ->
+                    True
+
+                MoreThanZero ->
+                    True
+
+                AtLeast n ->
+                    Test.Distribution.Internal.sufficientlyCovered runsElapsed count (n / 100)
 
 
 findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
