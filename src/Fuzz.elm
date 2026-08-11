@@ -1819,8 +1819,7 @@ labelExamples n labels fuzzer =
                                     d
                             )
                             Dict.empty
-                        |> Dict.foldr (\key v l -> ( key, v ) :: l) []
-                        |> List.map (\( label, example ) -> ( label, Just example ))
+                        |> Dict.foldr (\label example l -> ( label, Just example ) :: l) []
             in
             List.filterMap
                 (\( label, _ ) ->
