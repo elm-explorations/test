@@ -526,11 +526,11 @@ runOnce c state =
                     in
                     ( failure, distributionCounter )
     in
-    { state
-        | failure = maybeFailure
-        , distributionCount = newDistributionCounter
-        , currentSeed = nextSeed
-        , runsElapsed = state.runsElapsed + 1
+    { failure = maybeFailure
+    , distributionCount = newDistributionCounter
+    , currentSeed = nextSeed
+    , runsElapsed = state.runsElapsed + 1
+    , nextPowerOfTwo = state.nextPowerOfTwo
     }
 
 
