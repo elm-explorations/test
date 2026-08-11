@@ -5,6 +5,7 @@ module Test.Expectation exposing
     , withGiven
     )
 
+import Fuzz.Internal
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner.Failure exposing (Reason)
 
@@ -27,7 +28,7 @@ fail { description, reason } =
         { given = Nothing
         , description = description
         , reason = reason
-        , distributionReport = NoDistribution
+        , distributionReport = Fuzz.Internal.noDistribution
         }
 
 

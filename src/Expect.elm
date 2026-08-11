@@ -595,7 +595,7 @@ equalSets expected actual =
 -}
 pass : Expectation
 pass =
-    Test.Expectation.Pass Test.Distribution.NoDistribution
+    Test.Expectation.Pass (Test.Distribution.NoDistribution ())
 
 
 {-| Fails with the given message.

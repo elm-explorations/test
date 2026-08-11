@@ -150,7 +150,7 @@ fuzzLoop c state =
             { distributionReport =
                 case state.distributionCount of
                     Nothing ->
-                        NoDistribution
+                        Fuzz.Internal.noDistribution
 
                     Just distributionCount ->
                         DistributionToReport
@@ -172,7 +172,7 @@ fuzzLoop c state =
             else
                 case c.distribution of
                     NoDistributionNeeded ->
-                        { distributionReport = NoDistribution
+                        { distributionReport = Fuzz.Internal.noDistribution
                         , failure = Nothing
                         }
 
@@ -405,7 +405,7 @@ distributionFailRunResult normalizedDistributionCount failedLabel =
 
 distributionBugRunResult : RunResult
 distributionBugRunResult =
-    { distributionReport = NoDistribution
+    { distributionReport = Fuzz.Internal.noDistribution
     , failure =
         Just
             { given = Nothing

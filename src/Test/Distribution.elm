@@ -69,7 +69,7 @@ Get it from your `Expectation` with `Test.Runner.getDistributionReport`.
 
 -}
 type DistributionReport
-    = NoDistribution
+    = NoDistribution ()
     | DistributionToReport
         { distributionCount : Dict (List String) Int
         , runsElapsed : Int
