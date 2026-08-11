@@ -92,7 +92,11 @@ fromExpectation labels expectation summary =
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { summaryWithDistribution | passed = summaryWithDistribution.passed + 1 }
+            { output = summaryWithDistribution.output
+            , failed = summaryWithDistribution.failed
+            , passed = summaryWithDistribution.passed + 1
+            , autoFail = summaryWithDistribution.autoFail
+            }
 
         Just { given, description, reason } ->
             let
@@ -114,9 +118,10 @@ fromExpectation labels expectation summary =
                         ++ (prefix ++ indentLines message)
                         ++ "\n"
             in
-            { summaryWithDistribution
-                | output = summaryWithDistribution.output ++ newOutput
-                , failed = summaryWithDistribution.failed + 1
+            { output = summaryWithDistribution.output ++ newOutput
+            , failed = summaryWithDistribution.failed + 1
+            , passed = summaryWithDistribution.passed
+            , autoFail = summaryWithDistribution.autoFail
             }
 
 
