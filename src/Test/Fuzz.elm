@@ -62,12 +62,9 @@ validatedFuzzTest desc fuzzer getExpectation distribution =
                     Pass { distributionReport = runResult.distributionReport }
 
                 Just failure ->
-                    { failure
-                        | expectation =
-                            failure.expectation
-                                |> Test.Expectation.withDistributionReport runResult.distributionReport
-                    }
-                        |> formatExpectation
+                    formatExpectation
+                        failure.given
+                        (Test.Expectation.withDistributionReport runResult.distributionReport failure.expectation)
         )
 
 
@@ -607,8 +604,8 @@ findSimplestFailure state =
     }
 
 
-formatExpectation : Failure -> Expectation
-formatExpectation { given, expectation } =
+formatExpectation : Maybe String -> Expectation -> Expectation
+formatExpectation given expectation =
     case given of
         Nothing ->
             expectation
