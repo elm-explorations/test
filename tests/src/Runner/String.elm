@@ -106,13 +106,15 @@ fromExpectation labels expectation summary =
                             "Given " ++ g ++ "\n\n"
 
                 newOutput =
-                    "\n\n"
+                    output
+                        ++ "\n\n"
                         ++ outputLabels labels
                         ++ "\n"
-                        ++ (prefix ++ indentLines message)
+                        ++ prefix
+                        ++ indentLines message
                         ++ "\n"
             in
-            { output = output ++ newOutput
+            { output = newOutput
             , failed = summary.failed + 1
             , passed = summary.passed
             , autoFail = summary.autoFail
