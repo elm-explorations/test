@@ -1807,11 +1807,12 @@ labelExamples n labels fuzzer =
                             )
                             Dict.empty
 
-                combinations : List ( List String, a )
+                combinations : List ( List String, Maybe a )
                 combinations =
                     foundExamples
                         |> Dict.filter (\k _ -> List.length k > 1)
                         |> Dict.toList
+                        |> List.map (\( label, example ) -> ( label, Just example ))
             in
             List.filterMap
                 (\( label, _ ) ->
@@ -1829,7 +1830,7 @@ labelExamples n labels fuzzer =
                             Just ( [ label ], Just example )
                 )
                 labels
-                ++ List.map (\( label, example ) -> ( label, Just example )) combinations
+                ++ combinations
 
         Rejected _ ->
             []
