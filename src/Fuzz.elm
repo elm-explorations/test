@@ -1203,8 +1203,7 @@ intFrequency fuzzers =
                     |> andThen
                         (\i ->
                             fuzzers
-                                |> List.drop i
-                                |> List.head
+                                |> List.getAt i
                                 |> Maybe.map Tuple.second
                                 |> Maybe.withDefault (invalid "elm-test bug: intFrequency index out of range")
                         )
