@@ -1202,10 +1202,12 @@ intFrequency fuzzers =
                 rollDice (weightSum - 1) (intFrequencyGenerator n (List.map Tuple.first rest))
                     |> andThen
                         (\i ->
-                            fuzzers
-                                |> List.getAt i
-                                |> Maybe.map Tuple.second
-                                |> Maybe.withDefault (invalid "elm-test bug: intFrequency index out of range")
+                            case List.getAt i fuzzers of
+                                Just ( _, fuzzer ) ->
+                                    fuzzer
+
+                                Nothing ->
+                                    invalid "elm-test bug: intFrequency index out of range"
                         )
 
             [] ->
