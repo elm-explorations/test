@@ -811,12 +811,9 @@ nonNegativeToleranceError tolerance name result =
 
 withinCompare : FloatingPointTolerance -> Float -> Float -> Bool
 withinCompare tolerance a b =
-    let
-        withinAbsoluteTolerance =
-            a - absolute tolerance <= b && b <= a + absolute tolerance
-
-        withinRelativeTolerance =
-            (a - abs (a * relative tolerance) <= b && b <= a + abs (a * relative tolerance))
-                || (b - abs (b * relative tolerance) <= a && a <= b + abs (b * relative tolerance))
-    in
-    (a == b) || withinAbsoluteTolerance || withinRelativeTolerance
+    (a == b)
+        -- within absolute tolerance
+        || (a - absolute tolerance <= b && b <= a + absolute tolerance)
+        -- within relative tolerance
+        || (a - abs (a * relative tolerance) <= b && b <= a + abs (a * relative tolerance))
+        || (b - abs (b * relative tolerance) <= a && a <= b + abs (b * relative tolerance))
