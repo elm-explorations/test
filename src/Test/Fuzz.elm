@@ -410,8 +410,10 @@ distributionBugRunResult =
         Just
             { given = Nothing
             , expectation =
-                Test.Expectation.fail
-                    { description = "elm-test distribution collection bug"
+                Test.Expectation.Fail
+                    { given = Nothing
+                    , distributionReport = Fuzz.Internal.noDistribution
+                    , description = "elm-test distribution collection bug"
                     , reason = Invalid DistributionBug
                     }
             }
@@ -422,8 +424,10 @@ distributionInsufficientFailure : DistributionFailure -> Failure
 distributionInsufficientFailure failure =
     { given = Nothing
     , expectation =
-        Test.Expectation.fail
-            { description =
+        Test.Expectation.Fail
+            { given = Nothing
+            , distributionReport = Fuzz.Internal.noDistribution
+            , description =
                 """Distribution of label "{LABEL}" was insufficient:
   expected:  {EXPECTED_PERCENTAGE}
   got:       {ACTUAL_PERCENTAGE}.
@@ -482,8 +486,10 @@ runOnce c state =
                     ( Just
                         { given = Nothing
                         , expectation =
-                            Test.Expectation.fail
-                                { description = reason
+                            Test.Expectation.Fail
+                                { given = Nothing
+                                , distributionReport = Fuzz.Internal.noDistribution
+                                , description = reason
                                 , reason = Invalid InvalidFuzzer
                                 }
                         }

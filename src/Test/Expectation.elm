@@ -1,11 +1,9 @@
 module Test.Expectation exposing
     ( Expectation(..)
-    , fail
     , withDistributionReport
     , withGiven
     )
 
-import Fuzz.Internal
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner.Failure exposing (Reason)
 
@@ -17,18 +15,6 @@ type Expectation
         , description : String
         , reason : Reason
         , distributionReport : DistributionReport
-        }
-
-
-{-| Create a failure without specifying the given.
--}
-fail : { description : String, reason : Reason } -> Expectation
-fail { description, reason } =
-    Fail
-        { given = Nothing
-        , description = description
-        , reason = reason
-        , distributionReport = Fuzz.Internal.noDistribution
         }
 
 
