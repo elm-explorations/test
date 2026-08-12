@@ -547,16 +547,16 @@ includeCombinationsInBaseCounts distribution =
             (\labels count ->
                 case labels of
                     [ single ] ->
-                        distribution
-                            |> Dict.foldr
-                                (\k value sum ->
-                                    if List.hasMultipleItems k && List.member single k then
-                                        value + sum
+                        Dict.foldr
+                            (\k value sum ->
+                                if List.hasMultipleItems k && List.member single k then
+                                    value + sum
 
-                                    else
-                                        sum
-                                )
-                                count
+                                else
+                                    sum
+                            )
+                            count
+                            distribution
 
                     _ ->
                         count
