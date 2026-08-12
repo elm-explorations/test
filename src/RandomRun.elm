@@ -267,16 +267,14 @@ set index value run =
         }
 
 
-sortKey : RandomRun -> ( Int, List Int )
-sortKey run =
-    ( run.length
-    , toList run
-    )
-
-
 compare : RandomRun -> RandomRun -> Order
 compare a b =
-    Basics.compare (sortKey a) (sortKey b)
+    case Basics.compare a.length b.length of
+        EQ ->
+            Basics.compare (toList a) (toList b)
+
+        order ->
+            order
 
 
 toList : RandomRun -> List Int
