@@ -89,19 +89,19 @@ enqueue a (Queue fl rl) =
 
 {-| Take item from `Queue`
 
-    Queue.dequeue Queue.empty == ( Nothing, Queue.empty )
+    Queue.dequeue Queue.empty == Nothing
 
-    Queue.dequeue (Queue.fromList [ 1 ]) == ( Just 1, Queue.empty )
+    Queue.dequeue (Queue.fromList [ 1 ]) == Just ( 1, Queue.empty )
 
 -}
-dequeue : Queue a -> ( Maybe a, Queue a )
+dequeue : Queue a -> Maybe ( a, Queue a )
 dequeue (Queue fl rl) =
     case fl of
         [] ->
-            ( Nothing, empty )
+            Nothing
 
         head :: tail ->
-            ( Just head, queue tail rl )
+            Just ( head, queue tail rl )
 
 
 

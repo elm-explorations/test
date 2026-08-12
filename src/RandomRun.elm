@@ -53,10 +53,10 @@ isEmpty run =
 nextChoice : RandomRun -> Maybe ( Int, RandomRun )
 nextChoice run =
     case Queue.dequeue run.data of
-        ( Nothing, _ ) ->
+        Nothing ->
             Nothing
 
-        ( Just first, rest ) ->
+        Just ( first, rest ) ->
             Just
                 ( first
                 , { length = run.length - 1
