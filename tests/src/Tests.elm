@@ -195,6 +195,32 @@ testTests =
                         expectPass
                         |> expectTestToFail
             ]
+        , describe "fuzzWithExamples"
+            [ test "fails with fewer than 1 run" <|
+                \() ->
+                    fuzzWithExamples { runs = 0, distribution = noDistribution }
+                        Fuzz.bool
+                        []
+                        "nonpositive"
+                        expectPass
+                        |> expectTestToFail
+            , test "fails with empty name" <|
+                \() ->
+                    fuzzWithExamples { runs = 1, distribution = noDistribution }
+                        Fuzz.bool
+                        []
+                        ""
+                        expectPass
+                        |> expectTestToFail
+            , test "fails with empty sub name" <|
+                \() ->
+                    fuzzWithExamples { runs = 1, distribution = noDistribution }
+                        Fuzz.int
+                        [ ( "", 987461349871874 ) ]
+                        "x"
+                        (\n -> n |> Expect.equal 987461349871874)
+                        |> expectTestToFail
+            ]
         , describe "Test.todo"
             [ test "causes test failure" <|
                 \() ->
