@@ -293,11 +293,11 @@ testTests =
                         |> expectTestToFail
             , test "fails with empty name" <|
                 \() ->
-                    repeat "" [ testWith "x" () ] expectPass
+                    repeat "" [ testWithValue "x" () ] expectPass
                         |> expectTestToFail
             , test "fails with empty sub name" <|
                 \() ->
-                    repeat "x" [ testWith "" () ] expectPass
+                    repeat "x" [ testWithValue "" () ] expectPass
                         |> expectTestToFail
             ]
         , identicalNamesAreRejectedTests
