@@ -604,10 +604,10 @@ This is useful if you want to run the same test with different inputs – also
 known as _parametrized tests:_
 
     repeat "checking if a string is whitespace only"
-        [ testWith { input = "", expected = True } "empty string"
-        , testWith { input = " \n\t", expected = True } "space, newline, tab"
-        , testWith { input = "a", expected = False } "only non-whitespace"
-        , testWith { input = "a b", expected = False } "mixed"
+        [ testWith "empty string" { input = "", expected = True }
+        , testWith "space, newline, tab" { input = " \n\t", expected = True }
+        , testWith "only non-whitespace" { input = "a", expected = False }
+        , testWith "mixed" { input = "a b", expected = False }
         ]
     <|
         \{ input, expected } ->
@@ -628,7 +628,7 @@ guarantee that specific input will ever be generated again. In this case, you
 can use `repeat` to save such inputs as explicit regression tests:
 
     repeat "String.words never returns an empty list"
-        [ testWith " \n\t" "only whitespace"
+        [ testWith "only whitespace" " \n\t"
         , fuzz Fuzz.string "fuzz"
         ]
     <|
@@ -643,7 +643,7 @@ If you want to [skip](#skip) tests, or focus on tests with [only](#only), use
 function composition (`<<`):
 
     repeat "String.words never returns an empty list"
-        [ only << testWith " \n\t" "only whitespace"
+        [ only << testWith "only whitespace" " \n\t"
         , fuzz Fuzz.string "fuzz"
         ]
     <|
@@ -660,8 +660,8 @@ repeat desc tests thunk =
 {-| This is a small wrapper around [test](#test), which is supposed to be used with [repeat](#repeat).
 See that function for examples.
 -}
-testWith : a -> String -> (a -> Expectation) -> Test
-testWith a desc thunk =
+testWith : String -> a -> (a -> Expectation) -> Test
+testWith desc a thunk =
     test desc (\() -> thunk a)
 
 
