@@ -16,3 +16,5 @@ function _Test_runThunk(thunk)
     return __Result_Err(err.toString());
   }
 }
+
+function _Test_navigationKey() {}

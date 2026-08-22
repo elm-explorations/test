@@ -1,5 +1,6 @@
 module Test exposing
     ( Test, test
+    , withNavigationKey
     , describe, concat, todo, skip, only
     , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
     , Distribution, noDistribution, reportDistribution, expectDistribution
@@ -8,6 +9,7 @@ module Test exposing
 {-| A module containing functions for creating and managing tests.
 
 @docs Test, test
+@docs withNavigationKey
 
 
 ## Organizing Tests
@@ -22,6 +24,8 @@ module Test exposing
 
 -}
 
+import Browser.Navigation
+import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Set
@@ -162,6 +166,34 @@ test untrimmedDesc thunk =
 
     else
         Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> thunk ()))
+
+
+{-| Provide a [`Browser.Navigation.Key`](https://package.elm-lang.org/packages/elm/browser/latest/Browser-Navigation#Key)
+value to your tests.
+
+You might need such a key if you're testing functions where a key is contained in the arguments, for instance when using
+[`Browser.application`](https://package.elm-lang.org/packages/elm/browser/latest/Browser#application)
+and storing the key in the `Model`.
+
+    import Expect
+    import Test exposing (test)
+
+    Test.withNavigationKey <|
+        \key ->
+            test "functionToTest returns 0 when given 0" <|
+                \() ->
+                    functionToTest key 0
+                        |> Expect.equal 0
+
+-}
+withNavigationKey : (Browser.Navigation.Key -> Test) -> Test
+withNavigationKey testFn =
+    testFn testNavigationKey
+
+
+testNavigationKey : Browser.Navigation.Key
+testNavigationKey =
+    Elm.Kernel.Test.navigationKey
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests
