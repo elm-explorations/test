@@ -30,7 +30,7 @@ import GenResult exposing (GenResult(..))
 import PRNG
 import RandomRun exposing (Chunk, RandomRun)
 import Simplify.Cmd exposing (SimplifyCmd, SimplifyCmdType(..))
-import Test.Expectation exposing (Expectation(..))
+import Test.Expectation exposing (Expectation(..), FailData)
 
 
 type alias State a =
@@ -38,7 +38,7 @@ type alias State a =
     , fuzzer : Fuzzer a
     , value : a
     , randomRun : RandomRun
-    , expectation : Expectation
+    , failData : FailData
     }
 
 
@@ -60,7 +60,7 @@ andThen fn { newState } =
     fn newState
 
 
-simplify : State a -> ( a, RandomRun, Expectation )
+simplify : State a -> ( a, RandomRun, FailData )
 simplify state =
     let
         _ =
@@ -72,13 +72,13 @@ simplify state =
     in
     if RandomRun.isEmpty state.randomRun then
         -- We can't do any better
-        ( state.value, state.randomRun, state.expectation )
+        ( state.value, state.randomRun, state.failData )
 
     else
         simplifyWhileProgress state
 
 
-simplifyWhileProgress : State a -> ( a, RandomRun, Expectation )
+simplifyWhileProgress : State a -> ( a, RandomRun, FailData )
 simplifyWhileProgress state =
     let
         nextState =
@@ -93,7 +93,7 @@ simplifyWhileProgress state =
                 else
                     state
         in
-        ( nextState.value, nextState.randomRun, nextState.expectation )
+        ( nextState.value, nextState.randomRun, nextState.failData )
 
     else
         simplifyWhileProgress nextState
@@ -234,7 +234,7 @@ keepIfBetter newRandomRun state =
                         in
                         noImprovement state
 
-                    Fail fail ->
+                    Fail { failData } ->
                         if RandomRun.compare state.randomRun newRandomRun == GT then
                             let
                                 _ =
@@ -249,7 +249,7 @@ keepIfBetter newRandomRun state =
                                 { state
                                     | value = value
                                     , randomRun = newRandomRun
-                                    , expectation = Fail fail
+                                    , failData = failData
                                 }
                             }
 

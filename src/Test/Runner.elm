@@ -6,7 +6,9 @@ module Test.Runner exposing
     , Simplifiable, fuzz, simplify
     )
 
-{-| This is an "experts only" module that exposes functions needed to run and
+{-| **DEPRECATED.** This module has been superseded by the [Test.RunnerV2](Test.RunnerV2) module.
+
+This is an "experts only" module that exposes functions needed to run and
 display tests. A typical user will use an existing runner library for Node or
 the browser, which is implemented using this interface. A list of these runners
 can be found in the `README`.
@@ -42,7 +44,6 @@ These functions give you the ability to run fuzzers separate of running fuzz tes
 
 import Bitwise
 import Char
-import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Fuzz.Internal
@@ -142,17 +143,7 @@ countRunnables runnable =
 
 run : Runnable -> Expectation
 run (Thunk fn) =
-    case runThunk fn of
-        Ok test ->
-            test
-
-        Err message ->
-            Expect.fail ("This test failed because it threw an exception: \"" ++ message ++ "\"")
-
-
-runThunk : (() -> a) -> Result String a
-runThunk =
-    Elm.Kernel.Test.runThunk
+    fn ()
 
 
 fromRunnableTree : RunnableTree -> List Runner
@@ -239,7 +230,7 @@ distributeSeeds =
 
 distributeSeedsHelp : Bool -> Int -> Random.Seed -> Test -> Distribution
 distributeSeedsHelp hashed runs seed test =
-    case test of
+    case Internal.unwrapTestVariant test of
         Internal.ElmTestVariant__UnitTest aRun ->
             { seed = seed
             , all = [ Runnable (Thunk (\_ -> aRun ())) ]
@@ -247,13 +238,13 @@ distributeSeedsHelp hashed runs seed test =
             , skipped = []
             }
 
-        Internal.ElmTestVariant__FuzzTest aRun ->
+        Internal.ElmTestVariant__FuzzTest maybeRuns aRun ->
             let
                 ( firstSeed, nextSeed ) =
                     Random.step Random.independentSeed seed
             in
             { seed = nextSeed
-            , all = [ Runnable (Thunk (\_ -> aRun firstSeed runs)) ]
+            , all = [ Runnable (Thunk (\_ -> aRun firstSeed (maybeRuns |> Maybe.withDefault runs) [] |> Test.Expectation.fromFuzzTestExpectation)) ]
             , only = []
             , skipped = []
             }
@@ -310,6 +301,9 @@ distributeSeedsHelp hashed runs seed test =
                 , only = List.map (Labeled description) next.only
                 , skipped = List.map (Labeled description) next.skipped
                 }
+
+        Internal.ElmTestVariant__Tagged _ subTest ->
+            distributeSeedsHelp hashed runs seed subTest
 
         Internal.ElmTestVariant__Skipped subTest ->
             let
@@ -402,8 +396,8 @@ getFailureReason expectation =
         Test.Expectation.Fail record ->
             Just
                 { given = record.given
-                , description = record.description
-                , reason = record.reason
+                , description = record.failData.description
+                , reason = record.failData.reason
                 }
 
 
@@ -412,7 +406,7 @@ getFailureReason expectation =
 getDistributionReport : Expectation -> DistributionReport
 getDistributionReport expectation =
     case expectation of
-        Test.Expectation.Pass { distributionReport } ->
+        Test.Expectation.Pass distributionReport ->
             distributionReport
 
         Test.Expectation.Fail { distributionReport } ->
@@ -428,8 +422,8 @@ isTodo expectation =
         Test.Expectation.Pass _ ->
             False
 
-        Test.Expectation.Fail { reason } ->
-            reason == TODO
+        Test.Expectation.Fail { failData } ->
+            failData.reason == TODO
 
 
 {-| A standard way to format descriptions and test labels, to keep things
@@ -520,24 +514,29 @@ your test.
 -}
 simplify : (a -> Expectation) -> ( a, Simplifiable a ) -> Maybe ( a, Simplifiable a )
 simplify getExpectation ( value, Simplifiable { randomRun, fuzzer } ) =
-    let
-        ( newValue, newRandomRun, _ ) =
-            Simplify.simplify
-                { getExpectation = getExpectation
-                , fuzzer = fuzzer
-                , randomRun = randomRun
-                , value = value
-                , expectation = getExpectation value
-                }
-    in
-    if RandomRun.equal newRandomRun randomRun then
-        Nothing
+    case getExpectation value of
+        Test.Expectation.Pass _ ->
+            Nothing
 
-    else
-        Just
-            ( newValue
-            , Simplifiable
-                { randomRun = newRandomRun
-                , fuzzer = fuzzer
-                }
-            )
+        Test.Expectation.Fail { failData } ->
+            let
+                ( newValue, newRandomRun, _ ) =
+                    Simplify.simplify
+                        { getExpectation = getExpectation
+                        , fuzzer = fuzzer
+                        , randomRun = randomRun
+                        , value = value
+                        , failData = failData
+                        }
+            in
+            if RandomRun.equal newRandomRun randomRun then
+                Nothing
+
+            else
+                Just
+                    ( newValue
+                    , Simplifiable
+                        { randomRun = newRandomRun
+                        , fuzzer = fuzzer
+                        }
+                    )

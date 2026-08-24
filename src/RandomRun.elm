@@ -6,6 +6,7 @@ module RandomRun exposing
     , deleteChunk
     , empty
     , equal
+    , fromList
     , get
     , isEmpty
     , length
@@ -288,6 +289,17 @@ compare a b =
 toList : RandomRun -> List Int
 toList run =
     Queue.toList run.data
+
+
+fromList : List Int -> RandomRun
+fromList ints =
+    let
+        data =
+            Queue.fromList ints
+    in
+    { data = data
+    , length = Queue.size data
+    }
 
 
 update : Int -> (Int -> Int) -> RandomRun -> RandomRun

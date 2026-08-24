@@ -595,7 +595,7 @@ equalSets expected actual =
 -}
 pass : Expectation
 pass =
-    Test.Expectation.Pass { distributionReport = Test.Distribution.NoDistribution }
+    Test.Expectation.Pass Test.Distribution.NoDistribution
 
 
 {-| Fails with the given message.
@@ -634,7 +634,7 @@ onFail str expectation =
             expectation
 
         Test.Expectation.Fail failure ->
-            Test.Expectation.Fail { failure | description = str, reason = Custom }
+            Test.Expectation.Fail { failure | failData = { description = str, reason = Custom } }
 
 
 {-| Passes if each of the given functions passes when applied to the subject.
