@@ -3,7 +3,7 @@ module Test.Html.ExampleAppTests exposing (all)
 import Expect
 import Html.Attributes exposing (href)
 import Test exposing (..)
-import Test.Html.ExampleApp exposing (exampleModel, view)
+import Test.Html.ExampleApp exposing (view)
 import Test.Html.Query as Query
 import Test.Html.Selector exposing (..)
 

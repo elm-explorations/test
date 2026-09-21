@@ -24,88 +24,21 @@ import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
 -}
 type Selector
-    = Id String
-    | ClassName String
-    | ClassList (List String)
+    = ClassList (List String)
     | Tag String
     | Attribute String String
     | BoolAttribute String Bool
     | Style { key : String, value : String }
     | ContainsText String
     | ContainsExactText String
-    | Multiple (List Selector)
-
-
-{-| Query for a node with a given tag in a Html element
--}
-queryByTagName : String -> ElmHtml msg -> List (ElmHtml msg)
-queryByTagName tagname =
-    query (Tag tagname)
-
-
-{-| Query for a node with a given id in a Html element
--}
-queryById : String -> ElmHtml msg -> List (ElmHtml msg)
-queryById id =
-    query (Id id)
-
-
-{-| Query for a node with a given classname in a Html element
--}
-queryByClassName : String -> ElmHtml msg -> List (ElmHtml msg)
-queryByClassName classname =
-    query (ClassName classname)
-
-
-{-| Query for a node with all the given classnames in a Html element
--}
-queryByClassList : List String -> ElmHtml msg -> List (ElmHtml msg)
-queryByClassList classList =
-    query (ClassList classList)
-
-
-{-| Query for a node with the given style in a Html element
--}
-queryByStyle : { key : String, value : String } -> ElmHtml msg -> List (ElmHtml msg)
-queryByStyle style =
-    query (Style style)
-
-
-{-| Query for a node with a given attribute in a Html element
--}
-queryByAttribute : String -> String -> ElmHtml msg -> List (ElmHtml msg)
-queryByAttribute key value =
-    query (Attribute key value)
-
-
-{-| Query for a node with a given attribute in a Html element
--}
-queryByBoolAttribute : String -> Bool -> ElmHtml msg -> List (ElmHtml msg)
-queryByBoolAttribute key value =
-    query (BoolAttribute key value)
-
-
-{-| Query an ElmHtml element using a selector, searching all children.
--}
-query : Selector -> ElmHtml msg -> List (ElmHtml msg)
-query selector =
-    queryInNode selector
-
-
-{-| Query an ElmHtml node using multiple selectors, considering both the node itself
-as well as all of its descendants.
--}
-queryAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryAll selectors =
-    query (Multiple selectors)
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
 as well as all of its descendants.
 -}
-queryInNode : Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryInNode =
-    queryInNodeHelp Nothing
+query : Selector -> ElmHtml msg -> List (ElmHtml msg)
+query selector =
+    queryInNode Nothing selector
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
@@ -113,7 +46,7 @@ as well as all of its descendants.
 -}
 queryChildren : Selector -> ElmHtml msg -> List (ElmHtml msg)
 queryChildren =
-    queryInNodeHelp (Just 1)
+    queryInNode (Just 1)
 
 
 {-| Returns just the immediate children of an ElmHtml node
@@ -128,16 +61,8 @@ getChildren elmHtml =
             []
 
 
-{-| Query to ensure an ElmHtml node has all selectors given, without considering
-any descendants lower than its immediate children.
--}
-queryChildrenAll : List Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryChildrenAll selectors =
-    queryInNodeHelp (Just 1) (Multiple selectors)
-
-
-queryInNodeHelp : Maybe Int -> Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryInNodeHelp maxDescendantDepth selector node =
+queryInNode : Maybe Int -> Selector -> ElmHtml msg -> List (ElmHtml msg)
+queryInNode maxDescendantDepth selector node =
     case node of
         NodeEntry record ->
             let
@@ -186,14 +111,14 @@ descendInQuery maxDescendantDepth selector children =
         Nothing ->
             -- No maximum, so continue.
             List.concatMap
-                (queryInNodeHelp Nothing selector)
+                (queryInNode Nothing selector)
                 children
 
         Just depth ->
             if depth > 0 then
                 -- Continue with maximum depth reduced by 1.
                 List.concatMap
-                    (queryInNodeHelp (Just (depth - 1)) selector)
+                    (queryInNode (Just (depth - 1)) selector)
                     children
 
             else
@@ -215,13 +140,6 @@ predicateFromSelector selector html =
             False
 
 
-hasAllSelectors : List Selector -> ElmHtml msg -> Bool
-hasAllSelectors selectors record =
-    List.map predicateFromSelector selectors
-        |> List.map (\selector -> selector record)
-        |> List.all identity
-
-
 hasAttribute : String -> String -> Facts msg -> Bool
 hasAttribute attribute queryString facts =
     case Dict.get attribute facts.stringAttributes of
@@ -240,11 +158,6 @@ hasBoolAttribute attribute value facts =
 
         Nothing ->
             False
-
-
-hasClass : String -> Facts msg -> Bool
-hasClass queryString facts =
-    List.member queryString (classnames facts)
 
 
 hasClasses : List String -> Facts msg -> Bool
@@ -299,14 +212,6 @@ containsAll a b =
 nodeRecordPredicate : Selector -> (NodeRecord msg -> Bool)
 nodeRecordPredicate selector =
     case selector of
-        Id id ->
-            .facts
-                >> hasAttribute "id" id
-
-        ClassName classname ->
-            .facts
-                >> hasClass classname
-
         ClassList classList ->
             .facts
                 >> hasClasses classList
@@ -333,22 +238,10 @@ nodeRecordPredicate selector =
         ContainsExactText _ ->
             always False
 
-        Multiple selectors ->
-            NodeEntry
-                >> hasAllSelectors selectors
-
 
 markdownPredicate : Selector -> (MarkdownNodeRecord msg -> Bool)
 markdownPredicate selector =
     case selector of
-        Id id ->
-            .facts
-                >> hasAttribute "id" id
-
-        ClassName classname ->
-            .facts
-                >> hasClass classname
-
         ClassList classList ->
             .facts
                 >> hasClasses classList
@@ -377,7 +270,3 @@ markdownPredicate selector =
             .model
                 >> .markdown
                 >> (==) text
-
-        Multiple selectors ->
-            MarkdownNode
-                >> hasAllSelectors selectors

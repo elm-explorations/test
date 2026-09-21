@@ -23,15 +23,6 @@ type alias FormatOptions =
     }
 
 
-{-| default formatting options
--}
-defaultFormatOptions : FormatOptions
-defaultFormatOptions =
-    { indent = 0
-    , newLines = False
-    }
-
-
 nodeToLines : FormatOptions -> ElmHtml msg -> List String
 nodeToLines options nodeType =
     case nodeType of
@@ -46,13 +37,6 @@ nodeToLines options nodeType =
 
         MarkdownNode record ->
             [ record.model.markdown ]
-
-
-{-| Convert a given html node to a string based on the type
--}
-nodeToString : ElmHtml msg -> String
-nodeToString =
-    nodeToStringWithOptions defaultFormatOptions
 
 
 {-| same as nodeToString, but with options
@@ -80,9 +64,7 @@ nodeRecordToString options { tag, children, facts } =
         openTag extras =
             let
                 trimmedExtras =
-                    List.filterMap (\x -> x) extras
-                        |> List.map String.trim
-                        |> List.filter ((/=) "")
+                    List.filterMap (Maybe.andThen (String.trim >> nothingIfEmpty)) extras
 
                 filling =
                     case trimmedExtras of
@@ -95,47 +77,59 @@ nodeRecordToString options { tag, children, facts } =
             "<" ++ tag ++ filling ++ ">"
 
         styles =
-            case Dict.toList facts.styles of
-                [] ->
-                    Nothing
+            if Dict.isEmpty facts.styles then
+                Nothing
 
-                styleValues ->
-                    styleValues
-                        |> List.map (\( key, value ) -> key ++ ":" ++ value ++ ";")
-                        |> String.join ""
-                        |> (\styleString -> "style=\"" ++ styleString ++ "\"")
-                        |> Just
+            else
+                let
+                    styleString : String
+                    styleString =
+                        Dict.foldl (\key value str -> str ++ key ++ ":" ++ value ++ ";") "" facts.styles
+                in
+                Just ("style=\"" ++ styleString ++ "\"")
 
         classes =
             Dict.get "className" facts.stringAttributes
                 |> Maybe.map (\name -> "class=\"" ++ name ++ "\"")
 
         stringAttributes =
-            Dict.filter (\k _ -> k /= "className") facts.stringAttributes
-                |> Dict.toList
-                |> List.map (\( k, v ) -> k ++ "=\"" ++ v ++ "\"")
-                |> String.join " "
+            Dict.foldl
+                (\k v str ->
+                    if k == "className" then
+                        str
+
+                    else
+                        str ++ " " ++ k ++ "=\"" ++ v ++ "\""
+                )
+                ""
+                facts.stringAttributes
+                |> String.trimLeft
                 |> Just
 
         boolAttributes =
-            Dict.toList facts.boolAttributes
-                |> List.filterMap
-                    (\( k, v ) ->
-                        if v then
-                            Just k
+            Dict.foldl
+                (\k v str ->
+                    if v then
+                        str ++ " " ++ k
 
-                        else
-                            Nothing
-                    )
-                |> String.join " "
+                    else
+                        str
+                )
+                ""
+                facts.boolAttributes
+                |> String.trimLeft
                 |> Just
+
+        openTag_ : String
+        openTag_ =
+            openTag [ classes, styles, stringAttributes, boolAttributes ]
     in
     case toElementKind tag of
         {- Void elements only have a start tag; end tags must not be
            specified for void elements.
         -}
         VoidElements ->
-            [ openTag [ classes, styles, stringAttributes, boolAttributes ] ]
+            [ openTag_ ]
 
         {- TODO: implement restrictions for RawTextElements,
            EscapableRawTextElements. Also handle ForeignElements correctly.
@@ -147,10 +141,21 @@ nodeRecordToString options { tag, children, facts } =
                 closeTag =
                     "</" ++ tag ++ ">"
 
+                indent : String
+                indent =
+                    String.repeat options.indent " "
+
                 childrenStrings =
                     List.concatMap (nodeToLines options) children
-                        |> List.map ((++) (String.repeat options.indent " "))
+                        |> List.foldr (\x list -> (indent ++ x ++ "") :: list) [ closeTag ]
             in
-            openTag [ classes, styles, stringAttributes, boolAttributes ]
-                :: childrenStrings
-                ++ [ closeTag ]
+            openTag_ :: childrenStrings
+
+
+nothingIfEmpty : String -> Maybe String
+nothingIfEmpty str =
+    if str == "" then
+        Nothing
+
+    else
+        Just str
