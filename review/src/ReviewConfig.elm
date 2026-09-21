@@ -47,17 +47,13 @@ config =
         |> Rule.ignoreErrorsForFiles [ "src/Test/Internal/KernelConstants.elm" ]
     , NoMissingTypeExpose.rule
     , NoSimpleLetBody.rule
-        |> Rule.ignoreErrorsForFiles [ "src/Simplify.elm" ]
     , NoPrematureLetComputation.rule
     , NoUnused.CustomTypeConstructors.rule []
-        |> Rule.ignoreErrorsForFiles [ "src/Test/Html/Internal/ElmHtml/InternalTypes.elm" ]
     , NoUnused.CustomTypeConstructorArgs.rule
         |> Rule.ignoreErrorsForFiles [ "src/Test/Html/Internal/ElmHtml/InternalTypes.elm" ]
     , NoUnused.Exports.rule
         |> Rule.ignoreErrorsForFiles
-            [ "src/Test/Html/Internal/ElmHtml/ToString.elm"
-            , "src/Test/Html/Internal/ElmHtml/Query.elm"
-            , "src/Test/Html/Internal/ElmHtml/InternalTypes.elm"
+            [ "src/Test/Html/Internal/ElmHtml/InternalTypes.elm"
             ]
     , NoUnused.Modules.rule
     , NoUnused.Parameters.rule
@@ -68,6 +64,5 @@ config =
         (Simplify.defaults
             |> Simplify.expectNaN
         )
-        |> Rule.ignoreErrorsForFiles [ "src/Fuzz.elm" ]
     ]
         |> List.map (Rule.ignoreErrorsForDirectories [ "tests/" ])
