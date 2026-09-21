@@ -629,7 +629,7 @@ can use `repeat` to save such inputs as explicit regression tests:
 
     repeat "String.words never returns an empty list"
         [ testWithValue "only whitespace" " \n\t"
-        , fuzz Fuzz.string "fuzz"
+        , fuzz "fuzz" Fuzz.string
         ]
     <|
         \string ->
@@ -644,7 +644,7 @@ function composition (`<<`):
 
     repeat "String.words never returns an empty list"
         [ only << testWithValue "only whitespace" " \n\t"
-        , fuzz Fuzz.string "fuzz"
+        , fuzz "fuzz" Fuzz.string
         ]
     <|
         \string ->
