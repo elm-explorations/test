@@ -1,3 +1,7 @@
+## Unreleased changes >2.2.1
+
+* [#256](https://github.com/elm-explorations/test/pull/256): Nested `Test.only` aren't ignored anymore
+
 ## Releases
 
 | Version                                                          | Notes                                                                                                                                              |
