@@ -57,7 +57,7 @@ format description reason =
                         "\nThese keys are missing: "
                             ++ (missing |> String.join ", " |> (\d -> "[ " ++ d ++ " ]"))
             in
-            String.join ""
+            String.concat
                 [ verticalBar description expected actual
                 , "\n"
                 , extraStr
@@ -141,7 +141,7 @@ escapeUnicodeChars s =
                 else
                     "\\u{" ++ hexInt c ++ "}"
             )
-        |> String.join ""
+        |> String.concat
 
 
 listDiffToString :
@@ -161,7 +161,7 @@ listDiffToString index description { expected, actual } originals =
             , "\n"
             , Debug.toString originals.originalActual
             ]
-                |> String.join ""
+                |> String.concat
 
         ( _ :: _, [] ) ->
             verticalBar (description ++ " was shorter than")
@@ -185,7 +185,7 @@ listDiffToString index description { expected, actual } originals =
 
             else
                 -- We found elements that differ; fail!
-                String.join ""
+                String.concat
                     [ verticalBar description
                         (Debug.toString originals.originalExpected)
                         (Debug.toString originals.originalActual)
@@ -211,12 +211,12 @@ equalityToString { operation, expected, actual } =
 
         combine things =
             things
-                |> List.map (String.join "")
+                |> List.map String.concat
                 |> String.join "\n"
     in
     verticalBar
         operation
-        (if String.join "" valueBelow /= String.join "" unicodeValueBelow then
+        (if valueBelow /= unicodeValueBelow then
             -- we need to show the escaped string as well
             combine
                 [ valueBelow
@@ -231,7 +231,7 @@ equalityToString { operation, expected, actual } =
                 , diffArrowsBelow
                 ]
         )
-        (if String.join "" valueAbove /= String.join "" unicodeValueAbove then
+        (if valueAbove /= unicodeValueAbove then
             -- we need to show the escaped string as well
             combine
                 [ unicodeDiffArrowsAbove

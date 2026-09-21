@@ -386,10 +386,12 @@ traverseSelector selectorQuery elmHtmlList =
                 |> Ok
 
         First ->
-            elmHtmlList
-                |> List.head
-                |> Maybe.map (\elem -> Ok [ elem ])
-                |> Maybe.withDefault (Err (NoResultsForSingle "Query.first"))
+            case elmHtmlList of
+                elem :: _ ->
+                    Ok [ elem ]
+
+                [] ->
+                    Err (NoResultsForSingle "Query.first")
 
         Index index ->
             let
@@ -523,7 +525,7 @@ contains expectedDescendants query =
 
             else
                 Expect.fail
-                    (String.join ""
+                    (String.concat
                         [ "\t✗ /"
                         , String.fromInt <| List.length missing
                         , "\\ missing descendants: \n\n"
@@ -645,11 +647,11 @@ addQueryFromHtmlLine query =
         [ prefixOutputLine "Query.fromHtml"
         , toOutputLine query
             |> String.split "\n"
-            |> List.map ((++) baseIndentation)
+            |> List.map (\str -> baseIndentation ++ str ++ "")
             |> String.join "\n"
         ]
 
 
 prefixOutputLine : String -> String
-prefixOutputLine =
-    (++) "▼ "
+prefixOutputLine line =
+    "▼ " ++ line

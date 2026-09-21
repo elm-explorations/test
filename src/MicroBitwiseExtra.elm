@@ -93,9 +93,7 @@ reverseByte b_ =
 reverseByteTable : Array Int
 reverseByteTable =
     -- TODO PERF `Dict Int Int` or `IntDict Int` or `List` instead? Benchmark?
-    List.range 0 255
-        |> List.map reverseByte
-        |> Array.fromList
+    Array.initialize (255 + 1) reverseByte
 
 
 memoizedReverseByte : Int -> Int

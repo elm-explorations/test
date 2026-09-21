@@ -203,21 +203,21 @@ decrementTogetherCmds length =
             else
                 2
     in
-    List.range 0 (length - 2)
-        |> List.fastConcatMap
-            (\index ->
+    reverseRange (length - 2) 0 []
+        |> List.foldl
+            (\index acc ->
                 let
                     maxOffset =
                         min
                             maxOffsetLimit
                             (length - index - 1)
                 in
-                List.range 1 maxOffset
-                    |> List.fastConcatMap
-                        (\offset ->
-                            [ 4, 2, 1 ]
-                                |> List.map
-                                    (\by ->
+                reverseRange maxOffset 1 []
+                    |> List.foldl
+                        (\offset acc1 ->
+                            [ 1, 2, 4 ]
+                                |> List.foldl
+                                    (\by acc2 ->
                                         let
                                             rightIndex =
                                                 index + offset
@@ -230,34 +230,50 @@ decrementTogetherCmds length =
                                                 }
                                         , minLength = rightIndex + 1
                                         }
+                                            :: acc2
                                     )
+                                    acc1
                         )
+                        acc
             )
+            []
+
+
+reverseRange : Int -> Int -> List Int -> List Int
+reverseRange hi lo list =
+    if hi >= lo then
+        reverseRange hi (lo + 1) (lo :: list)
+
+    else
+        list
 
 
 redistributeCmds : Int -> List SimplifyCmd
 redistributeCmds length =
-    let
-        forOffset : Int -> List SimplifyCmd
-        forOffset offset =
-            if offset >= length then
-                []
+    []
+        |> forOffset length 3 0
+        |> forOffset length 2 0
+        |> forOffset length 1 0
 
-            else
-                List.range 0 (length - 1 - offset)
-                    |> List.reverse
-                    |> List.map
-                        (\leftIndex ->
-                            { type_ =
-                                RedistributeChoicesAndMaybeIncrement
-                                    { leftIndex = leftIndex
-                                    , rightIndex = leftIndex + offset
-                                    }
-                            , minLength = leftIndex + offset + 1
-                            }
-                        )
-    in
-    forOffset 3 ++ forOffset 2 ++ forOffset 1
+
+forOffset : Int -> Int -> Int -> List SimplifyCmd -> List SimplifyCmd
+forOffset length offset leftIndex cmds =
+    if leftIndex > (length - 1 - offset) then
+        cmds
+
+    else
+        forOffset length
+            offset
+            (leftIndex + 1)
+            ({ type_ =
+                RedistributeChoicesAndMaybeIncrement
+                    { leftIndex = leftIndex
+                    , rightIndex = leftIndex + offset
+                    }
+             , minLength = leftIndex + offset + 1
+             }
+                :: cmds
+            )
 
 
 swapCmds : Int -> List SimplifyCmd
