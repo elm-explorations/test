@@ -24,7 +24,7 @@ import Html exposing (Attribute)
 import Json.Decode
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes
 import Test.Html.Internal.Inert as Inert
-import Test.Html.Selector.Internal as Internal exposing (..)
+import Test.Html.Selector.Internal as Internal exposing (Selector(..), namedAttr, namedBoolAttr)
 
 
 {-| A selector used to filter sets of elements.

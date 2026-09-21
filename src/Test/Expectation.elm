@@ -4,7 +4,7 @@ module Test.Expectation exposing
     , withGiven
     )
 
-import Test.Distribution exposing (DistributionReport(..))
+import Test.Distribution exposing (DistributionReport)
 import Test.Runner.Failure exposing (Reason)
 
 
