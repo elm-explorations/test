@@ -35,7 +35,7 @@ defaultFormatOptions =
 nodeToLines : FormatOptions -> ElmHtml msg -> List String
 nodeToLines options nodeType =
     case nodeType of
-        TextTag { text } ->
+        TextTag text ->
             [ text ]
 
         NodeEntry record ->
