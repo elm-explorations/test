@@ -6,7 +6,7 @@ import Test.Distribution exposing (DistributionReport(..))
 report : List String -> DistributionReport -> Maybe String
 report testBreadcrumbs distributionReport =
     case distributionReport of
-        NoDistribution ->
+        NoDistribution () ->
             Nothing
 
         DistributionToReport r ->

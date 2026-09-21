@@ -59,15 +59,12 @@ validatedFuzzTest desc fuzzer getExpectation distribution =
             in
             case runResult.failure of
                 Nothing ->
-                    Pass { distributionReport = runResult.distributionReport }
+                    Pass runResult.distributionReport
 
                 Just failure ->
-                    { failure
-                        | expectation =
-                            failure.expectation
-                                |> Test.Expectation.withDistributionReport runResult.distributionReport
-                    }
-                        |> formatExpectation
+                    formatExpectation
+                        failure.given
+                        (Test.Expectation.withDistributionReport runResult.distributionReport failure.expectation)
         )
 
 
@@ -153,7 +150,7 @@ fuzzLoop c state =
             { distributionReport =
                 case state.distributionCount of
                     Nothing ->
-                        NoDistribution
+                        Fuzz.Internal.noDistribution
 
                     Just distributionCount ->
                         DistributionToReport
@@ -175,7 +172,7 @@ fuzzLoop c state =
             else
                 case c.distribution of
                     NoDistributionNeeded ->
-                        { distributionReport = NoDistribution
+                        { distributionReport = Fuzz.Internal.noDistribution
                         , failure = Nothing
                         }
 
@@ -408,13 +405,15 @@ distributionFailRunResult normalizedDistributionCount failedLabel =
 
 distributionBugRunResult : RunResult
 distributionBugRunResult =
-    { distributionReport = NoDistribution
+    { distributionReport = Fuzz.Internal.noDistribution
     , failure =
         Just
             { given = Nothing
             , expectation =
-                Test.Expectation.fail
-                    { description = "elm-test distribution collection bug"
+                Test.Expectation.Fail
+                    { given = Nothing
+                    , distributionReport = Fuzz.Internal.noDistribution
+                    , description = "elm-test distribution collection bug"
                     , reason = Invalid DistributionBug
                     }
             }
@@ -425,8 +424,10 @@ distributionInsufficientFailure : DistributionFailure -> Failure
 distributionInsufficientFailure failure =
     { given = Nothing
     , expectation =
-        Test.Expectation.fail
-            { description =
+        Test.Expectation.Fail
+            { given = Nothing
+            , distributionReport = Fuzz.Internal.noDistribution
+            , description =
                 """Distribution of label "{LABEL}" was insufficient:
   expected:  {EXPECTED_PERCENTAGE}
   got:       {ACTUAL_PERCENTAGE}.
@@ -485,8 +486,10 @@ runOnce c state =
                     ( Just
                         { given = Nothing
                         , expectation =
-                            Test.Expectation.fail
-                                { description = reason
+                            Test.Expectation.Fail
+                                { given = Nothing
+                                , distributionReport = Fuzz.Internal.noDistribution
+                                , description = reason
                                 , reason = Invalid InvalidFuzzer
                                 }
                         }
@@ -529,11 +532,11 @@ runOnce c state =
                     in
                     ( failure, distributionCounter )
     in
-    { state
-        | failure = maybeFailure
-        , distributionCount = newDistributionCounter
-        , currentSeed = nextSeed
-        , runsElapsed = state.runsElapsed + 1
+    { failure = maybeFailure
+    , distributionCount = newDistributionCounter
+    , currentSeed = nextSeed
+    , runsElapsed = state.runsElapsed + 1
+    , nextPowerOfTwo = state.nextPowerOfTwo
     }
 
 
@@ -607,8 +610,8 @@ findSimplestFailure state =
     }
 
 
-formatExpectation : Failure -> Expectation
-formatExpectation { given, expectation } =
+formatExpectation : Maybe String -> Expectation -> Expectation
+formatExpectation given expectation =
     case given of
         Nothing ->
             expectation
