@@ -602,7 +602,7 @@ someView str =
 testHas : Test
 testHas =
     describe "Query.has"
-        [ fuzz (Fuzz.list Fuzz.string) "Passes for empty selector list" <|
+        [ fuzz "Passes for empty selector list" (Fuzz.list Fuzz.string) <|
             \strings ->
                 Html.div [] (List.map Html.text strings)
                     |> Query.fromHtml

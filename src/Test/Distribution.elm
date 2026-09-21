@@ -49,7 +49,7 @@ in a given test.
 The example below says that at least 30% of the fuzz test inputs should be
 multiples of 3.
 
-    fuzzWith
+    fuzzWith "description"
         { runs = 10000
         , distribution =
             expectDistribution

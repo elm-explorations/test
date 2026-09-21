@@ -260,12 +260,11 @@ passes label fuzzer fn =
 
 passesWith : { runs : Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
 passesWith { runs } label fuzzer fn =
-    Test.fuzzWith
+    Test.fuzzWith label
         { runs = runs
         , distribution = Test.noDistribution
         }
         fuzzer
-        label
         (fn >> Expect.equal True)
 
 
@@ -277,8 +276,8 @@ canGenerateSatisfying label fuzzer fn =
 canGenerateSatisfyingWith : { runs : Int } -> String -> Fuzzer a -> (a -> Bool) -> Test
 canGenerateSatisfyingWith runs label fuzzer fn =
     testFailingWith runs <|
-        Test.fuzz fuzzer
-            ("Can generate satisfying: " ++ label)
+        Test.fuzz ("Can generate satisfying: " ++ label)
+            fuzzer
             (\fuzzedValue ->
                 (not <| fn fuzzedValue)
                     |> Expect.equal True
@@ -321,8 +320,8 @@ canGenerateWith runs value fuzzer =
             Debug.toString value
     in
     testSimplifyingWith runs <|
-        Test.fuzz fuzzer
-            ("Can generate " ++ valueString)
+        Test.fuzz ("Can generate " ++ valueString)
+            fuzzer
             (\fuzzedValue ->
                 (fuzzedValue /= value)
                     |> expectSimplifiesTo valueString
@@ -341,8 +340,8 @@ simplifiesTowardsWith runs label value fuzzer fn =
             Debug.toString value
     in
     testSimplifyingWith runs <|
-        Test.fuzz fuzzer
-            ("[" ++ label ++ "] Simplifies towards " ++ valueString)
+        Test.fuzz ("[" ++ label ++ "] Simplifies towards " ++ valueString)
+            fuzzer
             (\fuzzedValue ->
                 fn fuzzedValue
                     |> expectSimplifiesTo valueString
@@ -363,8 +362,8 @@ simplifiesTowardsManyWith runs label values fuzzer fn =
                 |> String.join "|"
     in
     testSimplifyingWith runs <|
-        Test.fuzz fuzzer
-            ("[" ++ label ++ "] Simplifies towards one of " ++ valuesString)
+        Test.fuzz ("[" ++ label ++ "] Simplifies towards one of " ++ valuesString)
+            fuzzer
             (\fuzzedValue ->
                 fn fuzzedValue
                     |> expectSimplifiesTo valuesString
@@ -373,7 +372,7 @@ simplifiesTowardsManyWith runs label values fuzzer fn =
 
 rejects : String -> Fuzzer a -> String -> Test
 rejects label fuzzer expectedReason =
-    Test.fuzz randomSeedFuzzer ("Rejects: " ++ label) <|
+    Test.fuzz ("Rejects: " ++ label) randomSeedFuzzer <|
         \seed ->
             case Random.step (Test.Runner.fuzz fuzzer) seed of
                 ( Err reason, _ ) ->

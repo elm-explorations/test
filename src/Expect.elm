@@ -87,8 +87,8 @@ If we use a relative tolerance of `0.01` instead, the circle area comparison bec
 as long as `r` isn't [too close to zero](https://en.wikipedia.org/wiki/Denormal_number).
 
     fuzz
-        (floatRange 0.000001 100000)
         "Circle half-circumference with relative tolerance"
+        (floatRange 0.000001 100000)
         (\r -> r * 3.14 |> Expect.within (Relative 0.001) (r * pi))
 
 

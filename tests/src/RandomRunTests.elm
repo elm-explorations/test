@@ -83,7 +83,7 @@ lengthTests =
             \_ ->
                 RandomRun.length RandomRun.empty
                     |> Expect.equal 0
-        , Test.fuzz randomRunFuzzer "isEmpty r ⇔ length r == 0" <|
+        , Test.fuzz "isEmpty r ⇔ length r == 0" randomRunFuzzer <|
             \r ->
                 Expect.equal
                     (RandomRun.isEmpty r)
@@ -94,7 +94,7 @@ lengthTests =
 compareTests : Test
 compareTests =
     Test.describe "compare"
-        [ Test.fuzz randomRunFuzzer "if isEmpty r then compare r empty == EQ else compare r empty == GT" <|
+        [ Test.fuzz "if isEmpty r then compare r empty == EQ else compare r empty == GT" randomRunFuzzer <|
             \r ->
                 let
                     compareResult =
@@ -105,11 +105,11 @@ compareTests =
 
                 else
                     compareResult |> Expect.equal GT
-        , Test.fuzz2 randomRunFuzzer randomRunFuzzer "isEmpty r1 => compare r1 r2 /= GT" <|
+        , Test.fuzz2 "isEmpty r1 => compare r1 r2 /= GT" randomRunFuzzer randomRunFuzzer <|
             \r1 r2 ->
                 RandomRun.isEmpty r1
                     |> implies (RandomRun.compare r1 r2 |> Expect.notEqual GT)
-        , Test.fuzz2 randomRunFuzzer randomRunFuzzer "length ordering vs compare r1 r2" <|
+        , Test.fuzz2 "length ordering vs compare r1 r2" randomRunFuzzer randomRunFuzzer <|
             \r1 r2 ->
                 case compare (RandomRun.length r1) (RandomRun.length r2) of
                     LT ->
@@ -128,12 +128,12 @@ compareTests =
 equalTests : Test
 equalTests =
     Test.describe "equal"
-        [ Test.fuzz randomRunFuzzer "isEmpty r ⇔ equal r empty" <|
+        [ Test.fuzz "isEmpty r ⇔ equal r empty" randomRunFuzzer <|
             \r ->
                 Expect.equal
                     (RandomRun.isEmpty r)
                     (RandomRun.equal r RandomRun.empty)
-        , Test.fuzz2 randomRunFuzzer randomRunFuzzer "length r1 != length r2 => not (equal r1 r2)" <|
+        , Test.fuzz2 "length r1 != length r2 => not (equal r1 r2)" randomRunFuzzer randomRunFuzzer <|
             \r1 r2 ->
                 (RandomRun.length r1 /= RandomRun.length r2)
                     |> implies
@@ -141,7 +141,7 @@ equalTests =
                             |> Expect.equal False
                             |> Expect.onFail "runs with different lengths must not be equal"
                         )
-        , Test.fuzz2 randomRunFuzzer randomRunFuzzer "equal r1 r2 ⇔ compare r1 r2 == EQ" <|
+        , Test.fuzz2 "equal r1 r2 ⇔ compare r1 r2 == EQ" randomRunFuzzer randomRunFuzzer <|
             \r1 r2 ->
                 Expect.equal
                     (RandomRun.equal r1 r2)
@@ -156,12 +156,12 @@ toListTests =
             \_ ->
                 RandomRun.toList RandomRun.empty
                     |> Expect.equal []
-        , Test.fuzz randomRunFuzzer "List.length (toList r) == length r" <|
+        , Test.fuzz "List.length (toList r) == length r" randomRunFuzzer <|
             \r ->
                 RandomRun.toList r
                     |> List.length
                     |> Expect.equal (RandomRun.length r)
-        , Test.fuzz2 randomRunFuzzer randomRunFuzzer "equal r1 r2 ⇔ toList r1 == toList r2" <|
+        , Test.fuzz2 "equal r1 r2 ⇔ toList r1 == toList r2" randomRunFuzzer randomRunFuzzer <|
             \r1 r2 ->
                 Expect.equal (RandomRun.equal r1 r2) (RandomRun.toList r1 == RandomRun.toList r2)
         ]
@@ -170,16 +170,16 @@ toListTests =
 getTests : Test
 getTests =
     Test.describe "get"
-        [ Test.fuzz indexFuzzer "get i empty == Nothing" <|
+        [ Test.fuzz "get i empty == Nothing" indexFuzzer <|
             \i ->
                 RandomRun.get i RandomRun.empty
                     |> Expect.equal Nothing
-        , Test.fuzz2 indexFuzzer randomRunFuzzer "i >= length r ⇔ get i r == Nothing" <|
+        , Test.fuzz2 "i >= length r ⇔ get i r == Nothing" indexFuzzer randomRunFuzzer <|
             \i r ->
                 Expect.equal
                     (i >= RandomRun.length r)
                     (RandomRun.get i r == Nothing)
-        , Test.fuzz3 indexFuzzer randomRunFuzzer randomRunFuzzer "equal r1 r2 => get i r1 == get i r2" <|
+        , Test.fuzz3 "equal r1 r2 => get i r1 == get i r2" indexFuzzer randomRunFuzzer randomRunFuzzer <|
             \i r1 r2 ->
                 RandomRun.equal r1 r2
                     |> implies
@@ -187,7 +187,7 @@ getTests =
                             (RandomRun.get i r1)
                             (RandomRun.get i r2)
                         )
-        , Test.fuzz2 indexFuzzer randomRunFuzzer "get i r == List.getAt i (toList r)" <|
+        , Test.fuzz2 "get i r == List.getAt i (toList r)" indexFuzzer randomRunFuzzer <|
             \i r ->
                 Expect.equal
                     (RandomRun.get i r)
@@ -198,17 +198,17 @@ getTests =
 setTests : Test
 setTests =
     Test.describe "set"
-        [ Test.fuzz2 indexFuzzer (Fuzz.intRange 0 Random.maxInt) "isEmpty (set i v empty)" <|
+        [ Test.fuzz2 "isEmpty (set i v empty)" indexFuzzer (Fuzz.intRange 0 Random.maxInt) <|
             \i v ->
                 RandomRun.set i v RandomRun.empty
                     |> RandomRun.isEmpty
                     |> Expect.equal True
                     |> Expect.onFail "set on empty should still yield an empty run"
-        , Test.fuzz3 indexFuzzer (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "length r == length (set i v r)" <|
+        , Test.fuzz3 "length r == length (set i v r)" indexFuzzer (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \i v r ->
                 RandomRun.length r
                     |> Expect.equal (RandomRun.length (RandomRun.set i v r))
-        , Test.fuzz3 indexFuzzer (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "i < length r => get i (set i v r) == Just v" <|
+        , Test.fuzz3 "i < length r => get i (set i v r) == Just v" indexFuzzer (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \i v r ->
                 (i < RandomRun.length r)
                     |> implies
@@ -223,19 +223,19 @@ setTests =
 updateTests : Test
 updateTests =
     Test.describe "update"
-        [ Test.fuzz2 indexFuzzer updateFnFuzzer "isEmpty (update i fn empty)" <|
+        [ Test.fuzz2 "isEmpty (update i fn empty)" indexFuzzer updateFnFuzzer <|
             \i fn ->
                 RandomRun.update i fn RandomRun.empty
                     |> RandomRun.isEmpty
                     |> Expect.equal True
                     |> Expect.onFail "update on empty should still yield an empty run"
-        , Test.fuzz3 indexFuzzer updateFnFuzzer randomRunFuzzer "length r == length (update i fn r)" <|
+        , Test.fuzz3 "length r == length (update i fn r)" indexFuzzer updateFnFuzzer randomRunFuzzer <|
             \i fn r ->
                 r
                     |> RandomRun.update i fn
                     |> RandomRun.length
                     |> Expect.equal (RandomRun.length r)
-        , Test.fuzz3 indexFuzzer (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "set i v r == update i (always v) r" <|
+        , Test.fuzz3 "set i v r == update i (always v) r" indexFuzzer (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \i v r ->
                 Expect.equal
                     (r
@@ -252,32 +252,32 @@ updateTests =
 appendTests : Test
 appendTests =
     Test.describe "append"
-        [ Test.fuzz (Fuzz.intRange 0 Random.maxInt) "toList (append v empty) == [v]" <|
+        [ Test.fuzz "toList (append v empty) == [v]" (Fuzz.intRange 0 Random.maxInt) <|
             \v ->
                 RandomRun.append v RandomRun.empty
                     |> RandomRun.toList
                     |> Expect.equal [ v ]
-        , Test.fuzz2 (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "length (append v r) == length r + 1" <|
+        , Test.fuzz2 "length (append v r) == length r + 1" (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \v r ->
                 RandomRun.length (RandomRun.append v r)
                     |> Expect.equal (RandomRun.length r + 1)
-        , Test.fuzz2 (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "compare r (append v r) == LT" <|
+        , Test.fuzz2 "compare r (append v r) == LT" (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \v r ->
                 RandomRun.compare r (RandomRun.append v r)
                     |> Expect.equal LT
-        , Test.fuzz2 (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "not (equal r (append v r))" <|
+        , Test.fuzz2 "not (equal r (append v r))" (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \v r ->
                 RandomRun.equal r (RandomRun.append v r)
                     |> Expect.equal False
                     |> Expect.onFail "appending a value must make the run different from the original"
-        , Test.fuzz2 (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "List.head (List.reverse (toList (append v r))) == Just v" <|
+        , Test.fuzz2 "List.head (List.reverse (toList (append v r))) == Just v" (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \v r ->
                 RandomRun.append v r
                     |> RandomRun.toList
                     |> List.reverse
                     |> List.head
                     |> Expect.equal (Just v)
-        , Test.fuzz2 (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "get (length r) (append v r) == Just v" <|
+        , Test.fuzz2 "get (length r) (append v r) == Just v" (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \v r ->
                 RandomRun.get (RandomRun.length r) (RandomRun.append v r)
                     |> Expect.equal (Just v)
@@ -287,18 +287,18 @@ appendTests =
 replaceTests : Test
 replaceTests =
     Test.describe "replace"
-        [ Test.fuzz2 indexFuzzer (Fuzz.intRange 0 Random.maxInt) "isEmpty (replace [(i,v)] empty)" <|
+        [ Test.fuzz2 "isEmpty (replace [(i,v)] empty)" indexFuzzer (Fuzz.intRange 0 Random.maxInt) <|
             \i v ->
                 RandomRun.empty
                     |> RandomRun.replace [ ( i, v ) ]
                     |> RandomRun.isEmpty
                     |> Expect.equal True
                     |> Expect.onFail "replace on empty should still yield an empty run"
-        , Test.fuzz2 replaceListFuzzer randomRunFuzzer "length r == length (replace isvs r)" <|
+        , Test.fuzz2 "length r == length (replace isvs r)" replaceListFuzzer randomRunFuzzer <|
             \isvs r ->
                 RandomRun.length r
                     |> Expect.equal (RandomRun.length (RandomRun.replace isvs r))
-        , Test.fuzz2 replaceListFuzzer randomRunFuzzer "replace isvs r == fold set one by one" <|
+        , Test.fuzz2 "replace isvs r == fold set one by one" replaceListFuzzer randomRunFuzzer <|
             \isvs r ->
                 let
                     bySet =
@@ -306,7 +306,7 @@ replaceTests =
                 in
                 RandomRun.toList (RandomRun.replace isvs r)
                     |> Expect.equal (RandomRun.toList bySet)
-        , Test.fuzz2 replaceListFuzzer randomRunFuzzer "replace isvs r == fold replace one by one" <|
+        , Test.fuzz2 "replace isvs r == fold replace one by one" replaceListFuzzer randomRunFuzzer <|
             \isvs r ->
                 let
                     byReplace =
@@ -324,12 +324,12 @@ nextChoiceTests =
             \_ ->
                 RandomRun.nextChoice RandomRun.empty
                     |> Expect.equal Nothing
-        , Test.fuzz randomRunFuzzer "isEmpty r ⇔ nextChoice r == Nothing" <|
+        , Test.fuzz "isEmpty r ⇔ nextChoice r == Nothing" randomRunFuzzer <|
             \r ->
                 Expect.equal
                     (RandomRun.isEmpty r)
                     (RandomRun.nextChoice r == Nothing)
-        , Test.fuzz randomRunFuzzer "nextChoice r .next == List.head (toList r) && .rest == List.tail (toList r)" <|
+        , Test.fuzz "nextChoice r .next == List.head (toList r) && .rest == List.tail (toList r)" randomRunFuzzer <|
             \r ->
                 case
                     ( RandomRun.nextChoice r
@@ -349,7 +349,7 @@ nextChoiceTests =
 
                     _ ->
                         Expect.fail "nextChoice and list head/tail mismatch"
-        , Test.fuzz randomRunFuzzer "nextChoice r .next == get 0 r" <|
+        , Test.fuzz "nextChoice r .next == get 0 r" randomRunFuzzer <|
             \r ->
                 case RandomRun.nextChoice r of
                     Nothing ->
@@ -357,7 +357,7 @@ nextChoiceTests =
 
                     Just ( next, _ ) ->
                         Expect.equal (RandomRun.get 0 r) (Just next)
-        , Test.fuzz2 (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "not (isEmpty r) => (nextChoice (set 0 v r)).next == Just v" <|
+        , Test.fuzz2 "not (isEmpty r) => (nextChoice (set 0 v r)).next == Just v" (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \v r ->
                 not (RandomRun.isEmpty r)
                     |> implies
@@ -367,14 +367,14 @@ nextChoiceTests =
                             |> Maybe.map Tuple.first
                             |> Expect.equal (Just v)
                         )
-        , Test.fuzz (Fuzz.intRange 0 Random.maxInt) "(nextChoice (append v empty)).next == Just v" <|
+        , Test.fuzz "(nextChoice (append v empty)).next == Just v" (Fuzz.intRange 0 Random.maxInt) <|
             \v ->
                 RandomRun.empty
                     |> RandomRun.append v
                     |> RandomRun.nextChoice
                     |> Maybe.map Tuple.first
                     |> Expect.equal (Just v)
-        , Test.fuzz2 (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer "not (isEmpty r) => (nextChoice (replace [(0,v)] r)).next == Just v" <|
+        , Test.fuzz2 "not (isEmpty r) => (nextChoice (replace [(0,v)] r)).next == Just v" (Fuzz.intRange 0 Random.maxInt) randomRunFuzzer <|
             \v r ->
                 not (RandomRun.isEmpty r)
                     |> implies
@@ -390,13 +390,13 @@ nextChoiceTests =
 deleteChunkTests : Test
 deleteChunkTests =
     Test.describe "deleteChunk"
-        [ Test.fuzz chunkFuzzer "isEmpty (deleteChunk c empty)" <|
+        [ Test.fuzz "isEmpty (deleteChunk c empty)" chunkFuzzer <|
             \c ->
                 RandomRun.deleteChunk c RandomRun.empty
                     |> RandomRun.isEmpty
                     |> Expect.equal True
                     |> Expect.onFail "deleteChunk on empty should still yield an empty run"
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "chunk in bounds and size > 0 => length (deleteChunk c r) < length r else length preserved" <|
+        , Test.fuzz2 "chunk in bounds and size > 0 => length (deleteChunk c r) < length r else length preserved" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 let
                     len =
@@ -418,7 +418,7 @@ deleteChunkTests =
 
                 else
                     Expect.equal len resultLen
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "compare (deleteChunk c r) r /= GT" <|
+        , Test.fuzz2 "compare (deleteChunk c r) r /= GT" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 RandomRun.compare
                     (RandomRun.deleteChunk c r)
@@ -430,25 +430,25 @@ deleteChunkTests =
 replaceChunkWithZeroTests : Test
 replaceChunkWithZeroTests =
     Test.describe "replaceChunkWithZero"
-        [ Test.fuzz chunkFuzzer "isEmpty (replaceChunkWithZero c empty)" <|
+        [ Test.fuzz "isEmpty (replaceChunkWithZero c empty)" chunkFuzzer <|
             \c ->
                 RandomRun.empty
                     |> RandomRun.replaceChunkWithZero c
                     |> RandomRun.isEmpty
                     |> Expect.equal True
                     |> Expect.onFail "replaceChunkWithZero on empty should still yield an empty run"
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "length r == length (replaceChunkWithZero c r)" <|
+        , Test.fuzz2 "length r == length (replaceChunkWithZero c r)" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 Expect.equal
                     (RandomRun.length r)
                     (RandomRun.length (RandomRun.replaceChunkWithZero c r))
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "compare (replaceChunkWithZero c r) r /= GT" <|
+        , Test.fuzz2 "compare (replaceChunkWithZero c r) r /= GT" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 RandomRun.compare
                     (RandomRun.replaceChunkWithZero c r)
                     r
                     |> Expect.notEqual GT
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "for i in chunk range, get i (replaceChunkWithZero c r) == Nothing or Just 0" <|
+        , Test.fuzz2 "for i in chunk range, get i (replaceChunkWithZero c r) == Nothing or Just 0" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 let
                     result =
@@ -484,25 +484,25 @@ replaceChunkWithZeroTests =
 sortChunkTests : Test
 sortChunkTests =
     Test.describe "sortChunk"
-        [ Test.fuzz chunkFuzzer "isEmpty (sortChunk c empty)" <|
+        [ Test.fuzz "isEmpty (sortChunk c empty)" chunkFuzzer <|
             \c ->
                 RandomRun.empty
                     |> RandomRun.sortChunk c
                     |> RandomRun.isEmpty
                     |> Expect.equal True
                     |> Expect.onFail "sortChunk on empty should still yield an empty run"
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "length r == length (sortChunk c r)" <|
+        , Test.fuzz2 "length r == length (sortChunk c r)" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 Expect.equal
                     (RandomRun.length r)
                     (RandomRun.length (RandomRun.sortChunk c r))
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "compare (sortChunk c r) r /= GT" <|
+        , Test.fuzz2 "compare (sortChunk c r) r /= GT" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 RandomRun.compare
                     (RandomRun.sortChunk c r)
                     r
                     |> Expect.notEqual GT
-        , Test.fuzz2 chunkFuzzer randomRunFuzzer "chunk range is non-decreasing in sortChunk c r" <|
+        , Test.fuzz2 "chunk range is non-decreasing in sortChunk c r" chunkFuzzer randomRunFuzzer <|
             \c r ->
                 let
                     len =
@@ -534,12 +534,12 @@ sortChunkTests =
 swapChunksTests : Test
 swapChunksTests =
     Test.describe "swapChunks"
-        [ Test.fuzz2 chunkFuzzer chunkFuzzer "swapChunks c1 c2 empty == Nothing" <|
+        [ Test.fuzz2 "swapChunks c1 c2 empty == Nothing" chunkFuzzer chunkFuzzer <|
             \c1 c2 ->
                 RandomRun.empty
                     |> RandomRun.swapChunks { leftChunk = c1, rightChunk = c2 }
                     |> Expect.equal Nothing
-        , Test.fuzz3 chunkFuzzer chunkFuzzer randomRunFuzzer "when Just, length (swapChunks c1 c2 r) == length r" <|
+        , Test.fuzz3 "when Just, length (swapChunks c1 c2 r) == length r" chunkFuzzer chunkFuzzer randomRunFuzzer <|
             \c1 c2 r ->
                 case RandomRun.swapChunks { leftChunk = c1, rightChunk = c2 } r of
                     Nothing ->
@@ -554,12 +554,12 @@ swapChunksTests =
 swapIfOutOfOrderTests : Test
 swapIfOutOfOrderTests =
     Test.describe "swapIfOutOfOrder"
-        [ Test.fuzz2 indexFuzzer indexFuzzer "swapIfOutOfOrder i1 i2 empty == Nothing" <|
+        [ Test.fuzz2 "swapIfOutOfOrder i1 i2 empty == Nothing" indexFuzzer indexFuzzer <|
             \i1 i2 ->
                 RandomRun.empty
                     |> RandomRun.swapIfOutOfOrder { leftIndex = i1, rightIndex = i2 }
                     |> Expect.equal Nothing
-        , Test.fuzz3 indexFuzzer indexFuzzer randomRunFuzzer "when Just, length (swapIfOutOfOrder i1 i2 r) == length r" <|
+        , Test.fuzz3 "when Just, length (swapIfOutOfOrder i1 i2 r) == length r" indexFuzzer indexFuzzer randomRunFuzzer <|
             \i1 i2 r ->
                 case RandomRun.swapIfOutOfOrder { leftIndex = i1, rightIndex = i2 } r of
                     Nothing ->
@@ -568,7 +568,7 @@ swapIfOutOfOrderTests =
                     Just { newRun } ->
                         RandomRun.length newRun
                             |> Expect.equal (RandomRun.length r)
-        , Test.fuzz3 indexFuzzer indexFuzzer randomRunFuzzer "when Just, compare (swapIfOutOfOrder i1 i2 r) r /= GT" <|
+        , Test.fuzz3 "when Just, compare (swapIfOutOfOrder i1 i2 r) r /= GT" indexFuzzer indexFuzzer randomRunFuzzer <|
             \i1 i2 r ->
                 (i1 <= i2)
                     |> implies
