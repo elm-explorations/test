@@ -1144,15 +1144,14 @@ frequencyHelp functionName fuzzers =
                 intFrequency (List.map (Tuple.mapFirst round) nonzeroFuzzers)
 
             else
-                let
-                    weightSum : Float
-                    weightSum =
-                        List.foldl (\( w, _ ) acc -> w + acc) 0 nonzeroFuzzers
-                in
                 percentage
                     |> andThen
                         (\p ->
                             let
+                                weightSum : Float
+                                weightSum =
+                                    List.foldl (\( w, _ ) acc -> w + acc) 0 nonzeroFuzzers
+
                                 f : Float
                                 f =
                                     p * weightSum
@@ -1203,11 +1202,12 @@ intFrequency fuzzers =
                 rollDice (weightSum - 1) (intFrequencyGenerator n (List.map Tuple.first rest))
                     |> andThen
                         (\i ->
-                            fuzzers
-                                |> List.drop i
-                                |> List.head
-                                |> Maybe.map Tuple.second
-                                |> Maybe.withDefault (invalid "elm-test bug: intFrequency index out of range")
+                            case List.getAt i fuzzers of
+                                Just ( _, fuzzer ) ->
+                                    fuzzer
+
+                                Nothing ->
+                                    invalid "elm-test bug: intFrequency index out of range"
                         )
 
             [] ->
@@ -1620,7 +1620,7 @@ rollDice maxValue diceGenerator =
                             else
                                 Generated
                                     { value = hardcodedChoice
-                                    , prng = Hardcoded { h | unusedPart = restOfChoices }
+                                    , prng = Hardcoded { wholeRun = h.wholeRun, unusedPart = restOfChoices }
                                     }
 
 
@@ -1639,7 +1639,7 @@ forcedChoice n =
                     Random r ->
                         Generated
                             { value = n
-                            , prng = Random { r | run = RandomRun.append n r.run }
+                            , prng = Random { run = RandomRun.append n r.run, seed = r.seed }
                             }
 
                     Hardcoded h ->
@@ -1661,7 +1661,7 @@ forcedChoice n =
                                 else
                                     Generated
                                         { value = n
-                                        , prng = Hardcoded { h | unusedPart = restOfChoices }
+                                        , prng = Hardcoded { wholeRun = h.wholeRun, unusedPart = restOfChoices }
                                         }
 
 
@@ -1790,46 +1790,49 @@ labelExamples n labels fuzzer =
                                                         Nothing
                                                 )
                                 in
-                                if List.isEmpty categories then
+                                if List.isEmpty categories || Dict.member categories acc then
                                     acc
 
                                 else
-                                    acc
-                                        |> Dict.update categories
-                                            (\maybeExample ->
-                                                case maybeExample of
-                                                    Nothing ->
-                                                        Just item
-
-                                                    Just original ->
-                                                        Just original
-                                            )
+                                    Dict.insert categories item acc
                             )
                             Dict.empty
 
-                combinations : List ( List String, a )
+                combinations : List ( List String, Maybe a )
                 combinations =
-                    foundExamples
-                        |> Dict.filter (\k _ -> List.length k > 1)
-                        |> Dict.toList
+                    Dict.foldr
+                        (\label example l ->
+                            if List.hasMultipleItems label then
+                                ( label, Just example ) :: l
+
+                            else
+                                l
+                        )
+                        []
+                        foundExamples
             in
             List.filterMap
                 (\( label, _ ) ->
-                    case Dict.get [ label ] foundExamples of
+                    let
+                        thisLabel : List String
+                        thisLabel =
+                            [ label ]
+                    in
+                    case Dict.get thisLabel foundExamples of
                         Nothing ->
                             if Dict.any (\k _ -> List.member label k) foundExamples then
-                                -- don't show this example: all its occurences were included in combination with some other label
+                                -- don't show this example: all its occurrences were included in combination with some other label
                                 Nothing
 
                             else
                                 -- show that we didn't find it (in any combination nor alone)
-                                Just ( [ label ], Nothing )
+                                Just ( thisLabel, Nothing )
 
-                        Just example ->
-                            Just ( [ label ], Just example )
+                        (Just _) as justExample ->
+                            Just ( thisLabel, justExample )
                 )
                 labels
-                ++ List.map (\( label, example ) -> ( label, Just example )) combinations
+                ++ combinations
 
         Rejected _ ->
             []

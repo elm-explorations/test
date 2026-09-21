@@ -547,14 +547,16 @@ includeCombinationsInBaseCounts distribution =
             (\labels count ->
                 case labels of
                     [ single ] ->
-                        let
-                            combinations : List Int
-                            combinations =
-                                distribution
-                                    |> Dict.filter (\k _ -> List.length k > 1 && List.member single k)
-                                    |> Dict.values
-                        in
-                        count + List.sum combinations
+                        Dict.foldr
+                            (\k value sum ->
+                                if List.hasMultipleItems k && List.member single k then
+                                    value + sum
+
+                                else
+                                    sum
+                            )
+                            count
+                            distribution
 
                     _ ->
                         count

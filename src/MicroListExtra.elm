@@ -3,6 +3,8 @@ module MicroListExtra exposing
     , find
     , findMap
     , getAt
+    , hasMultipleItems
+    , isSingleton
     , setAt
     , splitWhen
     , transpose
@@ -109,6 +111,26 @@ rowsLength listOfLists =
 
         x :: _ ->
             List.length x
+
+
+isSingleton : List a -> Bool
+isSingleton list =
+    case list of
+        [ _ ] ->
+            True
+
+        _ ->
+            False
+
+
+hasMultipleItems : List a -> Bool
+hasMultipleItems list =
+    case list of
+        _ :: _ :: _ ->
+            True
+
+        _ ->
+            False
 
 
 unique : List a -> List a
