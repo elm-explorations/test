@@ -329,8 +329,12 @@ distributeSeedsHelp hashed runs seed test =
                 next =
                     distributeSeedsHelp hashed runs seed subTest
             in
-            -- `only` all the things!
-            { next | only = next.all }
+            if List.isEmpty next.only then
+                -- `only` all the things!
+                { next | only = next.all }
+
+            else
+                { next | only = next.only }
 
         Internal.ElmTestVariant__Batch tests ->
             List.foldl (batchDistribute hashed runs) (emptyDistribution seed) tests
