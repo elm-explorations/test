@@ -187,43 +187,44 @@ given their semantics in `Html`.
 attribute : Attribute Never -> Selector
 attribute attr =
     case Inert.parseAttribute attr of
-        Ok (InternalTypes.Attribute { key, value }) ->
-            if String.toLower key == "class" then
-                value
+        Ok (InternalTypes.Attribute record) ->
+            if String.toLower record.name == "class" then
+                record.value
                     |> String.split " "
                     |> Classes
 
             else
-                namedAttr key value
+                Internal.Attribute record
 
         Ok (InternalTypes.Property { key, value }) ->
             if key == "className" then
-                value
-                    |> Json.Decode.decodeValue Json.Decode.string
-                    |> Result.map (String.split " ")
-                    |> Result.withDefault []
-                    |> Classes
+                case Json.Decode.decodeValue Json.Decode.string value of
+                    Ok classesStr ->
+                        Classes (String.split " " classesStr)
+
+                    Err _ ->
+                        Classes []
 
             else
                 value
                     |> Json.Decode.decodeValue Json.Decode.string
-                    |> Result.map (namedAttr key)
+                    |> Result.map (\v -> namedAttr key v)
                     |> orElseLazy
                         (\() ->
                             value
                                 |> Json.Decode.decodeValue Json.Decode.bool
-                                |> Result.map (namedBoolAttr key)
+                                |> Result.map (\b -> namedBoolAttr key b)
                         )
-                    |> Result.withDefault Invalid
+                    |> Result.withDefault Internal.invalid
 
-        Ok (InternalTypes.Style { key, value }) ->
-            Style { key = key, value = value }
+        Ok (InternalTypes.Style record) ->
+            Style record
 
         Ok (InternalTypes.NamespacedAttribute _) ->
-            Invalid
+            Internal.invalid
 
         Err _ ->
-            Invalid
+            Internal.invalid
 
 
 {-| Matches elements that have the given style properties (and possibly others as well).

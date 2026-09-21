@@ -339,7 +339,7 @@ traverse : Query msg -> Result QueryError (List (ElmHtml msg))
 traverse query =
     case query of
         Query node selectorQueries ->
-            traverseSelectors selectorQueries [ Inert.toElmHtml node ]
+            traverseSelectors (List.reverse selectorQueries) [ Inert.toElmHtml node ]
 
         InternalError message ->
             Err (OtherInternalError message)
@@ -350,10 +350,17 @@ traverse query =
 
 traverseSelectors : List SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
 traverseSelectors selectorQueries elmHtmlList =
-    List.foldr
-        (traverseSelector >> Result.andThen)
-        (Ok elmHtmlList)
-        selectorQueries
+    case selectorQueries of
+        [] ->
+            Ok elmHtmlList
+
+        selectorQuery :: rest ->
+            case traverseSelector selectorQuery elmHtmlList of
+                Ok newElmHtmlList ->
+                    traverseSelectors rest newElmHtmlList
+
+                (Err _) as error ->
+                    error
 
 
 traverseSelector : SelectorQuery -> List (ElmHtml msg) -> Result QueryError (List (ElmHtml msg))
