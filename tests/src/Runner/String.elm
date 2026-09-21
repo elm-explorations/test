@@ -75,24 +75,22 @@ fromExpectation labels expectation summary =
                 |> Test.Runner.getDistributionReport
                 |> Runner.String.Distribution.report labels
 
-        summaryWithDistribution : Summary
-        summaryWithDistribution =
+        output : String
+        output =
             case distributionReport of
                 Nothing ->
-                    summary
+                    summary.output
 
                 Just distribution ->
-                    { summary
-                        | output =
-                            summary.output
-                                ++ "\n\n"
-                                ++ distribution
-                                ++ "\n"
-                    }
+                    summary.output ++ "\n\n" ++ distribution ++ "\n"
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { summaryWithDistribution | passed = summaryWithDistribution.passed + 1 }
+            { output = output
+            , failed = summary.failed
+            , passed = summary.passed + 1
+            , autoFail = summary.autoFail
+            }
 
         Just { given, description, reason } ->
             let
@@ -108,15 +106,18 @@ fromExpectation labels expectation summary =
                             "Given " ++ g ++ "\n\n"
 
                 newOutput =
-                    "\n\n"
+                    output
+                        ++ "\n\n"
                         ++ outputLabels labels
                         ++ "\n"
-                        ++ (prefix ++ indentLines message)
+                        ++ prefix
+                        ++ indentLines message
                         ++ "\n"
             in
-            { summaryWithDistribution
-                | output = summaryWithDistribution.output ++ newOutput
-                , failed = summaryWithDistribution.failed + 1
+            { output = newOutput
+            , failed = summary.failed + 1
+            , passed = summary.passed
+            , autoFail = summary.autoFail
             }
 
 

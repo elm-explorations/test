@@ -6,7 +6,6 @@ import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
 import MicroDictExtra as Dict
 import MicroListExtra as List
-import MicroMaybeExtra as Maybe
 import PRNG
 import Random
 import Simplify
@@ -260,41 +259,38 @@ allSufficientlyCovered c state normalizedDistributionCount =
                     False
 
                 Just expectedDistributions ->
-                    (distributionCount
-                        -- Needs normalized distribution count:
-                        |> Dict.toList
-                        |> List.filterMap
-                            (\( labels, count ) ->
-                                case labels of
-                                    [ onlyLabel ] ->
-                                        Just ( onlyLabel, count )
+                    -- Needs normalized distribution count:
+                    Dict.foldr
+                        (\labels count soFar ->
+                            case labels of
+                                [ onlyLabel ] ->
+                                    soFar && isLabelSufficientlyCovered state.runsElapsed expectedDistributions onlyLabel count
 
-                                    _ ->
-                                        Nothing
-                            )
-                        |> Maybe.traverse
-                            (\( labels, count ) ->
-                                Dict.get labels expectedDistributions
-                                    |> Maybe.map (\expectedDistribution -> ( count, expectedDistribution ))
-                            )
-                        |> Maybe.map
-                            (List.all
-                                (\( count, expectedDistribution ) ->
-                                    case expectedDistribution of
-                                        -- Zero and MoreThanZero will get checked in the Success case
-                                        Zero ->
-                                            True
+                                _ ->
+                                    soFar
+                        )
+                        True
+                        distributionCount
 
-                                        MoreThanZero ->
-                                            True
 
-                                        AtLeast n ->
-                                            Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
-                                )
-                            )
-                    )
-                        -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
-                        |> Maybe.withDefault False
+isLabelSufficientlyCovered : Int -> Dict String ExpectedDistribution -> String -> Int -> Bool
+isLabelSufficientlyCovered runsElapsed expectedDistributions labels count =
+    case Dict.get labels expectedDistributions of
+        Nothing ->
+            -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
+            False
+
+        Just expectedDistribution ->
+            case expectedDistribution of
+                -- Zero and MoreThanZero will get checked in the Success case
+                Zero ->
+                    True
+
+                MoreThanZero ->
+                    True
+
+                AtLeast n ->
+                    Test.Distribution.Internal.sufficientlyCovered runsElapsed count (n / 100)
 
 
 findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
