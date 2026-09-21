@@ -64,7 +64,10 @@ config =
     , NoUnused.Patterns.rule
     , NoUnused.Variables.rule
         |> Rule.ignoreErrorsForFiles [ "src/Simplify.elm" ]
-    , Simplify.rule Simplify.defaults
+    , Simplify.rule
+        (Simplify.defaults
+            |> Simplify.expectNaN
+        )
         |> Rule.ignoreErrorsForFiles [ "src/Fuzz.elm" ]
     ]
         |> List.map (Rule.ignoreErrorsForDirectories [ "tests/" ])

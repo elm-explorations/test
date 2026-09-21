@@ -20,7 +20,7 @@ module RandomRun exposing
     , update
     )
 
-import MicroListExtra as List
+import MicroListExtra
 import Queue exposing (Queue)
 
 
@@ -124,7 +124,7 @@ replaceChunkWithZero chunk run =
         in
         { length = run.length
         , data =
-            List.fastConcat
+            List.concat
                 [ List.take chunk.startIndex list
                 , List.repeat chunk.size 0
                 , List.drop (chunk.startIndex + chunk.size) list
@@ -171,7 +171,7 @@ replaceInList values len list =
     , data =
         List.foldl
             (\( index, newValue ) accList ->
-                List.setAt index (max 0 newValue) len accList
+                MicroListExtra.setAt index (max 0 newValue) len accList
             )
             list
             values
@@ -241,15 +241,15 @@ swapIfOutOfOrder { leftIndex, rightIndex } run =
                 , newRightValue = right
                 }
         )
-        (List.getAt leftIndex list)
-        (List.getAt rightIndex list)
+        (MicroListExtra.getAt leftIndex list)
+        (MicroListExtra.getAt rightIndex list)
 
 
 get : Int -> RandomRun -> Maybe Int
 get index run =
     run.data
         |> Queue.toList
-        |> List.getAt index
+        |> MicroListExtra.getAt index
 
 
 set : Int -> Int -> RandomRun -> RandomRun
@@ -262,7 +262,7 @@ set index value run =
         , data =
             run.data
                 |> Queue.toList
-                |> List.setAt index (max 0 value) run.length
+                |> MicroListExtra.setAt index (max 0 value) run.length
                 |> Queue.fromList
         }
 

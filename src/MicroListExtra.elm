@@ -1,6 +1,5 @@
 module MicroListExtra exposing
-    ( fastConcat
-    , find
+    ( find
     , findMap
     , getAt
     , hasMultipleItems
@@ -32,11 +31,6 @@ setAt index value length list =
         List.take index list
             ++ value
             :: List.drop (index + 1) list
-
-
-fastConcat : List (List a) -> List a
-fastConcat =
-    List.foldr (++) []
 
 
 find : (a -> Bool) -> List a -> Maybe a

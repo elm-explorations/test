@@ -4,7 +4,6 @@ module Simplify.Cmd exposing
     , cmdsForRun
     )
 
-import MicroListExtra as List
 import RandomRun exposing (Chunk, RandomRun)
 import Set exposing (Set)
 
@@ -90,7 +89,7 @@ cmdsForRun run =
         randomRunList =
             RandomRun.toList run
     in
-    List.fastConcat
+    List.concat
         [ deletionCmds length
         , zeroCmds length
         , minimizeChoiceCmds randomRunList
