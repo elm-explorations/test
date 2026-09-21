@@ -90,7 +90,7 @@ concat tests =
                 \() ->
                     List.reverse []
                         |> Expect.equal []
-            , fuzz int "has no effect on a one-item list" <|
+            , fuzz "has no effect on a one-item list" int <|
                 \num ->
                      List.reverse [ num ]
                         |> Expect.equal [ num ]
@@ -222,7 +222,7 @@ an `only` inside a `skip`, it will also get skipped.
                     \() ->
                         List.reverse []
                             |> Expect.equal []
-                , fuzz int "has no effect on a one-item list" <|
+                , fuzz "has no effect on a one-item list" int <|
                     \num ->
                         List.reverse [ num ]
                             |> Expect.equal [ num ]
@@ -258,7 +258,7 @@ an `only` inside a `skip`, it will also get skipped.
                     \() ->
                         List.reverse []
                             |> Expect.equal []
-                , fuzz int "has no effect on a one-item list" <|
+                , fuzz "has no effect on a one-item list" int <|
                     \num ->
                         List.reverse [ num ]
                             |> Expect.equal [ num ]
@@ -286,9 +286,9 @@ The number of times to run each fuzz test. (Default is 100.)
     import Fuzz exposing (int, list)
     import Test exposing (fuzzWith, noDistribution)
 
-    fuzzWith { runs = 350, distribution = noDistribution }
-        (list int)
-        "List.length should never be negative" <|
+    fuzzWith "List.length should never be negative"
+        { runs = 350, distribution = noDistribution }
+        (list int) <|
         -- This anonymous function will be run 350 times, each time with a
         -- randomly-generated fuzzList value. (It will always be a list of ints
         -- because of (list int) above.)
@@ -308,7 +308,7 @@ A way to report/enforce a statistical distribution of your input values.
     import Test exposing (expectDistribution, fuzzWith)
     import Test.Distribution
 
-    fuzzWith
+    fuzzWith "Sum > Average"
         { runs = 350
         , distribution =
             expectDistribution
@@ -317,7 +317,6 @@ A way to report/enforce a statistical distribution of your input values.
                 ]
         }
         (list int)
-        "Sum > Average"
     <|
         \xs ->
             List.sum xs
@@ -341,16 +340,16 @@ for example like this:
     import Test exposing (fuzzWith, noDistribution)
 
 
-    fuzzWith { runs = 4200, distribution = noDistribution }
-        (pair (list int) int)
-        "List.reverse never influences List.member" <|
+    fuzzWith "List.reverse never influences List.member"
+        { runs = 4200, distribution = noDistribution }
+        (pair (list int) int) <|
             \(nums, target) ->
                 List.member target (List.reverse nums)
                     |> Expect.equal (List.member target nums)
 
 -}
-fuzzWith : FuzzOptions a -> Fuzzer a -> String -> (a -> Expectation) -> Test
-fuzzWith options fuzzer desc getTest =
+fuzzWith : String -> FuzzOptions a -> Fuzzer a -> (a -> Expectation) -> Test
+fuzzWith desc options fuzzer getTest =
     if options.runs < 1 then
         Internal.failNow
             { description = "Fuzz tests must have a run count of at least 1, not " ++ String.fromInt options.runs ++ "."
@@ -358,7 +357,7 @@ fuzzWith options fuzzer desc getTest =
             }
 
     else
-        fuzzWithHelp options (Test.Fuzz.fuzzTest options.distribution fuzzer desc getTest)
+        fuzzWithHelp options (Test.Fuzz.fuzzTest desc options.distribution fuzzer getTest)
 
 
 fuzzWithHelp : FuzzOptions a -> Test -> Test
@@ -403,7 +402,7 @@ You may find them elsewhere called [property-based tests](http://blog.jessitron.
     import Fuzz exposing (int, list)
     import Test exposing (fuzz)
 
-    fuzz (list int) "List.length should never be negative" <|
+    fuzz "List.length should never be negative" (list int) <|
         -- This anonymous function will be run 100 times, each time with a
         -- randomly-generated fuzzList value.
         \fuzzList ->
@@ -413,12 +412,12 @@ You may find them elsewhere called [property-based tests](http://blog.jessitron.
 
 -}
 fuzz :
-    Fuzzer a
-    -> String
+    String
+    -> Fuzzer a
     -> (a -> Expectation)
     -> Test
-fuzz =
-    Test.Fuzz.fuzzTest Test.Distribution.Internal.NoDistributionNeeded
+fuzz desc fuzzer getExpectation =
+    Test.Fuzz.fuzzTest desc Test.Distribution.Internal.NoDistributionNeeded fuzzer getExpectation
 
 
 {-| Run a [fuzz test](#fuzz) using two random inputs.
@@ -432,24 +431,24 @@ See [`fuzzWith`](#fuzzWith) for an example of writing this using tuples.
     import Test exposing (fuzz2)
 
 
-    fuzz2 (list int) int "List.reverse never influences List.member" <|
+    fuzz2 "List.reverse never influences List.member" (list int) int <|
         \nums target ->
             List.member target (List.reverse nums)
                 |> Expect.equal (List.member target nums)
 
 -}
 fuzz2 :
-    Fuzzer a
+    String
+    -> Fuzzer a
     -> Fuzzer b
-    -> String
     -> (a -> b -> Expectation)
     -> Test
-fuzz2 fuzzA fuzzB desc =
+fuzz2 desc fuzzA fuzzB =
     let
         fuzzer =
             Fuzz.pair fuzzA fuzzB
     in
-    (\f ( a, b ) -> f a b) >> fuzz fuzzer desc
+    (\f ( a, b ) -> f a b) >> fuzz desc fuzzer
 
 
 {-| Run a [fuzz test](#fuzz) using three random inputs.
@@ -458,18 +457,18 @@ This is a convenience function that lets you skip calling [`Fuzz.triple`](Fuzz#t
 
 -}
 fuzz3 :
-    Fuzzer a
+    String
+    -> Fuzzer a
     -> Fuzzer b
     -> Fuzzer c
-    -> String
     -> (a -> b -> c -> Expectation)
     -> Test
-fuzz3 fuzzA fuzzB fuzzC desc =
+fuzz3 desc fuzzA fuzzB fuzzC =
     let
         fuzzer =
             Fuzz.triple fuzzA fuzzB fuzzC
     in
-    uncurry3 >> fuzz fuzzer desc
+    uncurry3 >> fuzz desc fuzzer
 
 
 
@@ -490,9 +489,9 @@ assert that a given proportion of test cases belong to a given class.
     fuzzers are giving interesting and relevant inputs to your tests.
 
 ```elm
-fuzzWith { runs = 10000, distribution = noDistribution }
+fuzzWith "description" { runs = 10000, distribution = noDistribution }
 
-fuzzWith
+fuzzWith "description"
     { runs = 10000
     , distribution =
         reportDistribution
@@ -503,7 +502,7 @@ fuzzWith
             ]
     }
 
-fuzzWith
+fuzzWith "description"
     { runs = 10000
     , distribution =
         expectDistribution

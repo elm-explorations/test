@@ -7,6 +7,7 @@ import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
 import RandomRunTests
 import RunnerTests
+import RuntimeExceptionTests
 import ShrinkingChallengeTests exposing (shrinkingChallenges)
 import Test exposing (..)
 import Test.Html.EventTests
@@ -28,6 +29,7 @@ all =
         , fuzzerTests
         , floatWithinTests
         , RunnerTests.all
+        , RuntimeExceptionTests.all
         , elmHtmlTests
         , shrinkingChallenges
         , RandomRunTests.all
@@ -64,7 +66,7 @@ readmeExample =
                     "ABCDEFG"
                         |> String.reverse
                         |> Expect.equal "GFEDCBA"
-            , fuzz string "restores the original string if you run it again" <|
+            , fuzz "restores the original string if you run it again" string <|
                 \randomlyGeneratedString ->
                     randomlyGeneratedString
                         |> String.reverse
@@ -122,7 +124,7 @@ expectationTests =
 regressions : Test
 regressions =
     describe "regression tests"
-        [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
+        [ fuzz "for elm-community/elm-test #39" (intRange 1 32) <|
             \positiveInt ->
                 positiveInt
                     |> Expect.greaterThan 0
@@ -134,8 +136,8 @@ regressions =
                (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
-                fuzz (intRange 1 8)
-                    "fuzz tests run 100 times"
+                fuzz "fuzz tests run 100 times"
+                    (intRange 1 8)
                     (Expect.notEqual 5)
                     |> expectTestToFail
         , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
@@ -173,22 +175,22 @@ testTests =
         , describe "fuzz"
             [ test "fails with empty name" <|
                 \() ->
-                    fuzz Fuzz.bool "" expectPass
+                    fuzz "" Fuzz.bool expectPass
                         |> expectTestToFail
             ]
         , describe "fuzzWith"
             [ test "fails with fewer than 1 run" <|
                 \() ->
-                    fuzzWith { runs = 0, distribution = noDistribution }
+                    fuzzWith "nonpositive"
+                        { runs = 0, distribution = noDistribution }
                         Fuzz.bool
-                        "nonpositive"
                         expectPass
                         |> expectTestToFail
             , test "fails with empty name" <|
                 \() ->
-                    fuzzWith { runs = 1, distribution = noDistribution }
+                    fuzzWith ""
+                        { runs = 1, distribution = noDistribution }
                         Fuzz.bool
-                        ""
                         expectPass
                         |> expectTestToFail
             ]

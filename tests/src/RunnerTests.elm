@@ -6,7 +6,6 @@ import Helpers exposing (expectPass)
 import Random
 import Test exposing (..)
 import Test.Runner exposing (SeededRunners(..))
-import Test.Runner.Failure
 
 
 all : Test
@@ -22,9 +21,9 @@ toSeededRunners =
 
 fromTest : Test
 fromTest =
-    describe "TestRunner.fromTest"
+    describe "Test.Runner.fromTest"
         [ describe "test length"
-            [ fuzz2 int int "only positive tests runs are valid" <|
+            [ fuzz2 "only positive tests runs are valid" int int <|
                 \runs intSeed ->
                     case Test.Runner.fromTest runs (Random.initialSeed intSeed) passing of
                         Invalid str ->
@@ -40,78 +39,103 @@ fromTest =
 
                             else
                                 Expect.fail ("Expected a run count of " ++ String.fromInt runs ++ " to be invalid, but was valid with this value: " ++ Debug.toString val)
-            , test "an only inside another only has no effect" <|
+            , test "an only inside another only should ignore the non-only siblings" <|
                 \_ ->
                     let
-                        seededRunners =
-                            toSeededRunners <|
-                                describe "three tests"
-                                    [ test "passes" expectPass
-                                    , Test.only <|
-                                        describe "two tests"
-                                            [ test "fails" <|
-                                                \_ -> Expect.fail "failed on purpose"
-                                            , Test.only <|
-                                                test "is an only" <|
-                                                    \_ -> Expect.fail "failed on purpose"
-                                            ]
-                                    ]
+                        suite =
+                            describe "three tests"
+                                [ test "passes" expectPass
+                                , Test.only <|
+                                    describe "two tests"
+                                        [ test "fails" testImpl
+                                        , Test.only (test "is an only" testImpl)
+                                        ]
+                                ]
                     in
-                    case seededRunners of
+                    case toSeededRunners suite of
                         Only runners ->
                             runners
-                                |> List.length
-                                |> Expect.equal 2
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal [ [ "three tests", "two tests", "is an only" ] ]
+
+                        val ->
+                            Expect.fail ("Expected SeededRunner to be Only, but was " ++ Debug.toString val)
+            , test "should keep all only tests spread among siblings" <|
+                \_ ->
+                    let
+                        suite =
+                            describe "root"
+                                [ test "A" expectPass
+                                , describe "B"
+                                    [ Test.only (test "1" testImpl)
+                                    ]
+                                , Test.only <|
+                                    describe "C"
+                                        [ test "1" testImpl
+                                        , Test.only (test "2" testImpl)
+                                        , describe "3"
+                                            [ test "X" testImpl
+                                            , Test.only (test "Y" testImpl)
+                                            , test "Z" testImpl
+                                            ]
+                                        ]
+                                , describe "D"
+                                    [ Test.only (test "1" testImpl)
+                                    ]
+                                ]
+                    in
+                    case toSeededRunners suite of
+                        Only runners ->
+                            runners
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal
+                                    [ [ "root", "B", "1" ]
+                                    , [ "root", "C", "2" ]
+                                    , [ "root", "C", "3", "Y" ]
+                                    , [ "root", "D", "1" ]
+                                    ]
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Only, but was " ++ Debug.toString val)
             , test "a skip inside an only takes effect" <|
                 \_ ->
                     let
-                        seededRunners =
-                            toSeededRunners <|
-                                describe "three tests"
-                                    [ test "passes" expectPass
-                                    , Test.only <|
-                                        describe "two tests"
-                                            [ test "fails" <|
-                                                \_ -> Expect.fail "failed on purpose"
-                                            , Test.skip <|
-                                                test "is skipped" <|
-                                                    \_ -> Expect.fail "failed on purpose"
-                                            ]
-                                    ]
+                        suite =
+                            describe "three tests"
+                                [ test "passes" expectPass
+                                , Test.only <|
+                                    describe "two tests"
+                                        [ test "fails" testImpl
+                                        , Test.skip (test "is skipped" testImpl)
+                                        ]
+                                ]
                     in
-                    case seededRunners of
+                    case toSeededRunners suite of
                         Only runners ->
                             runners
-                                |> List.length
-                                |> Expect.equal 1
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal [ [ "three tests", "two tests", "fails" ] ]
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Only, but was " ++ Debug.toString val)
             , test "an only inside a skip has no effect" <|
                 \_ ->
                     let
-                        seededRunners =
-                            toSeededRunners <|
-                                describe "three tests"
-                                    [ test "passes" expectPass
-                                    , Test.skip <|
-                                        describe "two tests"
-                                            [ test "fails" <|
-                                                \_ -> Expect.fail "failed on purpose"
-                                            , Test.only <|
-                                                test "is skipped" <|
-                                                    \_ -> Expect.fail "failed on purpose"
-                                            ]
-                                    ]
+                        suite =
+                            describe "three tests"
+                                [ test "passes" expectPass
+                                , Test.skip <|
+                                    describe "two tests"
+                                        [ test "fails" testImpl
+                                        , Test.only (test "is skipped" testImpl)
+                                        ]
+                                ]
                     in
-                    case seededRunners of
+                    case toSeededRunners suite of
                         Skipping runners ->
                             runners
-                                |> List.length
-                                |> Expect.equal 1
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal [ [ "three tests", "passes" ] ]
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Skipping, but was " ++ Debug.toString val)
@@ -120,53 +144,46 @@ fromTest =
                     case toSeededRunners (Test.only <| test "passes" expectPass) of
                         Only runners ->
                             runners
-                                |> List.length
-                                |> Expect.equal 1
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal [ [ "passes" ] ]
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Only, but was " ++ Debug.toString val)
             , test "a skip inside another skip has no effect" <|
                 \_ ->
                     let
-                        seededRunners =
-                            toSeededRunners <|
-                                describe "three tests"
-                                    [ test "passes" expectPass
-                                    , Test.skip <|
-                                        describe "two tests"
-                                            [ test "fails" <|
-                                                \_ -> Expect.fail "failed on purpose"
-                                            , Test.skip <|
-                                                test "is skipped" <|
-                                                    \_ -> Expect.fail "failed on purpose"
-                                            ]
-                                    ]
+                        suite =
+                            describe "three tests"
+                                [ test "passes" expectPass
+                                , Test.skip <|
+                                    describe "two tests"
+                                        [ test "fails" testImpl
+                                        , Test.skip (test "is skipped" testImpl)
+                                        ]
+                                ]
                     in
-                    case seededRunners of
+                    case toSeededRunners suite of
                         Skipping runners ->
                             runners
-                                |> List.length
-                                |> Expect.equal 1
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal [ [ "three tests", "passes" ] ]
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Skipping, but was " ++ Debug.toString val)
             , test "a pair of tests where one uses skip is a Skipping summary" <|
                 \_ ->
                     let
-                        seededRunners =
-                            toSeededRunners <|
-                                describe "two tests"
-                                    [ test "passes" expectPass
-                                    , Test.skip <|
-                                        test "fails" <|
-                                            \_ -> Expect.fail "failed on purpose"
-                                    ]
+                        suite =
+                            describe "two tests"
+                                [ test "passes" expectPass
+                                , Test.skip (test "fails" testImpl)
+                                ]
                     in
-                    case seededRunners of
+                    case toSeededRunners suite of
                         Skipping runners ->
                             runners
-                                |> List.length
-                                |> Expect.equal 1
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal [ [ "two tests", "passes" ] ]
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Skipping, but was " ++ Debug.toString val)
@@ -185,30 +202,8 @@ fromTest =
                     case toSeededRunners (test "passes" expectPass) of
                         Plain runners ->
                             runners
-                                |> List.length
-                                |> Expect.equal 1
-
-                        val ->
-                            Expect.fail ("Expected SeededRunner to be Plain, but was " ++ Debug.toString val)
-            ]
-        , describe "catching exceptions"
-            [ test "when a test raises an exception, it is turned into a failure" <|
-                \() ->
-                    case toSeededRunners (test "crashes" <| \() -> Debug.todo "crash") of
-                        Plain [ runner ] ->
-                            runner.run ()
-                                |> List.head
-                                |> Maybe.andThen Test.Runner.getFailureReason
-                                |> Expect.equal
-                                    (Just
-                                        { given = Nothing
-                                        , description = "This test failed because it threw an exception: \"Error: TODO in module `RunnerTests` on line 196\n\ncrash\""
-                                        , reason = Test.Runner.Failure.Custom
-                                        }
-                                    )
-
-                        Plain runners ->
-                            Expect.fail ("Expected SeededRunner to have one runner, but had " ++ Debug.toString runners)
+                                |> List.map (.labels >> List.reverse)
+                                |> Expect.equal [ [ "passes" ] ]
 
                         val ->
                             Expect.fail ("Expected SeededRunner to be Plain, but was " ++ Debug.toString val)
@@ -219,3 +214,10 @@ fromTest =
 passing : Test
 passing =
     test "A passing test" expectPass
+
+
+{-| Dummy test implementation.
+-}
+testImpl : () -> Expect.Expectation
+testImpl () =
+    Expect.pass

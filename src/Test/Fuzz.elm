@@ -20,8 +20,8 @@ import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 {-| Reject always-failing tests because of bad names or invalid fuzzers.
 -}
-fuzzTest : Distribution a -> Fuzzer a -> String -> (a -> Expectation) -> Test
-fuzzTest distribution fuzzer untrimmedDesc getExpectation =
+fuzzTest : String -> Distribution a -> Fuzzer a -> (a -> Expectation) -> Test
+fuzzTest untrimmedDesc distribution fuzzer getExpectation =
     let
         desc =
             String.trim untrimmedDesc

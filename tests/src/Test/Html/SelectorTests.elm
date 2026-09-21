@@ -46,7 +46,7 @@ bug13 =
 textSelectors : Test
 textSelectors =
     describe "Selector.text"
-        [ fuzz3 (list string) string (list string) "Finds one result" <|
+        [ fuzz3 "Finds one result" (list string) string (list string) <|
             \before str after ->
                 let
                     textNodes =
@@ -57,7 +57,7 @@ textSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has [ text str ]
-        , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
+        , fuzz3 "Finds multiple results" (list string) (list string) (list string) <|
             \before strings after ->
                 let
                     textNodes =
@@ -68,7 +68,7 @@ textSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has (List.map text strings)
-        , fuzz3 (list string) string (list string) "Finds a submatch" <|
+        , fuzz3 "Finds a submatch" (list string) string (list string) <|
             \before str after ->
                 let
                     textNodes =
@@ -90,7 +90,7 @@ nonemptyString =
 exactTextSelectors : Test
 exactTextSelectors =
     describe "Selector.exactText"
-        [ fuzz3 (list string) string (list string) "Finds one result" <|
+        [ fuzz3 "Finds one result" (list string) string (list string) <|
             \before str after ->
                 let
                     textNodes =
@@ -101,7 +101,7 @@ exactTextSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has [ exactText str ]
-        , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
+        , fuzz3 "Finds multiple results" (list string) (list string) (list string) <|
             \before strings after ->
                 let
                     textNodes =
@@ -112,7 +112,7 @@ exactTextSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has (List.map exactText strings)
-        , fuzz3 (list nonemptyString) nonemptyString (list nonemptyString) "Doesn't find a submatch" <|
+        , fuzz3 "Doesn't find a submatch" (list nonemptyString) nonemptyString (list nonemptyString) <|
             \before str after ->
                 let
                     str1 =

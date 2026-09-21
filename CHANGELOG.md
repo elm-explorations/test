@@ -1,3 +1,12 @@
+## Unreleased changes >2.2.1
+
+* [#256](https://github.com/elm-explorations/test/pull/256): Nested `Test.only` aren't ignored anymore
+* `Test.fuzz`, `Test.fuzz2`, `Test.fuzz3` and `Test.fuzzWith` now take the test name as the first argument
+
+## TODOs before release
+
+* Make an elm-review rule to upgrade from 2.2.1 or so to the new version (switching Test.fuzz* arguments)
+
 ## Releases
 
 | Version                                                          | Notes                                                                                                                                              |

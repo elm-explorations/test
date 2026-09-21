@@ -32,7 +32,7 @@ suite =
                         |> Expect.equal "GFEDCBA"
 
             -- fuzz runs the test 100 times with randomly-generated inputs!
-            , fuzz string "restores the original string if you run it again" <|
+            , fuzz "restores the original string if you run it again" string <|
                 \randomlyGeneratedString ->
                     randomlyGeneratedString
                         |> String.reverse

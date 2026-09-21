@@ -14,10 +14,10 @@ fuzzerTests : Test
 fuzzerTests =
     describe "Fuzzer tests"
         [ describe "FuzzN (uses use pair or triple) testing string length properties"
-            [ fuzz2 string string "fuzz2" <|
+            [ fuzz2 "fuzz2" string string <|
                 \a b ->
                     testStringLengthIsPreserved [ a, b ]
-            , fuzz3 string string string "fuzz3" <|
+            , fuzz3 "fuzz3" string string string <|
                 \a b c ->
                     testStringLengthIsPreserved [ a, b, c ]
             ]
@@ -30,7 +30,7 @@ fuzzerTests =
 testRunnerModuleTests : Test
 testRunnerModuleTests =
     describe "Test.Runner.{fuzz,simplify}"
-        [ fuzz randomSeedFuzzer "Claim there are no even numbers" <|
+        [ fuzz "Claim there are no even numbers" randomSeedFuzzer <|
             \seed ->
                 let
                     -- fuzzer is guaranteed to produce an even number
@@ -64,7 +64,7 @@ testRunnerModuleTests =
                 in
                 finalValue
                     |> Expect.equal (Just 2)
-        , fuzz randomSeedFuzzer "No strings contain the letter e" <|
+        , fuzz "No strings contain the letter e" randomSeedFuzzer <|
             \seed ->
                 let
                     -- fuzzer is guaranteed to produce a string with the letter e
@@ -1170,7 +1170,7 @@ fuzzerSpecificationTests =
 distributionTests : Test
 distributionTests =
     Test.describe "distribution"
-        [ Test.fuzzWith
+        [ Test.fuzzWith "Int range boundaries"
             { runs = 10000
             , distribution =
                 Test.reportDistribution
@@ -1181,9 +1181,8 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Int range boundaries"
             (\n -> Expect.pass)
-        , Test.fuzzWith
+        , Test.fuzzWith "Fizz buzz"
             { runs = 10000
             , distribution =
                 Test.reportDistribution
@@ -1192,9 +1191,8 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Fizz buzz"
             (\n -> Expect.pass)
-        , Test.fuzzWith
+        , Test.fuzzWith "Fizz buzz even odd"
             { runs = 10000
             , distribution =
                 Test.reportDistribution
@@ -1205,9 +1203,8 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Fizz buzz even odd"
             (\n -> Expect.pass)
-        , Test.fuzzWith
+        , Test.fuzzWith "Int range boundaries - mandatory"
             { runs = 10000
             , distribution =
                 Test.expectDistribution
@@ -1219,7 +1216,6 @@ distributionTests =
                     ]
             }
             (Fuzz.intRange 1 20)
-            "Int range boundaries - mandatory"
             (\n -> Expect.pass)
         ]
 
