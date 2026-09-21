@@ -330,10 +330,11 @@ distributeSeedsHelp hashed runs seed test =
                     distributeSeedsHelp hashed runs seed subTest
             in
             if List.isEmpty next.only then
-                -- `only` all the things!
+                -- The subTest doesn't use Only but we do. Everything inside subTest should run.
                 { next | only = next.all }
 
             else
+                -- The subTest uses Only (and we do too): keep subTest's `.only` as it's more specific.
                 { next | only = next.only }
 
         Internal.ElmTestVariant__Batch tests ->
