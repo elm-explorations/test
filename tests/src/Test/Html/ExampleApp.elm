@@ -21,8 +21,8 @@ type Msg
     | GoToExamples
 
 
-view : Model -> Html Msg
-view _ =
+view : Html Msg
+view =
     div [ class "container" ]
         [ header [ class "funky themed", id "heading" ]
             [ a [ href "http://elm-lang.org", onClick GoToHome ] [ text "home" ]

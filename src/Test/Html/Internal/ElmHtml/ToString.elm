@@ -1,18 +1,17 @@
 module Test.Html.Internal.ElmHtml.ToString exposing
-    ( nodeRecordToString, nodeToString, nodeToStringWithOptions
-    , FormatOptions, defaultFormatOptions
+    ( nodeToStringWithOptions
+    , FormatOptions
     )
 
 {-| Convert ElmHtml to string.
 
-@docs nodeRecordToString, nodeToString, nodeToStringWithOptions
+@docs nodeToStringWithOptions
 
-@docs FormatOptions, defaultFormatOptions
+@docs FormatOptions
 
 -}
 
 import Dict
-import String
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
 
@@ -95,14 +94,6 @@ nodeRecordToString options { tag, children, facts } =
             in
             "<" ++ tag ++ filling ++ ">"
 
-        closeTag =
-            "</" ++ tag ++ ">"
-
-        childrenStrings =
-            List.map (nodeToLines options) children
-                |> List.concat
-                |> List.map ((++) (String.repeat options.indent " "))
-
         styles =
             case Dict.toList facts.styles of
                 [] ->
@@ -152,6 +143,14 @@ nodeRecordToString options { tag, children, facts } =
            element kinds.
         -}
         _ ->
-            [ openTag [ classes, styles, stringAttributes, boolAttributes ] ]
-                ++ childrenStrings
+            let
+                closeTag =
+                    "</" ++ tag ++ ">"
+
+                childrenStrings =
+                    List.concatMap (nodeToLines options) children
+                        |> List.map ((++) (String.repeat options.indent " "))
+            in
+            openTag [ classes, styles, stringAttributes, boolAttributes ]
+                :: childrenStrings
                 ++ [ closeTag ]

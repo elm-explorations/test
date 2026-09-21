@@ -219,7 +219,10 @@ attribute attr =
         Ok (InternalTypes.Style { key, value }) ->
             Style { key = key, value = value }
 
-        _ ->
+        Ok (InternalTypes.NamespacedAttribute _) ->
+            Invalid
+
+        Err _ ->
             Invalid
 
 

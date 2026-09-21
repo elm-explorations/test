@@ -41,7 +41,6 @@ These functions give you the ability to run fuzzers separate of running fuzz tes
 -}
 
 import Bitwise
-import Char
 import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
@@ -51,7 +50,6 @@ import PRNG
 import Random
 import RandomRun exposing (RandomRun)
 import Simplify
-import String
 import Test exposing (Test)
 import Test.Distribution exposing (DistributionReport)
 import Test.Expectation

@@ -28,17 +28,16 @@ isBitSet index num =
 
 int52FromTuple : ( Int, Int ) -> Int
 int52FromTuple ( highBits, lowBits ) =
-    (+)
-        (highBits
-            |> keepBits 20
-            |> signedToUnsigned
-            -- Bitwise.shiftLeftBy 32 would be buggy, so we do:
-            |> (*) 0x0000000100000000
-        )
-        (lowBits
+    (highBits
+        |> keepBits 20
+        |> signedToUnsigned
+        -- Bitwise.shiftLeftBy 32 would be buggy, so we do:
+        |> (*) 0x0000000100000000
+    )
+        + (lowBits
             |> signedToUnsigned
             |> keepBits 32
-        )
+          )
 
 
 int52ToTuple : Int -> ( Int, Int )

@@ -103,18 +103,15 @@ deleteChunk chunk run =
         let
             list =
                 Queue.toList run.data
-
-            result =
-                { run
-                    | length = run.length - chunk.size
-                    , data =
-                        (List.take chunk.startIndex list
-                            ++ List.drop (chunk.startIndex + chunk.size) list
-                        )
-                            |> Queue.fromList
-                }
         in
-        result
+        { run
+            | length = run.length - chunk.size
+            , data =
+                (List.take chunk.startIndex list
+                    ++ List.drop (chunk.startIndex + chunk.size) list
+                )
+                    |> Queue.fromList
+        }
 
     else
         run
@@ -190,12 +187,12 @@ swapChunks :
     -> RandomRun
     -> Maybe RandomRun
 swapChunks { leftChunk, rightChunk } run =
-    let
-        list =
-            Queue.toList run.data
-    in
     Maybe.map2
         (\lefts rights ->
+            let
+                list =
+                    Queue.toList run.data
+            in
             replaceInList
                 (List.concat
                     [ List.indexedMap (\i n -> ( rightChunk.startIndex + i, n )) lefts

@@ -2,7 +2,6 @@ module ShrinkingChallengeTests exposing (shrinkingChallenges)
 
 import Fuzz exposing (..)
 import Helpers exposing (..)
-import Random
 import Set
 import Test exposing (..)
 

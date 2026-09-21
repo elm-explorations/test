@@ -3,7 +3,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
     , Facts, Tagger, EventHandler, ElementKind(..)
     , Attribute(..), AttributeRecord, NamespacedAttributeRecord, PropertyRecord, EventRecord
     , Validation(..), validationMessage, validationFromMessage
-    , decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
+    , decodeElmHtml, toElementKind, decodeAttribute
     )
 
 {-| Internal types used to represent Elm Html in pure Elm
@@ -16,7 +16,7 @@ module Test.Html.Internal.ElmHtml.InternalTypes exposing
 
 @docs Validation, validationMessage, validationFromMessage
 
-@docs decodeElmHtml, emptyFacts, toElementKind, decodeAttribute
+@docs decodeElmHtml, toElementKind, decodeAttribute
 
 -}
 
@@ -122,7 +122,6 @@ type ElementKind
     = VoidElements
     | RawTextElements
     | EscapableRawTextElements
-    | ForeignElements
     | NormalElements
 
 
@@ -148,7 +147,6 @@ type Attribute
     | NamespacedAttribute NamespacedAttributeRecord
     | Property PropertyRecord
     | Style { key : String, value : String }
-    | Event EventRecord
 
 
 {-| Attribute contains a string key and a string value
@@ -238,7 +236,7 @@ contextDecodeElmHtml context =
 decodeTextTag : Json.Decode.Decoder TextTagRecord
 decodeTextTag =
     field kernelConstants.virtualDom.text
-        (Json.Decode.andThen (\text -> Json.Decode.succeed { text = text }) Json.Decode.string)
+        (Json.Decode.map (\text -> { text = text }) Json.Decode.string)
 
 
 {-| decode a tagger
@@ -419,18 +417,6 @@ decodeFacts (HtmlContext taggers eventDecoder) =
         (Json.Decode.maybe (Json.Decode.field attributeNamespaceKey Json.Decode.value))
         (decodeOthers Json.Decode.string (Just ClassVsClassNameValidation))
         (decodeOthers Json.Decode.bool Nothing)
-
-
-{-| Just empty facts
--}
-emptyFacts : Facts msg
-emptyFacts =
-    { styles = Dict.empty
-    , events = Dict.empty
-    , attributeNamespace = Nothing
-    , stringAttributes = Dict.empty
-    , boolAttributes = Dict.empty
-    }
 
 
 {-| Decode a JSON object into an Attribute. You have to pass a function that

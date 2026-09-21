@@ -75,7 +75,6 @@ can usually find the simplest input that reproduces a bug.
 
 import Array exposing (Array)
 import Bitwise
-import Char
 import Dict exposing (Dict)
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer(..))
@@ -1670,11 +1669,7 @@ forcedChoice n =
 -}
 intToBool : Int -> Bool
 intToBool n =
-    if n == 0 then
-        False
-
-    else
-        True
+    n /= 0
 
 
 weightedBoolGenerator : Float -> Random.Generator Int
