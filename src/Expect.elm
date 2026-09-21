@@ -3,6 +3,7 @@ module Expect exposing
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
+    , equalToFile
     , pass, fail, onFail
     )
 
@@ -41,6 +42,11 @@ or both. For an in-depth look, see our [Guide to Floating Point Comparison](#gui
 ## Collections
 
 @docs ok, err, equalLists, equalDicts, equalSets
+
+
+## Golden Files
+
+@docs equalToFile
 
 
 ## Customizing
@@ -103,6 +109,7 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 -}
 
 import Dict exposing (Dict)
+import File
 import Set exposing (Set)
 import Test.Distribution
 import Test.Expectation
@@ -574,6 +581,90 @@ equalSets expected actual =
                     |> Set.toList
         in
         reportCollectionFailure "Expect.equalSets" expected actual missingKeys extraKeys
+
+
+{-| Tests the a String is equal to the contents of the file stored at the file path.
+
+If the file does not exist, it will be created and this test will pass.
+
+If the file does exist, then this test will pass if its contents are equal to the actual string.
+
+All file paths are scoped to be within the "tests/" directory.
+
+-}
+equalToFile : String -> String -> Expectation
+equalToFile filePath actual =
+    let
+        failedFilePath =
+            -- Be careful to make the failed final extension .html so that browsers can render it
+            if String.endsWith ".html" filePath then
+                String.dropRight (String.length ".html") filePath ++ ".failed.html"
+
+            else
+                filePath ++ ".failed"
+
+        writeGoldenFile () =
+            case File.writeFile filePath actual of
+                Err File.FileNotFound ->
+                    -- Impossible
+                    pass
+
+                Err File.IsDirectory ->
+                    Test.Expectation.fail { description = "Expect.equalToFile was given a directory instead of a file", reason = Custom }
+
+                Err File.PathEscapesDirectory ->
+                    Test.Expectation.fail { description = "Expect.equalToFile was given a path that would escape the tests/ directory", reason = Custom }
+
+                Err (File.GeneralFileError fileError) ->
+                    Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
+
+                Ok _ ->
+                    -- If we have successully written the golden file we can delete the failure file.
+                    -- We don't really care if this fails, if nothing else the user can delete the file themselves
+                    case File.deleteFile failedFilePath of
+                        _ ->
+                            pass
+    in
+    if File.overwriteGoldenFiles () then
+        writeGoldenFile ()
+
+    else
+        case File.readFile filePath of
+            Err File.FileNotFound ->
+                writeGoldenFile ()
+
+            Err File.IsDirectory ->
+                Test.Expectation.fail { description = "Expect.equalToFile was given a directory instead of a file", reason = Custom }
+
+            Err File.PathEscapesDirectory ->
+                Test.Expectation.fail { description = "Expect.equalToFile was given a path that would escape the tests/ directory", reason = Custom }
+
+            Err (File.GeneralFileError fileError) ->
+                Test.Expectation.fail { description = "Expect.equalToFile encountered a general file error: " ++ fileError, reason = Custom }
+
+            Ok ( existingAbsolutePath, contents ) ->
+                if actual == contents then
+                    pass
+
+                else
+                    case File.writeFile failedFilePath actual of
+                        Ok newAbsolutePath ->
+                            let
+                                message =
+                                    [ Just <| "The contents of \"" ++ filePath ++ "\" changed!"
+                                    , Just <| "To compare run: git diff --no-index " ++ existingAbsolutePath ++ " " ++ newAbsolutePath
+                                    , if String.endsWith ".html" filePath then
+                                        Just <| "To visually compare run: open file://" ++ existingAbsolutePath ++ " file://" ++ newAbsolutePath
+
+                                      else
+                                        Nothing
+                                    , Just <| "To accept these changes delete \"" ++ filePath ++ "\" or specify OVERWRITE_GOLDEN_FILES=1 when running elm-test"
+                                    ]
+                            in
+                            Test.Expectation.fail { description = String.join "\n\n" (List.filterMap identity message), reason = Custom }
+
+                        _ ->
+                            Test.Expectation.fail { description = "Expect.equalToFile encountered an unexpected error", reason = Custom }
 
 
 {-| Always passes.
