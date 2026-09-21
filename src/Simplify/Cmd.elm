@@ -287,7 +287,9 @@ swapCmds length =
             (\cmd ->
                 case cmd.type_ of
                     SwapChunkWithNeighbour chunk ->
-                        { cmd | minLength = cmd.minLength + chunk.size }
+                        { type_ = cmd.type_
+                        , minLength = cmd.minLength + chunk.size
+                        }
 
                     _ ->
                         cmd

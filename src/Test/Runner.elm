@@ -329,11 +329,19 @@ distributeSeedsHelp hashed runs seed test =
             in
             if List.isEmpty next.only then
                 -- The subTest doesn't use Only but we do. Everything inside subTest should run.
-                { next | only = next.all }
+                { seed = next.seed
+                , all = next.all
+                , only = next.all
+                , skipped = next.skipped
+                }
 
             else
                 -- The subTest uses Only (and we do too): keep subTest's `.only` as it's more specific.
-                { next | only = next.only }
+                { seed = next.seed
+                , all = next.all
+                , only = next.only
+                , skipped = next.skipped
+                }
 
         Internal.ElmTestVariant__Batch tests ->
             List.foldl (batchDistribute hashed runs) (emptyDistribution seed) tests

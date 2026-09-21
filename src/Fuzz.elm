@@ -1620,7 +1620,11 @@ rollDice maxValue diceGenerator =
                             else
                                 Generated
                                     { value = hardcodedChoice
-                                    , prng = Hardcoded { wholeRun = h.wholeRun, unusedPart = restOfChoices }
+                                    , prng =
+                                        Hardcoded
+                                            { wholeRun = h.wholeRun
+                                            , unusedPart = restOfChoices
+                                            }
                                     }
 
 
@@ -1639,7 +1643,11 @@ forcedChoice n =
                     Random r ->
                         Generated
                             { value = n
-                            , prng = Random { run = RandomRun.append n r.run, seed = r.seed }
+                            , prng =
+                                Random
+                                    { run = RandomRun.append n r.run
+                                    , seed = r.seed
+                                    }
                             }
 
                     Hardcoded h ->
@@ -1661,7 +1669,11 @@ forcedChoice n =
                                 else
                                     Generated
                                         { value = n
-                                        , prng = Hardcoded { wholeRun = h.wholeRun, unusedPart = restOfChoices }
+                                        , prng =
+                                            Hardcoded
+                                                { wholeRun = h.wholeRun
+                                                , unusedPart = restOfChoices
+                                                }
                                         }
 
 

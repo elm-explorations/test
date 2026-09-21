@@ -38,13 +38,31 @@ toOutput summary seededRunners =
     in
     case seededRunners of
         Plain runners ->
-            render { summary | autoFail = Nothing } runners
+            render
+                { output = summary.output
+                , passed = summary.passed
+                , failed = summary.failed
+                , autoFail = Nothing
+                }
+                runners
 
         Only runners ->
-            render { summary | autoFail = Just "Test.only was used" } runners
+            render
+                { output = summary.output
+                , passed = summary.passed
+                , failed = summary.failed
+                , autoFail = Just "Test.only was used"
+                }
+                runners
 
         Skipping runners ->
-            render { summary | autoFail = Just "Test.skip was used" } runners
+            render
+                { output = summary.output
+                , passed = summary.passed
+                , failed = summary.failed
+                , autoFail = Just "Test.skip was used"
+                }
+                runners
 
         Invalid message ->
             { output = message, passed = 0, failed = 0, autoFail = Nothing }

@@ -646,7 +646,12 @@ onFail str expectation =
             expectation
 
         Test.Expectation.Fail failure ->
-            Test.Expectation.Fail { failure | description = str, reason = Custom }
+            Test.Expectation.Fail
+                { given = failure.given
+                , description = str
+                , reason = Custom
+                , distributionReport = failure.distributionReport
+                }
 
 
 {-| Passes if each of the given functions passes when applied to the subject.

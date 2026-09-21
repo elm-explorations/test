@@ -241,10 +241,11 @@ keepIfBetter newRandomRun state =
                             in
                             { wasImprovement = True
                             , newState =
-                                { state
-                                    | value = value
-                                    , randomRun = newRandomRun
-                                    , expectation = Fail fail
+                                { getExpectation = state.getExpectation
+                                , fuzzer = state.fuzzer
+                                , value = value
+                                , randomRun = newRandomRun
+                                , expectation = Fail fail
                                 }
                             }
 
@@ -464,7 +465,13 @@ redistributeChoicesAndMaybeIncrement options state =
                     binarySearchShrink
                         { low = 0
                         , high = newLeftValue
-                        , state = { newState | randomRun = initialRun }
+                        , state =
+                            { getExpectation = newState.getExpectation
+                            , fuzzer = newState.fuzzer
+                            , value = newState.value
+                            , randomRun = initialRun
+                            , expectation = newState.expectation
+                            }
                         , updateRun =
                             \value accRun ->
                                 RandomRun.replace
@@ -583,13 +590,25 @@ binarySearchLoop old ({ low, high, state, updateRun } as options) =
 
             optionsWithNewRange =
                 if afterMid.wasImprovement then
-                    { options | high = mid }
+                    { low = options.low
+                    , high = mid
+                    , state = options.state
+                    , updateRun = options.updateRun
+                    }
 
                 else
-                    { options | low = mid }
+                    { low = mid
+                    , high = options.high
+                    , state = options.state
+                    , updateRun = options.updateRun
+                    }
 
             newOptions =
-                { optionsWithNewRange | state = afterMid.newState }
+                { low = optionsWithNewRange.low
+                , high = optionsWithNewRange.high
+                , state = afterMid.newState
+                , updateRun = optionsWithNewRange.updateRun
+                }
         in
         binarySearchLoop { wasImprovement = afterMid.wasImprovement } newOptions
 

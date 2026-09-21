@@ -230,7 +230,13 @@ fuzzLoop c state =
                                         newState =
                                             runNTimes (2 ^ state.nextPowerOfTwo) c state
                                     in
-                                    fuzzLoop c { newState | nextPowerOfTwo = newState.nextPowerOfTwo + 1 }
+                                    fuzzLoop c
+                                        { runsElapsed = newState.runsElapsed
+                                        , distributionCount = newState.distributionCount
+                                        , nextPowerOfTwo = newState.nextPowerOfTwo + 1
+                                        , failure = newState.failure
+                                        , currentSeed = newState.currentSeed
+                                        }
 
                                 Just failedLabel ->
                                     distributionFailRunResult normalizedDistributionCount failedLabel

@@ -55,7 +55,11 @@ and Test.only which do not automatically fail.
 -}
 removeAutoFail : Summary -> Summary
 removeAutoFail summary =
-    { summary | autoFail = Nothing }
+    { output = summary.output
+    , passed = summary.passed
+    , failed = summary.failed
+    , autoFail = Nothing
+    }
 
 
 combineSummaries : Summary -> Summary -> Summary
