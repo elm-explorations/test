@@ -115,11 +115,8 @@ zeroCmds length =
     chunkCmds
         ReplaceChunkWithZero
         length
+        -- already happens in binary search
         False
-
-
-
--- already happens in binary search
 
 
 sortCmds : Int -> List SimplifyCmd
