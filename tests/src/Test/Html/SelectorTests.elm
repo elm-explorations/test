@@ -15,9 +15,54 @@ all : Test
 all =
     describe "Test.Html.Selector"
         [ bug13
+        , bug137
         , textSelectors
         , exactTextSelectors
         , selectorAllTests
+        ]
+
+
+{-| <https://github.com/elm-explorations/test/issues/137>
+
+`Selector.text` and `Selector.exactText` match against an element's full text
+content instead of a single text node in isolation.
+
+-}
+bug137 : Test
+bug137 =
+    describe "Reproducing bug #137"
+        [ test "a string split across sibling text nodes is found" <|
+            \() ->
+                Html.div []
+                    [ Html.text "Click to "
+                    , Html.text "continue"
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ text "Click to continue" ]
+        , test "a string split across sibling text nodes is found via exactText" <|
+            \() ->
+                Html.div []
+                    [ Html.text "Click to "
+                    , Html.text "continue"
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ exactText "Click to continue" ]
+        , test "a string split across a nested element is found" <|
+            \() ->
+                Html.div []
+                    [ Html.text "Click to "
+                    , Html.strong [] [ Html.text "continue" ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ text "Click to continue" ]
+        , test "no separator is added between adjacent nodes with no whitespace of their own" <|
+            \() ->
+                Html.div []
+                    [ Html.span [] [ Html.text "$" ]
+                    , Html.span [] [ Html.text "100" ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ exactText "$100" ]
         ]
 
 
