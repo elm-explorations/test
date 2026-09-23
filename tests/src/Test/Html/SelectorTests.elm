@@ -8,7 +8,7 @@ import Html
 import Html.Attributes as Attr
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
+import Test.Html.Selector as Selector exposing (..)
 
 
 all : Test
@@ -17,6 +17,7 @@ all =
         [ bug13
         , textSelectors
         , exactTextSelectors
+        , selectorAllTests
         ]
 
 
@@ -144,4 +145,85 @@ exactTextSelectors =
                 """ ]
                     |> Query.fromHtml
                     |> Query.hasNot [ exactText "We like whitespace" ]
+        ]
+
+
+{-| <https://github.com/elm-explorations/test/issues/213>
+<https://github.com/elm-explorations/test/issues/214>
+
+`Selector.all` must require all of its selectors to match the same element.
+
+-}
+selectorAllTests : Test
+selectorAllTests =
+    let
+        html =
+            Html.fieldset [ Attr.disabled False ]
+                [ Html.button [ Attr.disabled True ]
+                    [ Html.text "Reply"
+                    ]
+                ]
+    in
+    describe "Selector.all"
+        [ test "passes with an empty list" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has [ Selector.all [] ]
+        , test "passes if a single selector matches" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has [ Selector.all [ tag "fieldset" ] ]
+        , test "passes if every selector matches the same element" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ Selector.all
+                            [ tag "fieldset"
+                            , attribute (Attr.disabled False)
+                            ]
+                        ]
+        , test "fails if the selectors are only satisfied by different elements (regression for #213)" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.hasNot
+                        [ Selector.all
+                            [ tag "fieldset"
+                            , attribute (Attr.disabled True)
+                            ]
+                        ]
+        , test "fails if no element matches" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.hasNot
+                        [ Selector.all
+                            [ tag "strong"
+                            , attribute (Attr.disabled True)
+                            ]
+                        ]
+        , test "still finds text among the same element's descendants" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ Selector.all
+                            [ tag "button"
+                            , text "Reply"
+                            ]
+                        ]
+        , test "Query.find returns the element that matched, not a descendant" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.find
+                        [ Selector.all
+                            [ tag "button"
+                            , attribute (Attr.disabled True)
+                            ]
+                        ]
+                    |> Query.has [ text "Reply" ]
         ]
