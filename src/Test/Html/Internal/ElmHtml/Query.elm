@@ -1,191 +1,144 @@
 module Test.Html.Internal.ElmHtml.Query exposing
-    ( Selector(..)
-    , query, queryChildren
+    ( findAll
     , getChildren
-    , matches
+    , hasTag, hasClasses, hasAttribute, hasBoolAttribute, hasStyle
+    , containsText
     )
 
-{-| Query things using ElmHtml
+{-| Helpers for walking and inspecting an `ElmHtml` tree.
 
-@docs Selector
-@docs query, queryChildren
+Lower-level than `Test.Html.Selector`.
+
+@docs findAll
 @docs getChildren
-@docs matches
+@docs hasTag, hasClasses, hasAttribute, hasBoolAttribute, hasStyle
+@docs containsText
 
 -}
 
 import Dict
-import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
+import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml(..), Facts)
 
 
-{-| Selectors to query a Html element
-
-  - Id, classname, classlist, tag are all what you'd expect
-  - Attribute and bool attribute are attributes
-  - ContainsText just searches inside for the given text
-  - Any matches every element node (used to enumerate candidates)
-
--}
-type Selector
-    = ClassList (List String)
-    | Tag String
-    | Attribute String String
-    | BoolAttribute String Bool
-    | Style { key : String, value : String }
-    | ContainsText String
-    | ContainsExactText String
-    | Any
-
-
-{-| Query an ElmHtml node using a selector, considering both the node itself
-as well as all of its descendants.
--}
-query : Selector -> ElmHtml msg -> List (ElmHtml msg)
-query selector =
-    queryInNode Nothing selector
-
-
-{-| Query an ElmHtml node using a selector, considering both the node itself
-as well as all of its descendants.
--}
-queryChildren : Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryChildren =
-    queryInNode (Just 1)
-
-
-{-| Check whether a single node (not its descendants) matches a selector.
-
-Used to test several selectors against the very same node, e.g. for
-`Test.Html.Selector.all`.
-
--}
-matches : Selector -> ElmHtml msg -> Bool
-matches selector node =
-    predicateFromSelector selector node
-
-
-{-| Returns just the immediate children of an ElmHtml node
--}
 getChildren : ElmHtml msg -> List (ElmHtml msg)
 getChildren elmHtml =
     case elmHtml of
         NodeEntry { children } ->
             children
 
-        _ ->
+        TextTag _ ->
             []
 
-
-queryInNode : Maybe Int -> Selector -> ElmHtml msg -> List (ElmHtml msg)
-queryInNode maxDescendantDepth selector node =
-    case node of
-        NodeEntry record ->
-            let
-                childEntries =
-                    descendInQuery maxDescendantDepth selector record.children
-            in
-            if predicateFromSelector selector node then
-                node :: childEntries
-
-            else
-                childEntries
-
-        TextTag text ->
-            case selector of
-                ContainsText innerText ->
-                    if String.contains innerText text then
-                        [ node ]
-
-                    else
-                        []
-
-                ContainsExactText innerText ->
-                    if innerText == text then
-                        [ node ]
-
-                    else
-                        []
-
-                Any ->
-                    [ node ]
-
-                _ ->
-                    []
+        CustomNode _ ->
+            []
 
         MarkdownNode _ ->
-            if predicateFromSelector selector node then
-                [ node ]
-
-            else
-                []
-
-        _ ->
             []
 
 
-descendInQuery : Maybe Int -> Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
-descendInQuery maxDescendantDepth selector children =
-    case maxDescendantDepth of
-        Nothing ->
-            -- No maximum, so continue.
-            List.concatMap
-                (queryInNode Nothing selector)
-                children
+{-| Collect descendants (self included) that satisfy a predicate.
+-}
+findAll : (ElmHtml msg -> Bool) -> ElmHtml msg -> List (ElmHtml msg)
+findAll predicate node =
+    (if predicate node then
+        [ node ]
 
-        Just depth ->
-            if depth > 0 then
-                -- Continue with maximum depth reduced by 1.
-                List.concatMap
-                    (queryInNode (Just (depth - 1)) selector)
-                    children
-
-            else
-                []
+     else
+        []
+    )
+        ++ List.concatMap (findAll predicate) (getChildren node)
 
 
-predicateFromSelector : Selector -> ElmHtml msg -> Bool
-predicateFromSelector selector html =
-    case html of
+{-| Does this node's own text (or Markdown source) content satisfy the predicate?
+-}
+containsText : (String -> Bool) -> ElmHtml msg -> Bool
+containsText predicate node =
+    case node of
+        TextTag text ->
+            predicate text
+
+        MarkdownNode { model } ->
+            predicate model.markdown
+
+        CustomNode _ ->
+            False
+
+        NodeEntry _ ->
+            False
+
+
+{-| Does this node have the given tag?
+-}
+hasTag : String -> ElmHtml msg -> Bool
+hasTag tag node =
+    case node of
         NodeEntry record ->
-            record
-                |> nodeRecordPredicate selector
+            record.tag == tag
 
-        MarkdownNode markdownModel ->
-            markdownModel
-                |> markdownPredicate selector
+        TextTag _ ->
+            False
 
-        _ ->
+        MarkdownNode _ ->
+            False
+
+        CustomNode _ ->
             False
 
 
-hasAttribute : String -> String -> Facts msg -> Bool
-hasAttribute attribute queryString facts =
-    case Dict.get attribute facts.stringAttributes of
-        Just id ->
-            id == queryString
+hasClasses : List String -> ElmHtml msg -> Bool
+hasClasses classList node =
+    case factsOf node of
+        Just facts ->
+            containsAll classList (classnames facts)
 
         Nothing ->
             False
 
 
-hasBoolAttribute : String -> Bool -> Facts msg -> Bool
-hasBoolAttribute attribute value facts =
-    case Dict.get attribute facts.boolAttributes of
-        Just id ->
-            id == value
+hasAttribute : String -> String -> ElmHtml msg -> Bool
+hasAttribute name value node =
+    case factsOf node of
+        Just facts ->
+            Dict.get name facts.stringAttributes == Just value
 
         Nothing ->
             False
 
 
-hasClasses : List String -> Facts msg -> Bool
-hasClasses classList facts =
-    containsAll classList (classnames facts)
+hasBoolAttribute : String -> Bool -> ElmHtml msg -> Bool
+hasBoolAttribute name value node =
+    case factsOf node of
+        Just facts ->
+            Dict.get name facts.boolAttributes == Just value
+
+        Nothing ->
+            False
 
 
-hasStyle : { key : String, value : String } -> Facts msg -> Bool
-hasStyle style facts =
-    Dict.get style.key facts.styles == Just style.value
+hasStyle : { key : String, value : String } -> ElmHtml msg -> Bool
+hasStyle style node =
+    case factsOf node of
+        Just facts ->
+            Dict.get style.key facts.styles == Just style.value
+
+        Nothing ->
+            False
+
+
+factsOf : ElmHtml msg -> Maybe (Facts msg)
+factsOf node =
+    case node of
+        NodeEntry record ->
+            Just record.facts
+
+        MarkdownNode record ->
+            Just record.facts
+
+        TextTag _ ->
+            Nothing
+
+        CustomNode _ ->
+            Nothing
 
 
 classnames : Facts msg -> List String
@@ -225,72 +178,3 @@ containsAll a b =
     b
         |> List.foldl (\i acc -> List.filter ((/=) i) acc) a
         |> List.isEmpty
-
-
-nodeRecordPredicate : Selector -> (NodeRecord msg -> Bool)
-nodeRecordPredicate selector =
-    case selector of
-        ClassList classList ->
-            .facts
-                >> hasClasses classList
-
-        Tag tag ->
-            .tag
-                >> (==) tag
-
-        Attribute key value ->
-            .facts
-                >> hasAttribute key value
-
-        BoolAttribute key value ->
-            .facts
-                >> hasBoolAttribute key value
-
-        Style style ->
-            .facts
-                >> hasStyle style
-
-        ContainsText _ ->
-            always False
-
-        ContainsExactText _ ->
-            always False
-
-        Any ->
-            always True
-
-
-markdownPredicate : Selector -> (MarkdownNodeRecord msg -> Bool)
-markdownPredicate selector =
-    case selector of
-        ClassList classList ->
-            .facts
-                >> hasClasses classList
-
-        Tag _ ->
-            always False
-
-        Attribute key value ->
-            .facts
-                >> hasAttribute key value
-
-        BoolAttribute key value ->
-            .facts
-                >> hasBoolAttribute key value
-
-        Style style ->
-            .facts
-                >> hasStyle style
-
-        ContainsText text ->
-            .model
-                >> .markdown
-                >> String.contains text
-
-        ContainsExactText text ->
-            .model
-                >> .markdown
-                >> (==) text
-
-        Any ->
-            always True

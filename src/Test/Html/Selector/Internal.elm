@@ -1,4 +1,13 @@
-module Test.Html.Selector.Internal exposing (Selector(..), hasAll, invalid, namedAttr, namedBoolAttr, queryAll, queryAllChildren, selectorToString)
+module Test.Html.Selector.Internal exposing
+    ( Selector(..)
+    , findDescendants
+    , hasAll
+    , invalid
+    , keepMatching
+    , namedAttr
+    , namedBoolAttr
+    , selectorToString
+    )
 
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
 import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
@@ -93,153 +102,83 @@ styleToString { key, value } =
     key ++ ":" ++ value
 
 
-hasAll : List Selector -> List (ElmHtml msg) -> Bool
-hasAll selectors elems =
-    case selectors of
-        [] ->
-            True
-
-        selector :: rest ->
-            if List.isEmpty (queryAll [ selector ] elems) then
-                False
-
-            else
-                hasAll rest elems
-
-
-queryAll : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
-queryAll selectors list =
-    case selectors of
-        [] ->
-            list
-
-        selector :: rest ->
-            queryAll rest
-                (query ElmHtmlQuery.query queryAll selector list)
-
-
-queryAllChildren : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
-queryAllChildren selectors list =
-    case selectors of
-        [] ->
-            list
-
-        selector :: rest ->
-            queryAllChildren rest
-                (query ElmHtmlQuery.queryChildren queryAllChildren selector list)
-
-
-query :
-    (ElmHtmlQuery.Selector -> ElmHtml msg -> List (ElmHtml msg))
-    -> (List Selector -> List (ElmHtml msg) -> List (ElmHtml msg))
-    -> Selector
-    -> List (ElmHtml msg)
-    -> List (ElmHtml msg)
-query fn fnAll selector list =
-    case list of
-        [] ->
-            list
-
-        elems ->
-            case selector of
-                All selectors ->
-                    -- Every selector in the list has to match the same element (see #214)
-                    elems
-                        |> List.concatMap (fn ElmHtmlQuery.Any)
-                        |> List.filter (matchesAll fn fnAll selector)
-
-                Classes classes ->
-                    List.concatMap (fn (ElmHtmlQuery.ClassList classes)) elems
-
-                Class class ->
-                    List.concatMap (fn (ElmHtmlQuery.ClassList [ class ])) elems
-
-                Attribute { name, value } ->
-                    List.concatMap (fn (ElmHtmlQuery.Attribute name value)) elems
-
-                BoolAttribute { name, value } ->
-                    List.concatMap (fn (ElmHtmlQuery.BoolAttribute name value)) elems
-
-                Style style ->
-                    List.concatMap (fn (ElmHtmlQuery.Style style)) elems
-
-                Tag name ->
-                    List.concatMap (fn (ElmHtmlQuery.Tag name)) elems
-
-                Text text ->
-                    List.concatMap (fn (ElmHtmlQuery.ContainsText text)) elems
-
-                ExactText text ->
-                    List.concatMap (fn (ElmHtmlQuery.ContainsExactText text)) elems
-
-                Containing selectors ->
-                    let
-                        anyDescendantsMatch elem =
-                            case ElmHtmlQuery.getChildren elem of
-                                [] ->
-                                    -- We have no children;
-                                    -- no descendants can possibly match.
-                                    False
-
-                                children ->
-                                    case query fn fnAll (All selectors) children of
-                                        [] ->
-                                            -- None of our children matched,
-                                            -- but their descendants might!
-                                            List.any anyDescendantsMatch children
-
-                                        _ :: _ ->
-                                            -- At least one child matched. Yay!
-                                            True
-                    in
-                    List.filter anyDescendantsMatch elems
-
-                Invalid () ->
-                    []
-
-
-{-| Does a single element satisfy every selector in the given `All` list?
--}
-matchesAll :
-    (ElmHtmlQuery.Selector -> ElmHtml msg -> List (ElmHtml msg))
-    -> (List Selector -> List (ElmHtml msg) -> List (ElmHtml msg))
-    -> Selector
-    -> ElmHtml msg
-    -> Bool
-matchesAll fn fnAll selector node =
+matches : Selector -> ElmHtml msg -> Bool
+matches selector node =
     case selector of
         All selectors ->
-            List.all (\s -> matchesAll fn fnAll s node) selectors
+            List.all (\s -> matches s node) selectors
 
         Classes classes ->
-            ElmHtmlQuery.matches (ElmHtmlQuery.ClassList classes) node
+            ElmHtmlQuery.hasClasses classes node
 
         Class class ->
-            ElmHtmlQuery.matches (ElmHtmlQuery.ClassList [ class ]) node
+            ElmHtmlQuery.hasClasses [ class ] node
 
         Attribute { name, value } ->
-            ElmHtmlQuery.matches (ElmHtmlQuery.Attribute name value) node
+            ElmHtmlQuery.hasAttribute name value node
 
         BoolAttribute { name, value } ->
-            ElmHtmlQuery.matches (ElmHtmlQuery.BoolAttribute name value) node
+            ElmHtmlQuery.hasBoolAttribute name value node
 
         Style style ->
-            ElmHtmlQuery.matches (ElmHtmlQuery.Style style) node
+            ElmHtmlQuery.hasStyle style node
 
         Tag name ->
-            ElmHtmlQuery.matches (ElmHtmlQuery.Tag name) node
+            ElmHtmlQuery.hasTag name node
 
         Text text ->
-            not (List.isEmpty (fn (ElmHtmlQuery.ContainsText text) node))
+            hasDescendantText (String.contains text) node
 
         ExactText text ->
-            not (List.isEmpty (fn (ElmHtmlQuery.ContainsExactText text) node))
+            hasDescendantText ((==) text) node
 
         Containing selectors ->
-            not (List.isEmpty (query fn fnAll (Containing selectors) [ node ]))
+            ElmHtmlQuery.getChildren node
+                |> List.concatMap (ElmHtmlQuery.findAll (matches (All selectors)))
+                |> List.isEmpty
+                |> not
 
         Invalid () ->
             False
+
+
+hasDescendantText : (String -> Bool) -> ElmHtml msg -> Bool
+hasDescendantText predicate node =
+    node
+        |> ElmHtmlQuery.findAll (ElmHtmlQuery.containsText predicate)
+        |> List.isEmpty
+        |> not
+
+
+hasAll : List Selector -> List (ElmHtml msg) -> Bool
+hasAll selectors elems =
+    elems
+        |> findDescendants selectors
+        |> List.isEmpty
+        |> not
+
+
+{-| Search the whole subtree of each element for descendants (self included)
+matching every selector in the list, all on the same element.
+-}
+findDescendants : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+findDescendants selectors elems =
+    case selectors of
+        [] ->
+            elems
+
+        _ ->
+            List.concatMap (ElmHtmlQuery.findAll (matches (All selectors))) elems
+
+
+keepMatching : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+keepMatching selectors elems =
+    case selectors of
+        [] ->
+            elems
+
+        _ ->
+            List.filter (matches (All selectors)) elems
 
 
 namedAttr : String -> String -> Selector
