@@ -3,30 +3,35 @@
 ### Breaking changes
 
 * `Test.fuzz`, `Test.fuzz2`, `Test.fuzz3` and `Test.fuzzWith` now take the test
-  name as the first argument
+  name as the first argument.
 * [#214](https://github.com/elm-explorations/test/pull/214): `Selector.all` (and
   `Selector.containing` when given more than one selector) now require every
-  selector to match the same element. 
+  selector to match the same element.
 * [#256](https://github.com/elm-explorations/test/pull/256): Nested `Test.only`
-  aren't ignored anymore
+  aren't ignored anymore.
+* `Expect.all`'s type signature changed to `List Expectation -> Expectation`.
+  The old pointfree `Expect.all` can be found under `Expect.passesAll`.
 
 ### Additions
 
 * Added `Test.parameterized : String -> List a -> (a -> Test) -> Test` for
-  data-driven tests
+  data-driven tests.
 * Added `Test.fuzzWithExamples : String -> FuzzOptions a -> Fuzzer a -> List ( String, a ) -> (a -> Expectation) -> Test`
-  for fuzz tests with hardcoded (regression) examples
+  for fuzz tests with hardcoded (regression) examples.
 
 ### Performance improvements
 
 * [#272](https://github.com/elm-explorations/test/pull/272): Reimplemented
-  `RandomRun` with TypedArrays for faster fuzzing and simplifying operations
+  `RandomRun` with TypedArrays for faster fuzzing and simplifying operations.
 
 ## TODOs before release
 
-* Make an elm-review rule to upgrade from 2.2.1 or so to the new version
-  (switching Test.fuzz* arguments)
-* Note the change in Node version needed (20+), coordinate with node-test-runner
+* Make an elm-review rule to upgrade from 2.2.1 or so to the new version:
+  * Switch `Test.fuzz*` arguments
+  * `Expect.all` -> `Expect.passesAll`
+  * Do we want to detect `Expect.all [\() -> ...] ()` and instead of changing to
+    `Expect.passesAll {- same -}`, change to `Expect.all [...]`?
+* Note the change in Node version needed (20+), coordinate with `node-test-runner`.
 
 ## Releases
 

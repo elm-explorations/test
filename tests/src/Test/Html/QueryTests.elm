@@ -84,7 +84,7 @@ all =
                     \() ->
                         divWithAttribute (Attr.class "hello world")
                             |> Query.fromHtml
-                            |> Expect.all
+                            |> Expect.passesAll
                                 [ Query.has [ class "hello" ]
                                 , Query.has [ class "world" ]
                                 , Query.has [ class "hello", class "world" ]
@@ -109,7 +109,7 @@ all =
                     \() ->
                         divWithAttribute (Attr.class "hello world")
                             |> Query.fromHtml
-                            |> Expect.all
+                            |> Expect.passesAll
                                 [ Query.has [ attribute (Attr.property "className" (Encode.string "hello world")) ]
                                 , Query.has [ attribute (Attr.property "className" (Encode.string "world hello")) ]
                                 ]
@@ -208,7 +208,7 @@ testRoot output =
             [ test "sees it's a <section class='root'>" <|
                 \() ->
                     output
-                        |> Expect.all
+                        |> Expect.passesAll
                             [ Query.has [ class "root" ]
                             , Query.has [ tag "section" ]
                             ]
@@ -251,7 +251,7 @@ testFind output =
                 \() ->
                     output
                         |> Query.find []
-                        |> Expect.all
+                        |> Expect.passesAll
                             [ Query.has [ class "container" ]
                             , Query.has [ tag "div" ]
                             ]
@@ -291,7 +291,7 @@ testFindAll output =
                 \() ->
                     output
                         |> Query.findAll []
-                        |> Expect.all
+                        |> Expect.passesAll
                             [ Query.each (Query.has [ class "container" ])
                             , Query.each (Query.has [ tag "div" ])
                             ]
@@ -340,7 +340,7 @@ testKeep output =
                     |> Query.findAll [ tag "section" ]
                     |> Query.keep (tag "ul")
                     |> Query.keep (class "list-item")
-                    |> Expect.all
+                    |> Expect.passesAll
                         [ Query.each (Query.has [ tag "li" ])
                         , Query.first >> Query.has [ text "first item" ]
                         ]
@@ -464,7 +464,7 @@ testChildren output =
                 \() ->
                     output
                         |> Query.children []
-                        |> Expect.all
+                        |> Expect.passesAll
                             [ Query.count (Expect.equal 1)
                             , Query.each (Query.hasNot [ class "root" ])
                             ]
@@ -493,7 +493,7 @@ testContaining output =
                         [ tag "button"
                         , containing [ text "click me" ]
                         ]
-                    |> Expect.all
+                    |> Expect.passesAll
                         [ Query.count (Expect.equal 1)
                         , Query.first >> Query.has [ class "super-button" ]
                         ]

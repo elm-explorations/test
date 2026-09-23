@@ -167,8 +167,8 @@ expectTestToFail test =
         |> Test.Runner.fromTest 100 seed
         |> getRunners
         |> List.concatMap (\{ run } -> run ())
-        |> List.map (\expectation () -> expectToFail expectation)
-        |> (\expectations -> Expect.all expectations ())
+        |> List.map expectToFail
+        |> Expect.all
 
 
 expectTestToPass : Test -> Expectation
@@ -190,8 +190,8 @@ expectTestToPass test =
         |> Test.Runner.fromTest 100 seed
         |> getRunners
         |> List.concatMap (\{ run } -> run ())
-        |> List.map (\expectation () -> expectToPass expectation)
-        |> (\expectations -> Expect.all expectations ())
+        |> List.map expectToPass
+        |> Expect.all
 
 
 passToFail :

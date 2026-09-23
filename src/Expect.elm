@@ -4,6 +4,7 @@ module Expect exposing
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
     , pass, fail, onFail
+    , passesAll
     )
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
@@ -654,39 +655,18 @@ onFail str expectation =
                 }
 
 
-{-| Passes if each of the given functions passes when applied to the subject.
-
-Passing an empty list is assumed to be a mistake, so `Expect.all []`
-will always return a failed expectation no matter what else it is passed.
+{-| Passes if all given expectations pass.
 
     Expect.all
-        [ Expect.greaterThan -2
-        , Expect.lessThan 5
+        [ user.name |> Expect.notEqual ""
+        , user.age |> Expect.atLeast 0
         ]
-        (List.length [])
-    -- Passes because (0 > -2) is True and (0 < 5) is also True
 
-Failures resemble code written in pipeline style, so you can tell
-which argument is which:
-
-    -- Fails because (0 < -10) is False
-    List.length []
-        |> Expect.all
-            [ Expect.greaterThan -2
-            , Expect.lessThan -10
-            , Expect.equal 0
-            ]
-    {-
-    0
-    ╷
-    │ Expect.lessThan
-    ╵
-    -10
-    -}
+`Expect.all []` is reported as a test failure.
 
 -}
-all : List (subject -> Expectation) -> subject -> Expectation
-all list query =
+all : List Expectation -> Expectation
+all list =
     if List.isEmpty list then
         Test.Expectation.Fail
             { given = Nothing
@@ -696,19 +676,40 @@ all list query =
             }
 
     else
-        allHelp list query
+        allHelp list
 
 
-allHelp : List (subject -> Expectation) -> subject -> Expectation
-allHelp list query =
+{-| Passes if each of the given functions passes when applied to the subject.
+
+See also [`all`](#all).
+
+Useful as an argument to [`Query.each`](Test-Html-Query#each):
+
+    Query.each
+        (Expect.passesAll
+            [ Query.has [ tag "ul" ]
+            , Query.has [ classes [ "items", "active" ] ]
+            ]
+        )
+
+`Expect.passesAll [] _` is reported as a test failure.
+
+-}
+passesAll : List (subject -> Expectation) -> subject -> Expectation
+passesAll checks subject =
+    all (List.map (\check -> check subject) checks)
+
+
+allHelp : List Expectation -> Expectation
+allHelp list =
     case list of
         [] ->
             pass
 
         check :: rest ->
-            case check query of
+            case check of
                 Test.Expectation.Pass _ ->
-                    allHelp rest query
+                    allHelp rest
 
                 outcome ->
                     outcome

@@ -93,8 +93,7 @@ expectationTests =
         , describe "Expect.all"
             [ test "fails with empty list" <|
                 \_ ->
-                    "dummy subject"
-                        |> Expect.all []
+                    Expect.all []
                         |> expectToFail
             ]
         , describe "Expect.equal"

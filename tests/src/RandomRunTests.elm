@@ -350,10 +350,9 @@ nextChoiceTests =
 
                     ( Just ( next, restRun ), Just h, Just t ) ->
                         Expect.all
-                            [ \_ -> Expect.equal next h
-                            , \_ -> Expect.equal (RandomRun.toList restRun) t
+                            [ Expect.equal next h
+                            , Expect.equal (RandomRun.toList restRun) t
                             ]
-                            ()
 
                     _ ->
                         Expect.fail "nextChoice and list head/tail mismatch"

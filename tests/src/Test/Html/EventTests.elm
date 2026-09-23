@@ -128,30 +128,30 @@ all =
                 \() ->
                     Html.Events.on "click" (succeed SampleMsg)
                         |> effectHtml
-                        |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+                        |> Expect.passesAll [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
             , describe "Html.Events.stopPropagationOn"
                 [ test "false case" <|
                     \() ->
                         Html.Events.stopPropagationOn "click" (succeed ( SampleMsg, False ))
                             |> effectHtml
-                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+                            |> Expect.passesAll [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
                 , test "true case" <|
                     \() ->
                         Html.Events.stopPropagationOn "click" (succeed ( SampleMsg, True ))
                             |> effectHtml
-                            |> Expect.all [ Event.expectStopPropagation, Event.expectNotPreventDefault ]
+                            |> Expect.passesAll [ Event.expectStopPropagation, Event.expectNotPreventDefault ]
                 ]
             , describe "Html.Events.preventDefaultOn"
                 [ test "false case" <|
                     \() ->
                         Html.Events.preventDefaultOn "click" (succeed ( SampleMsg, False ))
                             |> effectHtml
-                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+                            |> Expect.passesAll [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
                 , test "true case" <|
                     \() ->
                         Html.Events.preventDefaultOn "click" (succeed ( SampleMsg, True ))
                             |> effectHtml
-                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectPreventDefault ]
+                            |> Expect.passesAll [ Event.expectNotStopPropagation, Event.expectPreventDefault ]
                 ]
             , describe "Html.Events.custom"
                 [ test "false case" <|
@@ -164,7 +164,7 @@ all =
                                 }
                             )
                             |> effectHtml
-                            |> Expect.all [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
+                            |> Expect.passesAll [ Event.expectNotStopPropagation, Event.expectNotPreventDefault ]
                 , test "true case" <|
                     \() ->
                         Html.Events.custom "click"
@@ -175,7 +175,7 @@ all =
                                 }
                             )
                             |> effectHtml
-                            |> Expect.all [ Event.expectStopPropagation, Event.expectPreventDefault ]
+                            |> Expect.passesAll [ Event.expectStopPropagation, Event.expectPreventDefault ]
                 ]
             ]
         ]
