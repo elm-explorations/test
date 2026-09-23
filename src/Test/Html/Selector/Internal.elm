@@ -134,9 +134,7 @@ matches selector node =
 
         Containing selectors ->
             ElmHtmlQuery.getChildren node
-                |> List.concatMap (ElmHtmlQuery.findAll (matches (All selectors)))
-                |> List.isEmpty
-                |> not
+                |> List.any (ElmHtmlQuery.existsDescendant (matches (All selectors)))
 
         Invalid () ->
             False
@@ -144,18 +142,17 @@ matches selector node =
 
 hasDescendantText : (String -> Bool) -> ElmHtml msg -> Bool
 hasDescendantText predicate node =
-    node
-        |> ElmHtmlQuery.findAll (ElmHtmlQuery.containsText predicate)
-        |> List.isEmpty
-        |> not
+    ElmHtmlQuery.existsDescendant (ElmHtmlQuery.containsText predicate) node
 
 
 hasAll : List Selector -> List (ElmHtml msg) -> Bool
 hasAll selectors elems =
-    elems
-        |> findDescendants selectors
-        |> List.isEmpty
-        |> not
+    case selectors of
+        [] ->
+            not (List.isEmpty elems)
+
+        _ ->
+            List.any (ElmHtmlQuery.existsDescendant (matches (All selectors))) elems
 
 
 {-| Search the whole subtree of each element for descendants (self included)

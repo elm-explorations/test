@@ -572,15 +572,14 @@ hasNot selectors query =
             Expect.pass
 
         Ok elmHtmlList ->
-            case InternalSelector.findDescendants selectors elmHtmlList of
-                [] ->
-                    Expect.pass
+            if InternalSelector.hasAll selectors elmHtmlList then
+                selectors
+                    |> List.map (showSelectorOutcomeInverse elmHtmlList)
+                    |> String.join "\n"
+                    |> Expect.fail
 
-                _ ->
-                    selectors
-                        |> List.map (showSelectorOutcomeInverse elmHtmlList)
-                        |> String.join "\n"
-                        |> Expect.fail
+            else
+                Expect.pass
 
         Err _ ->
             Expect.pass
@@ -590,12 +589,11 @@ showSelectorOutcome : List (ElmHtml msg) -> Selector -> String
 showSelectorOutcome elmHtmlList selector =
     let
         outcome =
-            case InternalSelector.findDescendants [ selector ] elmHtmlList of
-                [] ->
-                    "✗"
+            if InternalSelector.hasAll [ selector ] elmHtmlList then
+                "✓"
 
-                _ ->
-                    "✓"
+            else
+                "✗"
     in
     String.join " " [ outcome, "has", selectorToString selector ]
 
@@ -604,12 +602,11 @@ showSelectorOutcomeInverse : List (ElmHtml msg) -> Selector -> String
 showSelectorOutcomeInverse elmHtmlList selector =
     let
         outcome =
-            case InternalSelector.findDescendants [ selector ] elmHtmlList of
-                [] ->
-                    "✓"
+            if InternalSelector.hasAll [ selector ] elmHtmlList then
+                "✗"
 
-                _ ->
-                    "✗"
+            else
+                "✓"
     in
     String.join " " [ outcome, "has not", selectorToString selector ]
 

@@ -3,6 +3,7 @@ module Test.Html.Internal.ElmHtml.Query exposing
     , getChildren
     , hasTag, hasClasses, hasAttribute, hasBoolAttribute, hasStyle
     , containsText
+    , existsDescendant
     )
 
 {-| Helpers for walking and inspecting an `ElmHtml` tree.
@@ -47,6 +48,11 @@ findAll predicate node =
         []
     )
         ++ List.concatMap (findAll predicate) (getChildren node)
+
+
+existsDescendant : (ElmHtml msg -> Bool) -> ElmHtml msg -> Bool
+existsDescendant predicate node =
+    predicate node || List.any (existsDescendant predicate) (getChildren node)
 
 
 {-| Does this node's own text (or Markdown source) content satisfy the predicate?
