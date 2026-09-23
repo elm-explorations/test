@@ -18,6 +18,7 @@ import Test.Html.Query.MarkdownTests
 import Test.Html.QueryTests
 import Test.Html.SelectorTests
 import Test.Runner
+import Test.Runner.Failure
 
 
 all : Test
@@ -95,6 +96,68 @@ expectationTests =
                 \_ ->
                     Expect.all []
                         |> expectToFail
+            ]
+        , describe "Expect.oneOf"
+            [ test "fails with empty list" <|
+                \_ ->
+                    Expect.oneOf []
+                        |> expectToFail
+            , test "passes if the subject satisfies at least one of the expectations" <|
+                \_ ->
+                    let
+                        user =
+                            { isPremiumMember = False
+                            , cartTotal = 75
+                            , coupon = Nothing
+                            }
+                    in
+                    Expect.oneOf
+                        [ user.isPremiumMember |> Expect.equal True
+                        , user.cartTotal |> Expect.atLeast 50
+                        , user.coupon |> Expect.notEqual Nothing
+                        ]
+            , test "fails if the subject satisfies none of the expectations" <|
+                \_ ->
+                    let
+                        user =
+                            { isPremiumMember = False
+                            , cartTotal = 10
+                            , coupon = Nothing
+                            }
+                    in
+                    Expect.oneOf
+                        [ user.isPremiumMember |> Expect.equal True
+                        , user.cartTotal |> Expect.atLeast 50
+                        , user.coupon |> Expect.notEqual Nothing
+                        ]
+                        |> expectToFail
+            , test "reports every failed expectation when none pass" <|
+                \_ ->
+                    let
+                        user =
+                            { isPremiumMember = False
+                            , cartTotal = 10
+                            , coupon = Nothing
+                            }
+
+                        checks =
+                            [ user.isPremiumMember |> Expect.equal True
+                            , user.cartTotal |> Expect.atLeast 50
+                            , user.coupon |> Expect.notEqual Nothing
+                            ]
+                    in
+                    case Test.Runner.getFailureReason (Expect.oneOf checks) of
+                        Just { reason } ->
+                            case reason of
+                                Test.Runner.Failure.Multiple failures ->
+                                    List.length failures
+                                        |> Expect.equal (List.length checks)
+
+                                _ ->
+                                    Expect.fail "expected a Multiple reason"
+
+                        Nothing ->
+                            Expect.fail "expected a failure"
             ]
         , describe "Expect.equal"
             [ test "fails when equating two floats (see #230)" <|

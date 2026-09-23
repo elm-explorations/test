@@ -1,10 +1,10 @@
 module Expect exposing
-    ( Expectation, equal, notEqual, all
+    ( Expectation, equal, notEqual, all, oneOf
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
     , pass, fail, onFail
-    , passesAll
+    , passesAll, passesOneOf
     )
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
@@ -23,7 +23,7 @@ module Expect exposing
 
 ## Basic Expectations
 
-@docs Expectation, equal, notEqual, all
+@docs Expectation, equal, notEqual, all, oneOf
 
 
 ## Numeric Comparisons
@@ -49,6 +49,7 @@ or both. For an in-depth look, see our [Guide to Floating Point Comparison](#gui
 These functions will let you build your own expectations.
 
 @docs pass, fail, onFail
+@docs passesAll, passesOneOf
 
 
 ## Guide to Floating Point Comparison
@@ -713,6 +714,84 @@ allHelp list =
 
                 outcome ->
                     outcome
+
+
+{-| Passes if at least one of the given expectations passes.
+
+    Expect.oneOf
+        [ user.isPremiumMember |> Expect.equal True
+        , user.cartTotal |> Expect.atLeast 50
+        , user.coupon |> Expect.notEqual Nothing
+        ]
+
+If none of them pass, the failure lists all the inner failures.
+
+`Expect.oneOf []` is reported as a test failure.
+
+-}
+oneOf : List Expectation -> Expectation
+oneOf list =
+    if List.isEmpty list then
+        Test.Expectation.Fail
+            { given = Nothing
+            , distributionReport = Fuzz.Internal.noDistribution
+            , reason = Invalid EmptyList
+            , description = "Expect.oneOf was given an empty list. You must make at least one expectation to have a valid test!"
+            }
+
+    else
+        oneOfHelp list []
+
+
+{-| Passes if at least one of the given functions passes when applied to the subject.
+
+See also [`oneOf`](#oneOf).
+
+Useful as an argument to [`Query.each`](Test-Html-Query#each):
+
+    Query.each
+        (Expect.passesOneOf
+            [ Query.has [ tag "ul" ]
+            , Query.has [ tag "ol" ]
+            ]
+        )
+
+`Expect.passesOneOf [] _` is reported as a test failure.
+
+-}
+passesOneOf : List (subject -> Expectation) -> subject -> Expectation
+passesOneOf checks subject =
+    oneOf (List.map (\check -> check subject) checks)
+
+
+oneOfHelp :
+    List Expectation
+    -> List { given : Maybe String, description : String, reason : Reason }
+    -> Expectation
+oneOfHelp list failuresSoFar =
+    case list of
+        [] ->
+            Test.Expectation.Fail
+                { given = Nothing
+                , distributionReport = Fuzz.Internal.noDistribution
+                , reason = Multiple (List.reverse failuresSoFar)
+                , description =
+                    "Expect.oneOf: none of the "
+                        ++ String.fromInt (List.length failuresSoFar)
+                        ++ " expectations passed."
+                }
+
+        (Test.Expectation.Pass _) :: _ ->
+            pass
+
+        (Test.Expectation.Fail failure) :: rest ->
+            oneOfHelp rest
+                ({ given = failure.given
+                 , description = failure.description
+                 , reason = failure.reason
+                 }
+                    :: failuresSoFar
+                )
 
 
 

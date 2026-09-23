@@ -30,6 +30,15 @@ type Reason
         }
     | TODO
     | Invalid InvalidReason
+      -- The failures of each of several expectations that were all tried and
+      -- all failed, e.g. via `Expect.oneOf`.
+    | Multiple
+        (List
+            { given : Maybe String
+            , description : String
+            , reason : Reason
+            }
+        )
 
 
 {-| The reason a test run was invalid.
