@@ -596,36 +596,15 @@ expectDistribution =
     Test.Distribution.Internal.ExpectDistribution
 
 
-{-| This is like [describe](#describe), but all the tests use the same function.
-Just like with `describe`, you pass a list of tests – but they are missing their
-function to run! Instead, the function that all tests will be run with comes last.
+{-| Reuse a test function with multiple tests. Helpful for adding regression
+tests or examples to fuzz functions: what was previously
 
-This is useful if you want to run the same test with different inputs – also
-known as _parametrized tests:_
+    fuzz "String.words never returns an empty list" Fuzz.string <|
+        \string ->
+            String.words string
+                |> Expect.notEqual []
 
-    repeat "checking if a string is whitespace only"
-        [ testWithValue "empty string" { input = "", expected = True }
-        , testWithValue "space, newline, tab" { input = " \n\t", expected = True }
-        , testWithValue "only non-whitespace" { input = "a", expected = False }
-        , testWithValue "mixed" { input = "a b", expected = False }
-        ]
-    <|
-        \{ input, expected } ->
-            let
-                isOnlyWhitespace =
-                    String.words input == [ "" ]
-            in
-            isOnlyWhitespace
-                |> Expect.equal expected
-
-In the above example we passed a record with `input` and `expected` to each test,
-but you can pass whatever you want.
-
-You can also use this for [fuzz](#fuzz) tests. Let’s say your fuzz test found an
-issue after a _long_ time, and you fix it. Do you have confidence it will never
-regress? After all, finding the issue took some amount of luck, and there is no
-guarantee that specific input will ever be generated again. In this case, you
-can use `repeat` to save such inputs as explicit regression tests:
+can become:
 
     repeat "String.words never returns an empty list"
         [ testWithValue "only whitespace" " \n\t"
@@ -636,10 +615,7 @@ can use `repeat` to save such inputs as explicit regression tests:
             String.words string
                 |> Expect.notEqual []
 
-Having a few hardcoded examples for a fuzz test can also be useful to highlight
-important cases.
-
-If you want to [skip](#skip) tests, or focus on tests with [only](#only), use
+If you want to [skip](#skip) tests or focus on tests with [only](#only), use
 function composition (`<<`):
 
     repeat "String.words never returns an empty list"
@@ -657,8 +633,20 @@ repeat desc tests thunk =
     describe desc (List.map (\toTest -> toTest thunk) tests)
 
 
-{-| This is a small wrapper around [test](#test), which is supposed to be used with [repeat](#repeat).
-See that function for examples.
+{-| A wrapper around [test](#test) for use in [repeat](#repeat).
+
+    repeat "String.words never returns an empty list"
+        [ testWithValue "only whitespace" " \n\t"
+        , fuzz "fuzz" Fuzz.string
+        ]
+    <|
+        \string ->
+            String.words string
+                |> Expect.notEqual []
+
+If you only want to run a test function with hardcoded examples (not fuzzed
+values), look at [`parameterized`](#parameterized).
+
 -}
 testWithValue : String -> a -> (a -> Expectation) -> Test
 testWithValue desc a thunk =
