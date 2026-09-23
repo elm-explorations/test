@@ -1,7 +1,7 @@
 module Test exposing
     ( Test, test
     , describe, concat, parameterized, todo, skip, only
-    , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
+    , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions, fuzzWithExamples
     , Distribution, noDistribution, reportDistribution, expectDistribution
     )
 
@@ -17,7 +17,7 @@ module Test exposing
 
 ## Fuzz Testing
 
-@docs fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
+@docs fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions, fuzzWithExamples
 @docs Distribution, noDistribution, reportDistribution, expectDistribution
 
 -}
@@ -421,6 +421,53 @@ fuzzWithHelp options aTest =
             tests
                 |> List.map (fuzzWithHelp options)
                 |> Internal.ElmTestVariant__Batch
+
+
+{-| Specify hardcoded example inputs for your fuzz test. They will be run
+alongside the randomized inputs.
+
+This is handy when a fuzz test has found a regression: you can add the found
+value as an example.
+
+    Test.fuzzWithExamples "compare with zero is only EQ when input also is zero"
+        { runs = 100, distribution = Test.noDistribution }
+        Fuzz.float
+        [ ( "NaN", 0 / 0 )
+        , ( "Infinity", 1 / 0 )
+        ]
+    <|
+        \input ->
+            let
+                expect =
+                    if input == 0 && input == input then
+                        Expect.equal
+
+                    else
+                        Expect.notEqual
+            in
+            compare input 0
+                |> Expect.expect EQ
+
+-}
+fuzzWithExamples : String -> FuzzOptions a -> Fuzzer a -> List ( String, a ) -> (a -> Expectation) -> Test
+fuzzWithExamples desc options fuzzer examples getTest =
+    let
+        labels =
+            List.map Tuple.first examples |> Set.fromList
+
+        -- Just in case the examples are `[ ( "fuzz", a ), ( "fuzz_", b ) ]`.
+        -- Sibling tests can’t have the same label.
+        fuzzLabel label =
+            if Set.member label labels then
+                fuzzLabel (label ++ "_")
+
+            else
+                label
+    in
+    describe desc
+        (List.map (\( name, value ) -> test name (\() -> getTest value)) examples
+            ++ [ fuzzWith (fuzzLabel "fuzz") options fuzzer getTest ]
+        )
 
 
 {-| Take a function that produces a test, and calls it several (usually 100) times, using a randomly-generated input
