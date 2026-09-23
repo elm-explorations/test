@@ -2,7 +2,7 @@ module Test.Html.Internal.ElmHtml.Query exposing
     ( findAll
     , getChildren
     , hasTag, hasClasses, hasAttribute, hasBoolAttribute, hasStyle
-    , containsText
+    , containsText, textContent
     , existsDescendant
     )
 
@@ -13,7 +13,7 @@ Lower-level than `Test.Html.Selector`.
 @docs findAll
 @docs getChildren
 @docs hasTag, hasClasses, hasAttribute, hasBoolAttribute, hasStyle
-@docs containsText
+@docs containsText, textContent
 
 -}
 
@@ -55,22 +55,36 @@ existsDescendant predicate node =
     predicate node || List.any (existsDescendant predicate) (getChildren node)
 
 
-{-| Does this node's own text (or Markdown source) content satisfy the predicate?
+{-| Does this node's full text content (self and all descendants, concatenated
+in document order) satisfy the predicate?
 -}
 containsText : (String -> Bool) -> ElmHtml msg -> Bool
 containsText predicate node =
+    predicate (textContent node)
+
+
+{-| The full text content of a node: self and all descendants' text (and
+Markdown source) concatenated in document order.
+
+No separator is added between nodes (matches browser's `textContent`).
+
+-}
+textContent : ElmHtml msg -> String
+textContent node =
     case node of
         TextTag text ->
-            predicate text
+            text
 
         MarkdownNode { model } ->
-            predicate model.markdown
+            model.markdown
 
         CustomNode _ ->
-            False
+            ""
 
-        NodeEntry _ ->
-            False
+        NodeEntry { children } ->
+            children
+                |> List.map textContent
+                |> String.concat
 
 
 {-| Does this node have the given tag?

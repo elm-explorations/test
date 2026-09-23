@@ -26,6 +26,13 @@
 * [#272](https://github.com/elm-explorations/test/pull/272): Reimplemented
   `RandomRun` with TypedArrays for faster fuzzing and simplifying operations.
 
+### Bugfixes
+
+* [#137](https://github.com/elm-explorations/test/issues/137): `Selector.text`
+  and `Selector.exactText` now match against an element's full text content
+  (similar to browser's `textContent`) instead of looking at a single text node
+  in isolation.
+
 ## TODOs before release
 
 * Make an elm-review rule to upgrade from 2.2.1 or so to the new version:
