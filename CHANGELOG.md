@@ -4,6 +4,7 @@
 * `Test.fuzz`, `Test.fuzz2`, `Test.fuzz3` and `Test.fuzzWith` now take the test name as the first argument
 * [#272](https://github.com/elm-explorations/test/pull/272): Reimplemented `RandomRun` with TypedArrays for faster fuzzing and simplifying operations
 * Added `Test.parameterized : String -> List a -> (a -> Test) -> Test` for data-driven tests
+* Added `Test.fuzzWithExamples : String -> FuzzOptions a -> Fuzzer a -> List ( String, a ) -> (a -> Expectation) -> Test` for fuzz tests with hardcoded (regression) examples
 
 ## TODOs before release
 

@@ -4,7 +4,6 @@ module MicroListExtra exposing
     , getAt
     , hasMultipleItems
     , isSingleton
-    , setAt
     , splitWhen
     , transpose
     , unique
@@ -20,17 +19,6 @@ getAt index list =
         list
             |> List.drop index
             |> List.head
-
-
-setAt : Int -> a -> Int -> List a -> List a
-setAt index value length list =
-    if length <= index || index < 0 then
-        list
-
-    else
-        List.take index list
-            ++ value
-            :: List.drop (index + 1) list
 
 
 find : (a -> Bool) -> List a -> Maybe a
