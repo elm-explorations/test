@@ -1,10 +1,10 @@
 module Expect exposing
-    ( Expectation, equal, notEqual, all
+    ( Expectation, equal, notEqual, all, oneOf
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
     , pass, fail, onFail
-    , passesAll
+    , passesAll, passesOneOf
     )
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
@@ -23,7 +23,7 @@ module Expect exposing
 
 ## Basic Expectations
 
-@docs Expectation, equal, notEqual, all
+@docs Expectation, equal, notEqual, all, oneOf
 
 
 ## Numeric Comparisons
@@ -49,6 +49,7 @@ or both. For an in-depth look, see our [Guide to Floating Point Comparison](#gui
 These functions will let you build your own expectations.
 
 @docs pass, fail, onFail
+@docs passesAll, passesOneOf
 
 
 ## Guide to Floating Point Comparison
@@ -715,49 +716,82 @@ allHelp list =
                     outcome
 
 
-{-| Passes if at least one of the given functions passes when applied to the
-subject.
-
-Passing an empty list is assumed to be a mistake, so `Expect.oneOf []`
-will always return a failed expectation no matter what else it is passed.
+{-| Passes if at least one of the given expectations passes.
 
     Expect.oneOf
-        [ Expect.greatherThan 8
-        , Expect.lessThan 5
-        , Expect.lessThan 1
+        [ user.isPremiumMember |> Expect.equal True
+        , user.cartTotal |> Expect.atLeast 50
+        , user.coupon |> Expect.notEqual Nothing
         ]
-        (List.length [1, 2, 3])
-    -- Passes because (3 < 5) is True, although (3 < 8) and (3 > 1)
+
+If none of them pass, the failure lists all the inner failures.
+
+`Expect.oneOf []` is reported as a test failure.
 
 -}
-oneOf : List (subject -> Expectation) -> subject -> Expectation
-oneOf list query =
+oneOf : List Expectation -> Expectation
+oneOf list =
     if List.isEmpty list then
-        Test.Expectation.fail
-            { reason = Invalid EmptyList
+        Test.Expectation.Fail
+            { given = Nothing
+            , distributionReport = Fuzz.Internal.noDistribution
+            , reason = Invalid EmptyList
             , description = "Expect.oneOf was given an empty list. You must make at least one expectation to have a valid test!"
             }
 
     else
-        oneOfHelp list query
+        oneOfHelp list []
 
 
-oneOfHelp : List (subject -> Expectation) -> subject -> Expectation
-oneOfHelp list query =
+{-| Passes if at least one of the given functions passes when applied to the subject.
+
+See also [`oneOf`](#oneOf).
+
+Useful as an argument to [`Query.each`](Test-Html-Query#each):
+
+    Query.each
+        (Expect.passesOneOf
+            [ Query.has [ tag "ul" ]
+            , Query.has [ tag "ol" ]
+            ]
+        )
+
+`Expect.passesOneOf [] _` is reported as a test failure.
+
+-}
+passesOneOf : List (subject -> Expectation) -> subject -> Expectation
+passesOneOf checks subject =
+    oneOf (List.map (\check -> check subject) checks)
+
+
+oneOfHelp :
+    List Expectation
+    -> List { given : Maybe String, description : String, reason : Reason }
+    -> Expectation
+oneOfHelp list failuresSoFar =
     case list of
         [] ->
-            Test.Expectation.fail
-                { reason = Invalid EmptyList
-                , description = "Expect.oneOf ran out of expectations."
+            Test.Expectation.Fail
+                { given = Nothing
+                , distributionReport = Fuzz.Internal.noDistribution
+                , reason = Multiple (List.reverse failuresSoFar)
+                , description =
+                    "Expect.oneOf: none of the "
+                        ++ String.fromInt (List.length failuresSoFar)
+                        ++ " expectations passed."
                 }
 
-        check :: rest ->
-            case check query of
-                Test.Expectation.Pass ->
-                    pass
+        (Test.Expectation.Pass _) :: _ ->
+            pass
 
-                outcome ->
-                    oneOfHelp rest query
+        (Test.Expectation.Fail failure) :: rest ->
+            oneOfHelp rest
+                ({ given = failure.given
+                 , description = failure.description
+                 , reason = failure.reason
+                 }
+                    :: failuresSoFar
+                )
 
 
 

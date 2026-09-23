@@ -64,6 +64,27 @@ format description reason =
                 , missingStr
                 ]
 
+        Multiple failures ->
+            failures
+                |> List.indexedMap
+                    (\index failure ->
+                        (String.fromInt (index + 1) ++ ") " ++ format failure.description failure.reason)
+                            |> indentAllButFirstLine "   "
+                    )
+                |> String.join "\n\n"
+                |> (\rendered -> description ++ "\n\n" ++ rendered)
+
+
+indentAllButFirstLine : String -> String -> String
+indentAllButFirstLine indent str =
+    case String.lines str of
+        [] ->
+            str
+
+        first :: rest ->
+            (first :: List.map ((++) indent) rest)
+                |> String.join "\n"
+
 
 verticalBar : String -> String -> String -> String
 verticalBar comparison below above =

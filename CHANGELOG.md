@@ -11,6 +11,8 @@
   aren't ignored anymore.
 * `Expect.all`'s type signature changed to `List Expectation -> Expectation`.
   The old pointfree `Expect.all` can be found under `Expect.passesAll`.
+* `Test.Runner.Failure.Reason` has a new `Multiple` variant for `Expect.oneOf`
+  and `Expect.passesOneOf`.
 
 ### Additions
 
@@ -31,7 +33,9 @@
   * `Expect.all` -> `Expect.passesAll`
   * Do we want to detect `Expect.all [\() -> ...] ()` and instead of changing to
     `Expect.passesAll {- same -}`, change to `Expect.all [...]`?
-* Note the change in Node version needed (20+), coordinate with `node-test-runner`.
+* Coordinate with `node-test-runner` and `elm-test-rs` on:
+  * the change in Node version needed (20+)
+  * the new `Multiple` variant of `Test.Runner.Failure.Reason`
 
 ## Releases
 
