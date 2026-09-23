@@ -7,8 +7,6 @@
 * [#214](https://github.com/elm-explorations/test/pull/214): `Selector.all` (and
   `Selector.containing` when given more than one selector) now require every
   selector to match the same element.
-* [#256](https://github.com/elm-explorations/test/pull/256): Nested `Test.only`
-  aren't ignored anymore.
 * `Expect.all`'s type signature changed to `List Expectation -> Expectation`.
   The old pointfree `Expect.all` can be found under `Expect.passesAll`.
 * `Test.Runner.Failure.Reason` has a new `Multiple` variant for `Expect.oneOf`
@@ -28,6 +26,8 @@
 
 ### Bugfixes
 
+* [#256](https://github.com/elm-explorations/test/pull/256): Nested `Test.only`
+  aren't ignored anymore.
 * [#137](https://github.com/elm-explorations/test/issues/137): `Selector.text`
   and `Selector.exactText` now match against an element's full text content
   (similar to browser's `textContent`) instead of looking at a single text node
