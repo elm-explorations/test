@@ -33,7 +33,8 @@ type alias Selector =
     Internal.Selector
 
 
-{-| Combine the given selectors into one which requires all of them to match.
+{-| Combine the given selectors into one which requires all of them to match
+the **same element**.
 
     import Html
     import Html.Attributes as Attr
@@ -284,7 +285,9 @@ exactText =
     Internal.ExactText
 
 
-{-| Matches elements whose descendants match the given selectors.
+{-| Matches elements that have a descendant matching all of the given
+selectors (the same rule as [`all`](#all) applies: every selector in the
+list has to match that one descendant, not several different ones).
 
 (You will get the element and **not** the descendant.)
 

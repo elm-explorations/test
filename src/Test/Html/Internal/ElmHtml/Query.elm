@@ -2,6 +2,7 @@ module Test.Html.Internal.ElmHtml.Query exposing
     ( Selector(..)
     , query, queryChildren
     , getChildren
+    , matches
     )
 
 {-| Query things using ElmHtml
@@ -9,6 +10,7 @@ module Test.Html.Internal.ElmHtml.Query exposing
 @docs Selector
 @docs query, queryChildren
 @docs getChildren
+@docs matches
 
 -}
 
@@ -20,7 +22,8 @@ import Test.Html.Internal.ElmHtml.InternalTypes exposing (..)
 
   - Id, classname, classlist, tag are all what you'd expect
   - Attribute and bool attribute are attributes
-  - ConainsText just searches inside for the given text
+  - ContainsText just searches inside for the given text
+  - Any matches every element node (used to enumerate candidates)
 
 -}
 type Selector
@@ -31,6 +34,7 @@ type Selector
     | Style { key : String, value : String }
     | ContainsText String
     | ContainsExactText String
+    | Any
 
 
 {-| Query an ElmHtml node using a selector, considering both the node itself
@@ -47,6 +51,17 @@ as well as all of its descendants.
 queryChildren : Selector -> ElmHtml msg -> List (ElmHtml msg)
 queryChildren =
     queryInNode (Just 1)
+
+
+{-| Check whether a single node (not its descendants) matches a selector.
+
+Used to test several selectors against the very same node, e.g. for
+`Test.Html.Selector.all`.
+
+-}
+matches : Selector -> ElmHtml msg -> Bool
+matches selector node =
+    predicateFromSelector selector node
 
 
 {-| Returns just the immediate children of an ElmHtml node
@@ -90,6 +105,9 @@ queryInNode maxDescendantDepth selector node =
 
                     else
                         []
+
+                Any ->
+                    [ node ]
 
                 _ ->
                     []
@@ -238,6 +256,9 @@ nodeRecordPredicate selector =
         ContainsExactText _ ->
             always False
 
+        Any ->
+            always True
+
 
 markdownPredicate : Selector -> (MarkdownNodeRecord msg -> Bool)
 markdownPredicate selector =
@@ -270,3 +291,6 @@ markdownPredicate selector =
             .model
                 >> .markdown
                 >> (==) text
+
+        Any ->
+            always True

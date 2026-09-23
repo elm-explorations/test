@@ -143,7 +143,10 @@ query fn fnAll selector list =
         elems ->
             case selector of
                 All selectors ->
-                    fnAll selectors elems
+                    -- Every selector in the list has to match the same element (see #214)
+                    elems
+                        |> List.concatMap (fn ElmHtmlQuery.Any)
+                        |> List.filter (matchesAll fn fnAll selector)
 
                 Classes classes ->
                     List.concatMap (fn (ElmHtmlQuery.ClassList classes)) elems
@@ -193,6 +196,50 @@ query fn fnAll selector list =
 
                 Invalid () ->
                     []
+
+
+{-| Does a single element satisfy every selector in the given `All` list?
+-}
+matchesAll :
+    (ElmHtmlQuery.Selector -> ElmHtml msg -> List (ElmHtml msg))
+    -> (List Selector -> List (ElmHtml msg) -> List (ElmHtml msg))
+    -> Selector
+    -> ElmHtml msg
+    -> Bool
+matchesAll fn fnAll selector node =
+    case selector of
+        All selectors ->
+            List.all (\s -> matchesAll fn fnAll s node) selectors
+
+        Classes classes ->
+            ElmHtmlQuery.matches (ElmHtmlQuery.ClassList classes) node
+
+        Class class ->
+            ElmHtmlQuery.matches (ElmHtmlQuery.ClassList [ class ]) node
+
+        Attribute { name, value } ->
+            ElmHtmlQuery.matches (ElmHtmlQuery.Attribute name value) node
+
+        BoolAttribute { name, value } ->
+            ElmHtmlQuery.matches (ElmHtmlQuery.BoolAttribute name value) node
+
+        Style style ->
+            ElmHtmlQuery.matches (ElmHtmlQuery.Style style) node
+
+        Tag name ->
+            ElmHtmlQuery.matches (ElmHtmlQuery.Tag name) node
+
+        Text text ->
+            not (List.isEmpty (fn (ElmHtmlQuery.ContainsText text) node))
+
+        ExactText text ->
+            not (List.isEmpty (fn (ElmHtmlQuery.ContainsExactText text) node))
+
+        Containing selectors ->
+            not (List.isEmpty (query fn fnAll (Containing selectors) [ node ]))
+
+        Invalid () ->
+            False
 
 
 namedAttr : String -> String -> Selector
