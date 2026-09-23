@@ -5,6 +5,7 @@ import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
+import Random
 import RandomRunTests
 import RunnerTests
 import RuntimeExceptionTests
@@ -204,6 +205,87 @@ testTests =
             , test "Simple failures are not TODO" <|
                 \_ ->
                     Expect.fail "reason" |> Test.Runner.isTodo |> Expect.equal False
+            ]
+        , describe "parameterized"
+            [ test "fails with empty list" <|
+                \() ->
+                    parameterized "x" [] (\n -> test (String.fromInt n) expectPass)
+                        |> expectTestToFail
+            , test "fails with empty description" <|
+                \() ->
+                    parameterized "" [ 1 ] (\n -> test (String.fromInt n) expectPass)
+                        |> expectTestToFail
+            , test "fails with whitespace-only description" <|
+                \() ->
+                    parameterized "   " [ 1 ] (\n -> test (String.fromInt n) expectPass)
+                        |> expectTestToFail
+            , test "fails when generated tests have duplicate names" <|
+                \() ->
+                    parameterized "outer" [ 1, 2 ] (\_ -> test "dup" expectPass)
+                        |> expectTestToFail
+            , test "fails when it contains the same name as a child test" <|
+                \() ->
+                    parameterized "dup" [ 1 ] (\_ -> test "dup" expectPass)
+                        |> expectTestToFail
+            , test "passes when all cases pass" <|
+                \() ->
+                    let
+                        testCases : List ( Int, Int, Int )
+                        testCases =
+                            [ ( 1, 1, 2 )
+                            , ( 5, 0, 5 )
+                            ]
+
+                        testCase : ( Int, Int, Int ) -> Test
+                        testCase ( a, b, expectedSum ) =
+                            test (Debug.toString ( a, b )) <|
+                                \() ->
+                                    (a + b)
+                                        |> Expect.equal expectedSum
+                    in
+                    parameterized "addition" testCases testCase
+                        |> expectTestToPass
+            , test "fails when a case fails" <|
+                \() ->
+                    parameterized "x" [ 1 ] (\_ -> test "case" (\() -> Expect.fail "oops"))
+                        |> expectTestToFail
+            , test "fails when any of several cases fails" <|
+                \() ->
+                    parameterized "x"
+                        [ 1, 2 ]
+                        (\n ->
+                            if n == 1 then
+                                test "one" expectPass
+
+                            else
+                                test "two" (\() -> Expect.fail "oops")
+                        )
+                        |> expectTestToPass
+                        |> expectToFail
+            , test "groups each case under the outer description" <|
+                \() ->
+                    let
+                        suite =
+                            parameterized "outer"
+                                [ 1, 2 ]
+                                (\n -> test ("case " ++ String.fromInt n) expectPass)
+                    in
+                    case Test.Runner.fromTest 100 (Random.initialSeed 123) suite of
+                        Test.Runner.Plain runners ->
+                            List.map .labels runners
+                                |> Expect.equal
+                                    [ [ "case 1", "outer" ]
+                                    , [ "case 2", "outer" ]
+                                    ]
+
+                        Test.Runner.Only _ ->
+                            Expect.fail "Expected Plain runners, got Only"
+
+                        Test.Runner.Skipping _ ->
+                            Expect.fail "Expected Plain runners, got Skipping"
+
+                        Test.Runner.Invalid msg ->
+                            Expect.fail ("Expected Plain runners, got Invalid: " ++ msg)
             ]
         , identicalNamesAreRejectedTests
         ]

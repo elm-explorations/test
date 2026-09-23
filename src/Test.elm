@@ -1,6 +1,6 @@
 module Test exposing
     ( Test, test
-    , describe, concat, todo, skip, only
+    , describe, concat, parameterized, todo, skip, only
     , fuzz, fuzz2, fuzz3, fuzzWith, FuzzOptions
     , Distribution, noDistribution, reportDistribution, expectDistribution
     )
@@ -12,7 +12,7 @@ module Test exposing
 
 ## Organizing Tests
 
-@docs describe, concat, todo, skip, only
+@docs describe, concat, parameterized, todo, skip, only
 
 
 ## Fuzz Testing
@@ -136,6 +136,47 @@ describe untrimmedDesc tests =
 
                 else
                     Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__Batch tests)
+
+
+{-| Create a group of tests from a list of input-output cases (also called "parameterized tests").
+
+    myTest : Test
+    myTest =
+        Test.parameterized "addition"
+            [ ( 1, 1, 2 )
+            , ( 5, 0, 5 )
+            ]
+        <|
+            \( a, b, expectedSum ) ->
+                Test.test (Debug.toString ( a, b )) <|
+                    \() ->
+                        (a + b)
+                            |> Expect.equal expectedSum
+
+Behaves like [`describe`](#describe): will fail if description is blank, if the
+list is empty, or if test names are not unique.
+
+-}
+parameterized : String -> List a -> (a -> Test) -> Test
+parameterized untrimmedDesc cases toTest =
+    let
+        desc =
+            String.trim untrimmedDesc
+    in
+    if String.isEmpty desc then
+        Internal.failNow
+            { description = "This `parameterized` has a blank description. Let's give it a useful one!"
+            , reason = Invalid BadDescription
+            }
+
+    else if List.isEmpty cases then
+        Internal.failNow
+            { description = "This `parameterized " ++ desc ++ "` has no test cases in it. Let's give it some!"
+            , reason = Invalid EmptyList
+            }
+
+    else
+        describe desc (List.map toTest cases)
 
 
 {-| Return a [`Test`](#Test) that evaluates a single

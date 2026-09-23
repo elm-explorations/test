@@ -10,6 +10,7 @@ module Helpers exposing
     , doesNotReject
     , expectPass
     , expectTestToFail
+    , expectTestToPass
     , expectToFail
     , passes
     , randomSeedFuzzer
@@ -167,6 +168,29 @@ expectTestToFail test =
         |> getRunners
         |> List.concatMap (\{ run } -> run ())
         |> List.map (\expectation () -> expectToFail expectation)
+        |> (\expectations -> Expect.all expectations ())
+
+
+expectTestToPass : Test -> Expectation
+expectTestToPass test =
+    let
+        seed =
+            Random.initialSeed 2242652938
+
+        expectToPass : Expectation -> Expectation
+        expectToPass expectation =
+            case Test.Runner.getFailureReason expectation of
+                Nothing ->
+                    Expect.pass
+
+                Just _ ->
+                    Expect.fail "Expected the test to pass, but it failed!"
+    in
+    test
+        |> Test.Runner.fromTest 100 seed
+        |> getRunners
+        |> List.concatMap (\{ run } -> run ())
+        |> List.map (\expectation () -> expectToPass expectation)
         |> (\expectations -> Expect.all expectations ())
 
 
