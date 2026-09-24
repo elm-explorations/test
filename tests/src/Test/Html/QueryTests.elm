@@ -19,6 +19,7 @@ all =
         [ htmlTests
         , lazyTests
         , testHas
+        , testHasNot
         , test "lazy nodes inside of keyed nodes are instantiated" <|
             \() ->
                 Keyed.node "div"
@@ -395,13 +396,17 @@ testIndex output =
                     output
                         |> Query.findAll []
                         |> Query.index -2
-                        |> Query.hasNot [ tag "div" ]
+                        |> Query.has []
+                        |> expectationToIsPassing
+                        |> Expect.equal False
             , test "index 1 too high" <|
                 \() ->
                     output
                         |> Query.findAll []
                         |> Query.index 1
-                        |> Query.hasNot [ tag "div" ]
+                        |> Query.has []
+                        |> expectationToIsPassing
+                        |> Expect.equal False
             ]
         , describe "3 element"
             [ test "index 0 matches" <|
@@ -445,13 +450,17 @@ testIndex output =
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index -4
-                        |> Query.hasNot [ tag "a" ]
+                        |> Query.has []
+                        |> expectationToIsPassing
+                        |> Expect.equal False
             , test "index 3 too high" <|
                 \() ->
                     output
                         |> Query.findAll [ tag "a" ]
                         |> Query.index 3
-                        |> Query.hasNot [ tag "a" ]
+                        |> Query.has []
+                        |> expectationToIsPassing
+                        |> Expect.equal False
             ]
         ]
 
@@ -607,6 +616,20 @@ testHas =
                 Html.div [] (List.map Html.text strings)
                     |> Query.fromHtml
                     |> Query.has []
+        ]
+
+
+testHasNot : Test
+testHasNot =
+    describe "Query.hasNot"
+        [ test "fails when a preceding Query.find already failed to find a match (https://github.com/elm-explorations/test/issues/176)" <|
+            \() ->
+                Html.div [] []
+                    |> Query.fromHtml
+                    |> Query.find [ tag "does-not-exist" ]
+                    |> Query.hasNot [ text "ALSO DOES NOT EXIST" ]
+                    |> expectationToIsPassing
+                    |> Expect.equal False
         ]
 
 

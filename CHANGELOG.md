@@ -32,6 +32,10 @@
   and `Selector.exactText` now match against an element's full text content
   (similar to browser's `textContent`) instead of looking at a single text node
   in isolation.
+* [#176](https://github.com/elm-explorations/test/issues/176): `Query.hasNot`
+  no longer turns a failure from an earlier step in the query chain (e.g. a
+  `Query.find` that matched nothing) into a pass. `hasNot` now only inverts
+  its own selector check.
 
 ### Other
 
