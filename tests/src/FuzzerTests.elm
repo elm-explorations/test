@@ -614,6 +614,73 @@ fuzzerSpecificationTests =
                 , simplifiesTowards "simplest" Array.empty (Fuzz.array Fuzz.int) fullySimplify
                 , simplifiesTowards "next simplest" (Array.fromList [ 0 ]) (Fuzz.array Fuzz.int) (\x -> Array.isEmpty x)
                 ]
+            , describe "arrayOfLength"
+                [ passes "always length 3"
+                    (Fuzz.arrayOfLength 3 Fuzz.unit)
+                    (\array -> Array.length array == 3)
+                , passes "negative length -> empty array"
+                    (Fuzz.arrayOfLength -3 Fuzz.unit)
+                    Array.isEmpty
+                , simplifiesTowards "simplest" (Array.fromList [ 0, 0, 0 ]) (Fuzz.arrayOfLength 3 Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Array.fromList [ 0, 0, 1 ]) (Fuzz.arrayOfLength 3 Fuzz.int) (\x -> x == Array.fromList [ 0, 0, 0 ])
+                ]
+            , describe "arrayOfLengthBetween"
+                [ passes "always in range"
+                    (Fuzz.arrayOfLengthBetween 2 5 Fuzz.unit)
+                    (\array ->
+                        let
+                            length =
+                                Array.length array
+                        in
+                        length >= 2 && length <= 5
+                    )
+                , simplifiesTowards "simplest" (Array.fromList [ 0, 0 ]) (Fuzz.arrayOfLengthBetween 2 5 Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Array.fromList [ 0, 1 ]) (Fuzz.arrayOfLengthBetween 2 5 Fuzz.int) (\x -> x == Array.fromList [ 0, 0 ])
+                , doesNotReject "swapped arguments" (Fuzz.arrayOfLengthBetween 5 -5 Fuzz.unit)
+                ]
+            , describe "shuffledArray"
+                [ passes
+                    "contains the exact same values as in original array"
+                    (Fuzz.list Fuzz.int
+                        |> Fuzz.andThen
+                            (\ints ->
+                                let
+                                    original =
+                                        Array.fromList ints
+                                in
+                                Fuzz.pair
+                                    (Fuzz.constant original)
+                                    (Fuzz.shuffledArray original)
+                            )
+                    )
+                    (\( original, shuffled ) ->
+                        List.sort (Array.toList original) == List.sort (Array.toList shuffled)
+                    )
+                , passes "has the same length as the original array"
+                    (Fuzz.list Fuzz.int
+                        |> Fuzz.andThen
+                            (\ints ->
+                                let
+                                    original =
+                                        Array.fromList ints
+                                in
+                                Fuzz.pair
+                                    (Fuzz.constant original)
+                                    (Fuzz.shuffledArray original)
+                            )
+                    )
+                    (\( original, shuffled ) ->
+                        Array.length original == Array.length shuffled
+                    )
+                , passes "empty array stays empty"
+                    (Fuzz.shuffledArray Array.empty)
+                    Array.isEmpty
+                , canGenerate (Array.fromList [ 30, 80, 50 ]) (Fuzz.shuffledArray (Array.fromList [ 50, 30, 80 ]))
+                , simplifiesTowards "simplest = original ordering"
+                    (Array.fromList [ 50, 30, 80 ])
+                    (Fuzz.shuffledArray (Array.fromList [ 50, 30, 80 ]))
+                    fullySimplify
+                ]
             , describe "set"
                 [ canGenerateWith { runs = 1000 } Set.empty (Fuzz.set Fuzz.int)
                 , canGenerateSatisfying "non-empty set"
@@ -732,17 +799,6 @@ fuzzerSpecificationTests =
                     [ 50, 30, 80 ]
                     (Fuzz.shuffledList [ 50, 30, 80 ])
                     fullySimplify
-                , passes "list sort is stable"
-                    (Fuzz.listOfLength 5 Fuzz.int)
-                    (\list ->
-                        let
-                            sortBy indexes xs =
-                                List.map2 Tuple.pair indexes xs
-                                    |> List.sortBy Tuple.first
-                                    |> List.map Tuple.second
-                        in
-                        sortBy [ 0, 0, 0, 0, 0 ] list == sortBy [ 0, 1, 2, 3, 4 ] list
-                    )
                 ]
             , describe "sequence"
                 [ passes "keeps the list length"

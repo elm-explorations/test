@@ -8,8 +8,9 @@ module Fuzz exposing
     , string, stringOfLength, stringOfLengthBetween, asciiString, asciiStringOfLength, asciiStringOfLengthBetween
     , pair, triple
     , list, listOfLength, listOfLengthBetween, shuffledList
-    , array, maybe, result
+    , array, arrayOfLength, arrayOfLengthBetween, shuffledArray
     , set, dict
+    , maybe, result
     , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
     , constant, invalid, filter, filterMap
@@ -52,8 +53,9 @@ can usually find the simplest input that reproduces a bug.
 
 @docs pair, triple
 @docs list, listOfLength, listOfLengthBetween, shuffledList
-@docs array, maybe, result
+@docs array, arrayOfLength, arrayOfLengthBetween, shuffledArray
 @docs set, dict
+@docs maybe, result
 
 
 ## Other fuzzers
@@ -85,6 +87,7 @@ import Dict exposing (Dict)
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer(..))
 import GenResult exposing (GenResult(..))
+import MicroArrayExtra
 import MicroDictExtra as Dict
 import MicroListExtra as List
 import PRNG exposing (PRNG(..))
@@ -827,6 +830,57 @@ array fuzzer =
     map Array.fromList (list fuzzer)
 
 
+{-| Given a fuzzer of a type, create a fuzzer of an array of that type.
+Generates random arrays of exactly the specified length.
+-}
+arrayOfLength : Int -> Fuzzer a -> Fuzzer (Array a)
+arrayOfLength n fuzzer =
+    map Array.fromList (listOfLength n fuzzer)
+
+
+{-| Given a fuzzer of a type, create a fuzzer of an array of that type.
+Generates random arrays of length between the two given integers.
+-}
+arrayOfLengthBetween : Int -> Int -> Fuzzer a -> Fuzzer (Array a)
+arrayOfLengthBetween lo hi fuzzer =
+    map Array.fromList (listOfLengthBetween lo hi fuzzer)
+
+
+{-| A fuzzer that shuffles the given array.
+-}
+shuffledArray : Array a -> Fuzzer (Array a)
+shuffledArray input =
+    {- Uses Fisher-Yates:
+       https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+    -}
+    let
+        len =
+            Array.length input
+
+        go : Int -> Fuzzer (Array a) -> Fuzzer (Array a)
+        go i acc =
+            if i >= len then
+                acc
+
+            else
+                go (i + 1) (shuffledArrayStep i acc)
+    in
+    go 1 (constant input)
+
+
+{-| Helper to work around the TCO bug
+(<https://github.com/elm/compiler/issues/2268>) while keeping TCO itself.
+-}
+shuffledArrayStep : Int -> Fuzzer (Array a) -> Fuzzer (Array a)
+shuffledArrayStep i acc =
+    acc
+        |> andThen
+            (\arr ->
+                uniformInt i
+                    |> map (\k -> MicroArrayExtra.swap i (i - k) arr)
+            )
+
+
 {-| Given a fuzzer of a comparable type, create a fuzzer of a set of that type.
 Generates random sets of varying size, up to 32 elements.
 -}
@@ -1566,14 +1620,14 @@ lazy thunk =
 -}
 shuffledList : List a -> Fuzzer (List a)
 shuffledList items =
-    items
-        |> traverse (\item -> int |> map (\index -> ( index, item )))
-        |> map
-            (\listWithIndexes ->
-                listWithIndexes
-                    |> List.sortBy Tuple.first
-                    |> List.map Tuple.second
-            )
+    -- Array round-robin is fast enough for small lists and faster for large
+    -- lists: Array swaps are O(n log n) while a List implementation of
+    -- Fisher-Yates would be O(n^2).
+    -- Previously we had a sort-random-key implementation which had 2x the
+    -- RandomRun footprint and had slightly worse statistical properties
+    -- (identity permutation was favored).
+    shuffledArray (Array.fromList items)
+        |> map Array.toList
 
 
 {-| Executes every fuzzer in the list and collects their values into the returned

@@ -23,11 +23,15 @@
   `hexChar`, `numChar`, `alphaChar` and `alphaNumChar`.
 * [#236](https://github.com/elm-explorations/test/issues/236): Added
   `Fuzz.set` and `Fuzz.dict`.
+* [#238](https://github.com/elm-explorations/test/issues/238): Added
+  `Fuzz.arrayOfLength`, `Fuzz.arrayOfLengthBetween` and `Fuzz.shuffledArray`.
 
 ### Performance improvements
 
 * [#272](https://github.com/elm-explorations/test/pull/272): Reimplemented
   `RandomRun` with TypedArrays for faster fuzzing and simplifying operations.
+* Reimplemented `Fuzz.shuffledList` with Fisher-Yates, got a smaller RandomRun
+  footprint and slightly better statistical properties.
 
 ### Bugfixes
 
