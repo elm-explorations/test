@@ -9,6 +9,7 @@ import Elm.Kernel.Json exposing (wrap)
 //       so if you make any changes here, be sure to synchronize them there!
 var virtualDomKernelConstants =
   {
+    nodeTypeCustom: 3,
     nodeTypeTagger: 4,
     nodeTypeThunk: 5,
     kids: "e",
@@ -17,6 +18,10 @@ var virtualDomKernelConstants =
     node: "k",
     value: "a"
   }
+
+// A special key the Elm side will decode to learn which custom node it's looking at.
+// See the `VirtualDom.custom` comment below.
+var customNodeFunctionNames = "customNodeFunctionNames";
 
 function forceThunks(vNode) {
   if (typeof vNode !== "undefined" && vNode.$ === "#2") {
@@ -33,6 +38,46 @@ function forceThunks(vNode) {
   if (typeof vNode !== 'undefined' && vNode.$ === virtualDomKernelConstants.nodeTypeTagger) {
     // This is an Html.map; recurse into the node it is wrapping
     vNode[virtualDomKernelConstants.node] = forceThunks(vNode[virtualDomKernelConstants.node]);
+  }
+  if (typeof vNode !== 'undefined' && vNode.$ === virtualDomKernelConstants.nodeTypeCustom) {
+    /*
+    This is a `VirtualDom.custom` node (e.g. from elm-explorations/markdown or
+    elm-explorations/webgl).
+
+    We can identify these by their `render` and `diff` function arguments -
+    this is what `vNode` looks like:
+
+    // Markdown
+    {
+      '$': 3,
+      d: {},
+      g: {
+        a: [Object],
+        b: 'Some **Markdown**'
+      },
+      h: [Function: _Markdown_render],
+      i: [Function: _Markdown_diff]
+    }
+
+    // WebGL
+    {
+      '$': 3,
+      d: {},
+      g: { g: [Object], f: {}, h: [Object] },
+      h: [Function: _WebGL_render],
+      i: [Function: _WebGL_diff]
+    }
+
+    We can massage these to ['_WebGL_render', '_WebGL_diff'] and fingerprint the
+    custom Virtual DOM nodes that way.
+
+    In this kernel function we put them in a special key so that the Elm-side
+    JSON decoder can reach them.
+    */
+    vNode[customNodeFunctionNames] = Object.keys(vNode)
+      .map((key) => vNode[key])
+      .filter((value) => typeof value === 'function')
+      .map((fn) => fn.name);
   }
   if (typeof vNode !== 'undefined' && typeof vNode[virtualDomKernelConstants.kids] !== 'undefined') {
     // This is something with children (either a node with kids : List Html, or keyed with kids : List (String, Html));

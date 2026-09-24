@@ -28,7 +28,8 @@ kernelConstants =
         , model = "g"
         }
     , markdown =
-        { options = "a"
-        , markdown = "b"
+        { markdown = "b"
         }
+    , customNode =
+        { functionNames = "customNodeFunctionNames" }
     }

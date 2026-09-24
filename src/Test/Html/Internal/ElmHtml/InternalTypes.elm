@@ -24,7 +24,8 @@ import Dict exposing (Dict)
 import Json.Decode exposing (field)
 import Test.Html.Internal.ElmHtml.Constants as Constants exposing (attributeKey, attributeNamespaceKey, eventKey, styleKey)
 import Test.Html.Internal.ElmHtml.Helpers exposing (filterKnownKeys)
-import Test.Html.Internal.ElmHtml.Markdown exposing (MarkdownModel, decodeMarkdownModel)
+import Test.Html.Internal.ElmHtml.Markdown as Markdown exposing (MarkdownModel, decodeMarkdownModel)
+import Test.Html.Internal.ElmHtml.WebGL as WebGL
 import Test.Internal.KernelConstants exposing (kernelConstants)
 import VirtualDom
 
@@ -35,6 +36,8 @@ import VirtualDom
   - NodeEntry is an actual HTML node, e.g a div
   - CustomNode are nodes defined to work with the renderer in some way, e.g webgl/markdown
   - MarkdownNode is just a wrapper for CustomNode designed just for markdown
+  - WebGLNode is just a wrapper for CustomNode designed just for elm-explorations/webgl;
+    it is known to always render as a `<canvas>` element
 
 -}
 type ElmHtml msg
@@ -42,6 +45,7 @@ type ElmHtml msg
     | NodeEntry (NodeRecord msg)
     | CustomNode (CustomNodeRecord msg)
     | MarkdownNode (MarkdownNodeRecord msg)
+    | WebGLNode (CustomNodeRecord msg)
 
 
 {-| A node contains the `tag` as a string, the children, the facts (e.g attributes) and descendantsCount
@@ -259,12 +263,13 @@ decodeNode context =
         (field kernelConstants.virtualDom.descendantsCount Json.Decode.int)
 
 
-{-| decode custom node into either markdown or custom
+{-| decode custom node into either Markdown, WebGL, or plain custom
 -}
 decodeCustomNode : HtmlContext msg -> Json.Decode.Decoder (ElmHtml msg)
 decodeCustomNode context =
     Json.Decode.oneOf
         [ Json.Decode.map MarkdownNode (decodeMarkdownNodeRecord context)
+        , Json.Decode.map WebGLNode (decodeWebGLNodeRecord context)
         , Json.Decode.map CustomNode (decodeCustomNodeRecord context)
         ]
 
@@ -282,9 +287,66 @@ decodeCustomNodeRecord context =
 -}
 decodeMarkdownNodeRecord : HtmlContext msg -> Json.Decode.Decoder (MarkdownNodeRecord msg)
 decodeMarkdownNodeRecord context =
-    Json.Decode.map2 MarkdownNodeRecord
+    Json.Decode.map3
+        (\facts model customNodeFunctionNames ->
+            { facts = facts
+            , model = model
+            , customNodeFunctionNames = customNodeFunctionNames
+            }
+        )
         (field kernelConstants.virtualDom.facts (decodeFacts context))
-        (field kernelConstants.virtualDom.model decodeMarkdownModel)
+        (field kernelConstants.virtualDom.model Json.Decode.value)
+        decodeCustomNodeFunctionNames
+        |> Json.Decode.andThen
+            (\{ facts, model, customNodeFunctionNames } ->
+                if Markdown.isMarkdownCustomNode { customNodeFunctionNames = customNodeFunctionNames } then
+                    case Json.Decode.decodeValue decodeMarkdownModel model of
+                        Ok markdownModel ->
+                            Json.Decode.succeed (MarkdownNodeRecord facts markdownModel)
+
+                        Err err ->
+                            Json.Decode.fail (Json.Decode.errorToString err)
+
+                else
+                    Json.Decode.fail "Not a Markdown custom node"
+            )
+
+
+{-| decode webgl node record
+-}
+decodeWebGLNodeRecord : HtmlContext msg -> Json.Decode.Decoder (CustomNodeRecord msg)
+decodeWebGLNodeRecord context =
+    Json.Decode.map3
+        (\facts model customNodeFunctionNames ->
+            { facts = facts
+            , model = model
+            , customNodeFunctionNames = customNodeFunctionNames
+            }
+        )
+        (field kernelConstants.virtualDom.facts (decodeFacts context))
+        (field kernelConstants.virtualDom.model Json.Decode.value)
+        decodeCustomNodeFunctionNames
+        |> Json.Decode.andThen
+            (\{ facts, model, customNodeFunctionNames } ->
+                if WebGL.isWebGLCustomNode { customNodeFunctionNames = customNodeFunctionNames } then
+                    Json.Decode.succeed (CustomNodeRecord facts model)
+
+                else
+                    Json.Decode.fail "Not a WebGL custom node"
+            )
+
+
+{-| The custom node function names field is added by `Elm.Kernel.HtmlAsJson`'s
+`forceThunks` to every custom node; it's absent when decoding a node that was
+constructed via `fromElmHtml`/tests bypassing that kernel function, so we
+default to an empty list rather than failing.
+-}
+decodeCustomNodeFunctionNames : Json.Decode.Decoder (List String)
+decodeCustomNodeFunctionNames =
+    Json.Decode.oneOf
+        [ field kernelConstants.customNode.functionNames (Json.Decode.list Json.Decode.string)
+        , Json.Decode.succeed []
+        ]
 
 
 {-| decode the styles
