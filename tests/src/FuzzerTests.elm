@@ -1,10 +1,12 @@
 module FuzzerTests exposing (fuzzerTests)
 
 import Array
+import Dict
 import Expect exposing (Expectation)
 import Fuzz exposing (..)
 import Helpers exposing (..)
 import Random
+import Set
 import Test exposing (..)
 import Test.Distribution
 import Test.Runner exposing (Simplifiable)
@@ -611,6 +613,31 @@ fuzzerSpecificationTests =
                     (not << Array.isEmpty)
                 , simplifiesTowards "simplest" Array.empty (Fuzz.array Fuzz.int) fullySimplify
                 , simplifiesTowards "next simplest" (Array.fromList [ 0 ]) (Fuzz.array Fuzz.int) (\x -> Array.isEmpty x)
+                ]
+            , describe "set"
+                [ canGenerateWith { runs = 1000 } Set.empty (Fuzz.set Fuzz.int)
+                , canGenerateSatisfying "non-empty set"
+                    (Fuzz.set Fuzz.int)
+                    (not << Set.isEmpty)
+                , passes "values in range"
+                    (Fuzz.set (Fuzz.intRange 1 10))
+                    (\set -> List.all (\n -> n >= 1 && n <= 10) (Set.toList set))
+                , simplifiesTowards "simplest" Set.empty (Fuzz.set Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Set.singleton 0) (Fuzz.set Fuzz.int) Set.isEmpty
+                ]
+            , describe "dict"
+                [ canGenerateWith { runs = 1000 } Dict.empty (Fuzz.dict Fuzz.int Fuzz.int)
+                , canGenerateSatisfying "non-empty dict"
+                    (Fuzz.dict Fuzz.int Fuzz.int)
+                    (not << Dict.isEmpty)
+                , passes "keys and values in range"
+                    (Fuzz.dict (Fuzz.intRange 1 10) (Fuzz.intRange 20 30))
+                    (\dict ->
+                        List.all (\k -> k >= 1 && k <= 10) (Dict.keys dict)
+                            && List.all (\v -> v >= 20 && v <= 30) (Dict.values dict)
+                    )
+                , simplifiesTowards "simplest" Dict.empty (Fuzz.dict Fuzz.int Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Dict.singleton 0 0) (Fuzz.dict Fuzz.int Fuzz.int) Dict.isEmpty
                 ]
             , describe "uniformInt"
                 [ cannotGenerateSatisfying "any Infinity"

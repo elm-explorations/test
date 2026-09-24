@@ -21,6 +21,8 @@
 * [#223](https://github.com/elm-explorations/test/issues/223): Added
   `Fuzz.charRange` and convenience Char fuzzers: `Fuzz.binChar`, `octChar`,
   `hexChar`, `numChar`, `alphaChar` and `alphaNumChar`.
+* [#236](https://github.com/elm-explorations/test/issues/236): Added
+  `Fuzz.set` and `Fuzz.dict`.
 
 ### Performance improvements
 

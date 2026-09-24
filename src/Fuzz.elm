@@ -9,6 +9,7 @@ module Fuzz exposing
     , pair, triple
     , list, listOfLength, listOfLengthBetween, shuffledList
     , array, maybe, result
+    , set, dict
     , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
     , constant, invalid, filter, filterMap
@@ -52,6 +53,7 @@ can usually find the simplest input that reproduces a bug.
 @docs pair, triple
 @docs list, listOfLength, listOfLengthBetween, shuffledList
 @docs array, maybe, result
+@docs set, dict
 
 
 ## Other fuzzers
@@ -88,6 +90,7 @@ import MicroListExtra as List
 import PRNG exposing (PRNG(..))
 import Random
 import RandomRun
+import Set exposing (Set)
 
 
 {-| The representation of fuzzers is opaque. Conceptually, a `Fuzzer a` consists
@@ -817,11 +820,27 @@ listOfLengthBetween lo hi itemFuzzer =
 
 
 {-| Given a fuzzer of a type, create a fuzzer of an array of that type.
-Generates random arrays of varying length, favoring shorter arrays.
+Generates random arrays of varying length, up to 32 elements.
 -}
 array : Fuzzer a -> Fuzzer (Array a)
 array fuzzer =
     map Array.fromList (list fuzzer)
+
+
+{-| Given a fuzzer of a comparable type, create a fuzzer of a set of that type.
+Generates random sets of varying size, up to 32 elements.
+-}
+set : Fuzzer comparable -> Fuzzer (Set comparable)
+set fuzzer =
+    map Set.fromList (list fuzzer)
+
+
+{-| Given fuzzers for a comparable key type and a value type, create a fuzzer of a dict.
+Generates random dicts of varying size, up to 32 entries.
+-}
+dict : Fuzzer comparable -> Fuzzer a -> Fuzzer (Dict comparable a)
+dict keyFuzzer valueFuzzer =
+    map Dict.fromList (list (pair keyFuzzer valueFuzzer))
 
 
 {-| Create a fuzzer of pairs from two fuzzers.
