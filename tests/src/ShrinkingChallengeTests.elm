@@ -39,7 +39,7 @@ reverse =
 
 {-| <https://github.com/jlink/shrinking-challenge/blob/836bafa664659a435ae186eed5b87e941228ae3d/challenges/large_union_list.md>
 
-Tests that we are able to shrink `[[1],[1],[-1],[2],[-2]]` into `[[0,1,-1,2,-2]]` - manipulate nested lists.
+Tests that we are able to simplify `[[1],[1],[-1],[2],[-2]]` into `[[0,1,-1,2,-2]]` - manipulate nested lists.
 
 -}
 largeUnionList : Test
@@ -314,7 +314,7 @@ coupling =
         , [ 0, 0, 0, 0, 0, 0, 0, 0, 9, 8 ]
         , [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 9 ]
 
-        {- To shrink [0,0,0,4,3] down to [0,0,3,2], [0,2,1] or [1,0],
+        {- To simplify [0,0,0,4,3] down to [0,0,3,2], [0,2,1] or [1,0],
            we'd need to simultaneously:
 
            - remove items from the list

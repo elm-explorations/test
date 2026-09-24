@@ -295,7 +295,7 @@ fuzzerSpecificationTests =
                 , cannotGenerateSatisfying "NaN" Fuzz.percentage isNaN
                 , simplifiesTowards "simplest = lower limit = zero" 0 Fuzz.percentage fullySimplify
                 , simplifiesTowards "non-zero = upper limit = just below 1" (1 - 2 ^ -52) Fuzz.percentage (\v -> v == 0)
-                , simplifiesTowards "non-zero non-one, doesn't shrink nicely"
+                , simplifiesTowards "non-zero non-one, doesn't simplify nicely"
                     0.25000000000000006
                     Fuzz.percentage
                     (\v -> v == 1 - 2 ^ -52 || v <= 0.25)

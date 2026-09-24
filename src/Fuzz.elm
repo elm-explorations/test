@@ -307,11 +307,11 @@ use [`Fuzz.niceFloat`](#niceFloat).
 float : Fuzzer Float
 float =
     intFrequency
-        [ {- Just to shrink nicely. The wellShrinkingFloat below needs 3 items
+        [ {- Just to simplify nicely. The wellSimplifyingFloat below needs 3 items
              in the RandomRun so sometimes it's not an option anymore.
           -}
           ( 1, constant 0 )
-        , ( 5, wellShrinkingFloat )
+        , ( 5, wellSimplifyingFloat )
         , ( 1, constant (1 / 0) )
         , ( 1, constant (-1 / 0) )
         , ( 1, constant (0 / 0) )
@@ -327,20 +327,20 @@ Will never try infinities or NaN.
 -}
 niceFloat : Fuzzer Float
 niceFloat =
-    wellShrinkingFloat
+    wellSimplifyingFloat
 
 
 {-| This float fuzzer will prefer non-fractional floats and (if it must) nice
 fractions.
 -}
-wellShrinkingFloat : Fuzzer Float
-wellShrinkingFloat =
+wellSimplifyingFloat : Fuzzer Float
+wellSimplifyingFloat =
     map3
         (\hi lo shouldNegate ->
             let
                 f : Float
                 f =
-                    Fuzz.Float.wellShrinkingFloat ( hi, lo )
+                    Fuzz.Float.wellSimplifyingFloat ( hi, lo )
             in
             if shouldNegate then
                 negate f
@@ -356,7 +356,7 @@ wellShrinkingFloat =
 
 {-| Fuzzer generating floats in range `n..Infinity`.
 
-The positive part of the range will shrink nicely, the negative part will shrink uniformly.
+The positive part of the range will simplify nicely, the negative part will simplify uniformly.
 
 The fuzzer will occasionally try the minimum, 0 (if in range) and Infinity.
 
@@ -366,7 +366,7 @@ floatAtLeast n =
     if n <= 0 then
         intFrequency
             [ ( 4, floatRange n 0 )
-            , ( 4, wellShrinkingFloat |> map abs )
+            , ( 4, wellSimplifyingFloat |> map abs )
             , ( 2, constant n )
             , ( 2, constant (1 / 0) )
             , ( 1, constant 0 )
@@ -374,7 +374,7 @@ floatAtLeast n =
 
     else
         intFrequency
-            [ ( 8, wellShrinkingFloat |> map (\x -> n + abs x) )
+            [ ( 8, wellSimplifyingFloat |> map (\x -> n + abs x) )
             , ( 2, constant n )
             , ( 2, constant (1 / 0) )
             ]
@@ -382,7 +382,7 @@ floatAtLeast n =
 
 {-| Fuzzer generating floats in range `-Infinity..n`.
 
-The negative part of the range will shrink nicely, the positive part will shrink uniformly.
+The negative part of the range will simplify nicely, the positive part will simplify uniformly.
 
 The fuzzer will occasionally try the maximum, 0 (if in range) and -Infinity.
 
@@ -392,7 +392,7 @@ floatAtMost n =
     if n >= 0 then
         intFrequency
             [ ( 4, floatRange 0 n )
-            , ( 4, wellShrinkingFloat |> map (negate << abs) )
+            , ( 4, wellSimplifyingFloat |> map (negate << abs) )
             , ( 2, constant n )
             , ( 2, constant (-1 / 0) )
             , ( 1, constant 0 )
@@ -400,7 +400,7 @@ floatAtMost n =
 
     else
         intFrequency
-            [ ( 8, wellShrinkingFloat |> map (\x -> n - abs x) )
+            [ ( 8, wellSimplifyingFloat |> map (\x -> n - abs x) )
             , ( 2, constant n )
             , ( 2, constant (-1 / 0) )
             ]
@@ -408,7 +408,7 @@ floatAtMost n =
 
 {-| A fuzzer for float values within between a given minimum and maximum (inclusive).
 
-Shrunken values will also be within the range.
+Simplified values will also be within the range.
 
 -}
 floatRange : Float -> Float -> Fuzzer Float
@@ -452,8 +452,8 @@ floatRange lo hi =
             ]
 
 
-{-| This float fuzzer won't shrink nicely (to integers or nice fractions). For
-that, use `wellShrinkingFloat`.
+{-| This float fuzzer won't simplify nicely (to integers or nice fractions). For
+that, use `wellSimplifyingFloat`.
 -}
 scaledFloat : Float -> Float -> Fuzzer Float
 scaledFloat lo hi =
@@ -473,7 +473,7 @@ inclusive and `1.0` exclusive, in an uniform fashion.
 
 Will occasionally try the boundaries.
 
-Doesn't shrink to nice values like [`Fuzz.float`](#float) does; shrinks towards
+Doesn't simplify to nice values like [`Fuzz.float`](#float) does; simplifies towards
 zero.
 
 -}
@@ -1436,7 +1436,7 @@ items:
             )
 
 This will work! Different fuzzers will have different PRNG usage patterns
-though and will shrink with varying success. The currently best known way to
+though and will simplify with varying success. The currently best known way to
 fuzz a list of items is based on a "flip a coin, `andThen` generate a value and
 repeat or end" approach, and is implemented in the [`Fuzz.list`](#list) helpers
 in this module. Use them instead of rolling your own list generator!
@@ -1600,7 +1600,7 @@ rollDice maxValue diceGenerator =
 
                         Just ( hardcodedChoice, restOfChoices ) ->
                             if hardcodedChoice < 0 then
-                                -- This happens eg. when decrementing after delete shrink
+                                -- This happens eg. when decrementing after a delete-chunk simplify
                                 Rejected
                                     { reason = "elm-test internals: generated a choice < 0"
                                     , prng = prng
@@ -1840,9 +1840,9 @@ Convert a Random.Generator into a Fuzzer.
 
 Works internally by generating a random seed and running `Random.step`.
 
-Note this will not shrink well (in fact it will shrink randomly, to smaller
+Note this will not simplify well (in fact it will simplify randomly, to smaller
 _seeds_), as Generators are black boxes from the perspective of Fuzzers. If you
-want meaningful shrinking, define fuzzers using the other functions in this
+want meaningful simplifying, define fuzzers using the other functions in this
 module!
 
 -}
