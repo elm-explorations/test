@@ -786,7 +786,12 @@ all list =
             }
 
     else
-        allHelp list
+        case allHelp list of
+            Test.Expectation.Pass _ ->
+                passWith (\() -> invertedAll list)
+
+            outcome ->
+                outcome
 
 
 {-| Passes if each of the given functions passes when applied to the subject.
@@ -814,13 +819,7 @@ allHelp : List Expectation -> Expectation
 allHelp list =
     case list of
         [] ->
-            passWith
-                (\() ->
-                    { given = Nothing
-                    , description = inverted "Expect.all" ++ ": all of the expectations passed, but at least one of them was expected to fail."
-                    , reason = Custom
-                    }
-                )
+            pass
 
         check :: rest ->
             case check of
@@ -855,7 +854,12 @@ oneOf list =
             }
 
     else
-        oneOfHelp list []
+        case oneOfHelp list [] of
+            Test.Expectation.Pass _ ->
+                passWith (\() -> invertedOneOf list)
+
+            outcome ->
+                outcome
 
 
 {-| Passes if at least one of the given functions passes when applied to the subject.
@@ -897,13 +901,7 @@ oneOfHelp list failuresSoFar =
                 }
 
         (Test.Expectation.Pass _) :: _ ->
-            passWith
-                (\() ->
-                    { given = Nothing
-                    , description = inverted "Expect.oneOf" ++ ": one of the expectations passed, but all of them were expected to fail."
-                    , reason = Custom
-                    }
-                )
+            pass
 
         (Test.Expectation.Fail failure) :: rest ->
             oneOfHelp rest
@@ -928,6 +926,74 @@ passWith ifInverted =
         { distributionReport = Fuzz.Internal.noDistribution
         , ifInverted = Just ifInverted
         }
+
+
+{-| De Morgan: `not (all [ a, b ])` is `oneOf [ not a, not b ]`.
+-}
+invertedAll : List Expectation -> Test.Expectation.InvertedFailure
+invertedAll list =
+    { given = Nothing
+    , description =
+        inverted "Expect.all"
+            ++ (case list of
+                    [ _ ] ->
+                        ": the expectation passed, but it had to fail."
+
+                    _ ->
+                        ": all "
+                            ++ String.fromInt (List.length list)
+                            ++ " expectations passed, but at least one had to fail."
+               )
+    , reason = Multiple (invertedChildren list)
+    }
+
+
+{-| De Morgan: `not (oneOf [ a, b ])` is `all [ not a, not b ]`.
+-}
+invertedOneOf : List Expectation -> Test.Expectation.InvertedFailure
+invertedOneOf list =
+    let
+        violations : List Test.Expectation.InvertedFailure
+        violations =
+            invertedChildren list
+    in
+    { given = Nothing
+    , description =
+        inverted "Expect.oneOf"
+            ++ (case list of
+                    [ _ ] ->
+                        ": the expectation passed, but it had to fail."
+
+                    _ ->
+                        ": "
+                            ++ String.fromInt (List.length violations)
+                            ++ " of the "
+                            ++ String.fromInt (List.length list)
+                            ++ " expectations didn't fail, but all of them had to."
+               )
+    , reason = Multiple violations
+    }
+
+
+{-| Invert each of the given expectations, keeping the ones that then fail.
+-}
+invertedChildren : List Expectation -> List Test.Expectation.InvertedFailure
+invertedChildren list =
+    List.filterMap (not >> failureDetails) list
+
+
+failureDetails : Expectation -> Maybe Test.Expectation.InvertedFailure
+failureDetails expectation =
+    case expectation of
+        Test.Expectation.Pass _ ->
+            Nothing
+
+        Test.Expectation.Fail failure ->
+            Just
+                { given = failure.given
+                , description = failure.description
+                , reason = failure.reason
+                }
 
 
 {-| The label to show for an expectation that [`not`](#not) inverted, e.g.

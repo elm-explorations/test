@@ -214,6 +214,83 @@ notTests =
             \() ->
                 Expect.all [ Expect.pass, 1 |> Expect.equal 2 ]
                     |> Expect.not
+        , describe "De Morgan"
+            [ test "an inverted Expect.all reports every child's inverted failure" <|
+                \() ->
+                    Expect.all
+                        [ 1 |> Expect.equal 1
+                        , 80 |> Expect.atLeast 50
+                        ]
+                        |> Expect.not
+                        |> expectReason "Multiple"
+                            (\reason ->
+                                case reason of
+                                    Multiple failures ->
+                                        Just (List.map .description failures)
+
+                                    _ ->
+                                        Nothing
+                            )
+                            (Just
+                                [ "Expect.not (Expect.equal)"
+                                , "Expect.not (Expect.atLeast)"
+                                ]
+                            )
+            , test "an inverted Expect.oneOf reports only the children that didn't fail" <|
+                \() ->
+                    Expect.oneOf
+                        [ 1 |> Expect.equal 2
+                        , 80 |> Expect.atLeast 50
+                        , 3 |> Expect.equal 4
+                        ]
+                        |> Expect.not
+                        |> expectReason "Multiple"
+                            (\reason ->
+                                case reason of
+                                    Multiple failures ->
+                                        Just (List.map .description failures)
+
+                                    _ ->
+                                        Nothing
+                            )
+                            (Just [ "Expect.not (Expect.atLeast)" ])
+            , test "an inverted child keeps its values" <|
+                \() ->
+                    Expect.all [ 1 |> Expect.equal 1 ]
+                        |> Expect.not
+                        |> expectReason "Multiple"
+                            (\reason ->
+                                case reason of
+                                    Multiple [ failure ] ->
+                                        case failure.reason of
+                                            Equality expected actual ->
+                                                Just ( expected, actual )
+
+                                            _ ->
+                                                Nothing
+
+                                    _ ->
+                                        Nothing
+                            )
+                            (Just ( "1", "1" ))
+            , test "an invalid child stays in an inverted Expect.oneOf's report" <|
+                \() ->
+                    Expect.oneOf
+                        [ 1.5 |> Expect.equal 1.5
+                        , 80 |> Expect.atLeast 50
+                        ]
+                        |> Expect.not
+                        |> expectReason "Multiple"
+                            (\reason ->
+                                case reason of
+                                    Multiple failures ->
+                                        Just (List.length failures)
+
+                                    _ ->
+                                        Nothing
+                            )
+                            (Just 2)
+            ]
         , test "inverting twice is a no-op for a pass" <|
             \() ->
                 1 |> Expect.equal 1 |> Expect.not |> Expect.not
