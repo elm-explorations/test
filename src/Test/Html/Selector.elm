@@ -253,7 +253,7 @@ style key value =
 
 
 {-| Matches elements that have a
-[`text`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#text)
+[`text`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#text)
 attribute _containing_ the given value.
 
 `Selector.text "11,22"` will match `Html.text "11,222"`.
@@ -267,7 +267,7 @@ text =
 
 
 {-| Matches elements that have a
-[`text`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#text)
+[`text`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#text)
 attribute with _exactly_ the given value (sans leading/trailing whitespace).
 
 `Selector.exactText "11,22"` will _not_ match `Html.text "11,222"`.
@@ -323,7 +323,7 @@ containing =
 
 
 {-| Matches elements that have a
-[`selected`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#selected)
+[`selected`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#selected)
 attribute with the given value.
 -}
 selected : Bool -> Selector
@@ -332,7 +332,7 @@ selected =
 
 
 {-| Matches elements that have a
-[`disabled`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#disabled)
+[`disabled`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#disabled)
 attribute with the given value.
 -}
 disabled : Bool -> Selector
@@ -341,7 +341,7 @@ disabled =
 
 
 {-| Matches elements that have a
-[`checked`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#checked)
+[`checked`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#checked)
 attribute with the given value.
 -}
 checked : Bool -> Selector

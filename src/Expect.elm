@@ -358,7 +358,7 @@ notWithin tolerance lower upper =
 
 
 {-| Passes if the
-[`Result`](https://package.elm-lang.org/packages/lang/core/latest/Result) is
+[`Result`](https://package.elm-lang.org/packages/elm/core/latest/Result) is
 an `Ok` rather than `Err`. This is useful for tests where you expect not to see
 an error, but you don't care what the actual result is.
 
@@ -404,7 +404,7 @@ ok result =
 
 
 {-| Passes if the
-[`Result`](http://package.elm-lang.org/packages/elm-lang/core/latest/Result) is
+[`Result`](https://package.elm-lang.org/packages/elm/core/latest/Result) is
 an `Err` rather than `Ok`. This is useful for tests where you expect to get an
 error but you don't care what the actual error is.
 

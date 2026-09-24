@@ -33,6 +33,11 @@
   (similar to browser's `textContent`) instead of looking at a single text node
   in isolation.
 
+### Other
+
+* [#117](https://github.com/elm-explorations/test/issues/117): Fixed broken
+  documentation links.
+
 ## TODOs before release
 
 * Make an elm-review rule to upgrade from 2.2.1 or so to the new version:
