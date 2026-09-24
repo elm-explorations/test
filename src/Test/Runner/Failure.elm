@@ -54,6 +54,4 @@ type InvalidReason
     | DuplicatedName
     | DistributionInsufficient
     | DistributionBug
-      -- The expectation was used in a way that can't work, e.g. equating two
-      -- floats or giving a negative tolerance. The `description` says more.
     | BadUsage

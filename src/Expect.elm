@@ -152,28 +152,7 @@ which argument is which:
 
     -}
 
-Lists, arrays, dicts and sets get a diff of their contents in the failure
-message, so you don't need a special function for them:
-
-    -- Fails
-    Dict.fromList [ ( 1, "one" ), ( 2, "too" ) ]
-        |> Expect.equal (Dict.fromList [ ( 1, "one" ), ( 2, "two" ) ])
-
-    {-
-
-    Dict.fromList [(1,"one"),(2,"too")]
-    ╷
-    │ Expect.equal
-    ╵
-    Dict.fromList [(1,"one"),(2,"two")]
-
-    These keys are extra: [ (2,"too") ]
-    These keys are missing: [ (2,"two") ]
-
-    -}
-
-Do not equate `Float` values; use [`equalWithNumbers`](#equalWithNumbers) or
-[`within`](#within) instead.
+Do not equate `Float` values; use [`equalWithNumbers`](#equalWithNumbers).
 
 -}
 equal : a -> a -> Expectation
@@ -207,8 +186,6 @@ equal expected actual =
 
     -}
 
-This is the same as `subject |> Expect.equal expected |> Expect.not`.
-
 -}
 notEqual : a -> a -> Expectation
 notEqual expected actual =
@@ -223,8 +200,7 @@ notEqual expected actual =
 {-| Passes if (and only if) the given expectation fails.
 
     -- Passes, because (100 == 11) is False
-    90
-        + 10
+    100
         |> Expect.equal 11
         |> Expect.not
 
@@ -239,33 +215,6 @@ This lets you invert _any_ expectation, so expectations don't need to come in
     Query.fromHtml html
         |> Query.has [ tag "ul" ]
         |> Expect.not
-
-To use it as an argument to [`passesAll`](#passesAll) or
-[`Query.each`](Test-Html-Query#each), compose with `>>`:
-
-    Query.each (Query.has [ tag "ul" ] >> Expect.not)
-
-The failure message is the message the inverted expectation would have shown if
-it had failed:
-
-    -- Fails, because (100 == 100) is True
-    90 + 10
-        |> Expect.equal 100
-        |> Expect.not
-
-    {-
-
-    100
-    ╵
-    │ |> Expect.not (Expect.equal)
-    ╷
-    100
-
-    -}
-
-Expectations that are _invalid_ rather than failing - like `Expect.all []`, or a
-negative tolerance - are not inverted: inverting a broken test would turn it into
-a passing one.
 
 -}
 not : Expectation -> Expectation
@@ -501,7 +450,7 @@ type NaNBehavior
     | NaNsNeverEqual
 
 
-{-| Like [`equal`](#equal), but compares numbers with the given tolerance (and
+{-| Like [`equal`](#equal), but compares any numbers with the given tolerance (and
 `NaN`s with the given behavior) instead of exactly - no matter how deep inside
 the compared values those numbers are.
 
@@ -672,8 +621,6 @@ differed at or which list was longer:
 
     -}
 
-[`equal`](#equal) now reports lists the same way, so you can use that instead.
-
 -}
 equalLists : List a -> List a -> Expectation
 equalLists expected actual =
@@ -706,8 +653,6 @@ or added to each dict:
 
     -}
 
-[`equal`](#equal) now reports dicts the same way, so you can use that instead.
-
 -}
 equalDicts : Dict comparable a -> Dict comparable a -> Expectation
 equalDicts expected actual =
@@ -739,8 +684,6 @@ or added to each set:
     Set.fromList [1,2,5]
 
     -}
-
-[`equal`](#equal) now reports sets the same way, so you can use that instead.
 
 -}
 equalSets : Set comparable -> Set comparable -> Expectation

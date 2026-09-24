@@ -78,10 +78,9 @@ implementation detail of the compiler.
 
 With `--optimize` this always answers `Opaque`: the tags are then small
 per-type integers rather than names, so a `List` looks exactly like any other
-two-field constructor and guessing would be worse than not guessing. Failures
-then get the plain `Equality` reason instead of a collection diff. (Test code
-can't be compiled with `--optimize` anyway - this package needs
-`Debug.toString`.)
+two-field constructor. Failures then get the plain `Equality` reason instead
+of a collection diff. (Test code can't be compiled with `--optimize` anyway -
+this package needs `Debug.toString`.)
 
 -}
 structureOf : a -> Structure
@@ -167,9 +166,6 @@ kernelUnsafeCoerce =
     Elm.Kernel.Test.unsafeCoerce
 
 
-{-| False when compiled with `--optimize`, where constructor tags are
-uninformative integers.
--}
 kernelCanDetectStructure : () -> Bool
 kernelCanDetectStructure =
     Elm.Kernel.Test.canDetectStructure
