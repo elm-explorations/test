@@ -321,6 +321,53 @@ fuzzerSpecificationTests =
                 , simplifiesTowards "simplest" ' ' Fuzz.char fullySimplify
                 , simplifiesTowards "next simplest" '!' Fuzz.char (\c -> c == ' ')
                 ]
+            , describe "charRange"
+                [ passes "Range 'a'..'z'" (Fuzz.charRange 'a' 'z') (\c -> c >= 'a' && c <= 'z')
+                , canGenerate 'a' (Fuzz.charRange 'a' 'z')
+                , canGenerate 'z' (Fuzz.charRange 'a' 'z')
+                , simplifiesTowards "simplest" 'a' (Fuzz.charRange 'a' 'z') fullySimplify
+                , passes "Works with reversed args" (Fuzz.charRange 'z' 'a') (\c -> c >= 'a' && c <= 'z')
+                , passes "Single char range" (Fuzz.charRange 'a' 'a') (\c -> c == 'a')
+                ]
+            , describe "binChar"
+                [ passes "Range '0'..'1'" Fuzz.binChar (\c -> c == '0' || c == '1')
+                , canGenerate '0' Fuzz.binChar
+                , canGenerate '1' Fuzz.binChar
+                ]
+            , describe "octChar"
+                [ passes "Range '0'..'7'" Fuzz.octChar (\c -> c >= '0' && c <= '7')
+                , canGenerate '0' Fuzz.octChar
+                , canGenerate '7' Fuzz.octChar
+                ]
+            , describe "numChar"
+                [ passes "Range '0'..'9'" Fuzz.numChar Char.isDigit
+                , canGenerate '0' Fuzz.numChar
+                , canGenerate '9' Fuzz.numChar
+                ]
+            , describe "hexChar"
+                [ passes "Range '0'..'9','a'..'f'"
+                    Fuzz.hexChar
+                    (\c -> Char.isDigit c || (c >= 'a' && c <= 'f'))
+                , canGenerate '0' Fuzz.hexChar
+                , canGenerate '9' Fuzz.hexChar
+                , canGenerate 'a' Fuzz.hexChar
+                , canGenerate 'f' Fuzz.hexChar
+                , cannotGenerate 'g' Fuzz.hexChar
+                , cannotGenerate 'A' Fuzz.hexChar
+                , cannotGenerate 'F' Fuzz.hexChar
+                ]
+            , describe "alphaChar"
+                [ passes "ASCII letters" Fuzz.alphaChar Char.isAlpha
+                , canGenerateSatisfying "lowercase" Fuzz.alphaChar Char.isLower
+                , canGenerateSatisfying "uppercase" Fuzz.alphaChar Char.isUpper
+                , cannotGenerate '0' Fuzz.alphaChar
+                ]
+            , describe "alphaNumChar"
+                [ passes "ASCII letters and digits" Fuzz.alphaNumChar (\c -> Char.isAlpha c || Char.isDigit c)
+                , canGenerateSatisfying "alpha" Fuzz.alphaNumChar Char.isAlpha
+                , canGenerateSatisfying "digit" Fuzz.alphaNumChar Char.isDigit
+                , cannotGenerate '!' Fuzz.alphaNumChar
+                ]
             , describe "asciiString"
                 [ canGenerate "" Fuzz.asciiString
                 , canGenerateSatisfying "non-empty string"

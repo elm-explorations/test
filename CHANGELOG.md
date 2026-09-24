@@ -18,6 +18,9 @@
   data-driven tests.
 * Added `Test.fuzzWithExamples : String -> FuzzOptions a -> Fuzzer a -> List ( String, a ) -> (a -> Expectation) -> Test`
   for fuzz tests with hardcoded (regression) examples.
+* [#223](https://github.com/elm-explorations/test/issues/223): Added
+  `Fuzz.charRange` and convenience Char fuzzers: `Fuzz.binChar`, `octChar`,
+  `hexChar`, `numChar`, `alphaChar` and `alphaNumChar`.
 
 ### Performance improvements
 

@@ -2,7 +2,9 @@ module Fuzz exposing
     ( Fuzzer, examples, labelExamples
     , int, intRange, uniformInt, intAtLeast, intAtMost
     , float, niceFloat, percentage, floatRange, floatAtLeast, floatAtMost
-    , char, asciiChar
+    , char, asciiChar, charRange
+    , numChar, hexChar, octChar, binChar
+    , alphaChar, alphaNumChar
     , string, stringOfLength, stringOfLengthBetween, asciiString, asciiStringOfLength, asciiStringOfLengthBetween
     , pair, triple
     , list, listOfLength, listOfLengthBetween, shuffledList
@@ -39,7 +41,9 @@ can usually find the simplest input that reproduces a bug.
 
 ## String-related fuzzers
 
-@docs char, asciiChar
+@docs char, asciiChar, charRange
+@docs numChar, hexChar, octChar, binChar
+@docs alphaChar, alphaNumChar
 @docs string, stringOfLength, stringOfLengthBetween, asciiString, asciiStringOfLength, asciiStringOfLengthBetween
 
 
@@ -511,8 +515,7 @@ whole Unicode range.
 asciiChar : Fuzzer Char
 asciiChar =
     -- TODO: what about preferring nasty chars like \, /, $, @ (interpolation, SQL injections, ...)?
-    intRange 32 126
-        |> map Char.fromCode
+    charRange ' ' '~'
 
 
 {-| A fuzzer for arbitrary Unicode char values.
@@ -569,6 +572,70 @@ char =
         , ( 1, combiningDiacriticalMarkChar )
         , ( 1, emojiChar )
         , ( 1, arbitraryUnicodeChar )
+        ]
+
+
+{-| A fuzzer for Char values in the given (inclusive) range.
+
+    Fuzz.charRange 'a' 'z' : Fuzzer Char
+    Fuzz.charRange 'A' 'Z' : Fuzzer Char
+    Fuzz.charRange '0' '9' : Fuzzer Char
+
+-}
+charRange : Char -> Char -> Fuzzer Char
+charRange lo hi =
+    intRange (Char.toCode lo) (Char.toCode hi)
+        |> map Char.fromCode
+
+
+{-| A fuzzer for binary digit chars: `'0'..'1'`.
+-}
+binChar : Fuzzer Char
+binChar =
+    charRange '0' '1'
+
+
+{-| A fuzzer for octal digit chars: `'0'..'7'`.
+-}
+octChar : Fuzzer Char
+octChar =
+    charRange '0' '7'
+
+
+{-| A fuzzer for decimal digit chars: `'0'..'9'`.
+-}
+numChar : Fuzzer Char
+numChar =
+    charRange '0' '9'
+
+
+{-| A fuzzer for hexadecimal digit chars: `'0'..'9'`, `'a'..'f'`.
+-}
+hexChar : Fuzzer Char
+hexChar =
+    oneOf
+        [ numChar
+        , charRange 'a' 'f'
+        ]
+
+
+{-| A fuzzer for ASCII letter chars: `'a'..'z'`, `'A'..'Z'`.
+-}
+alphaChar : Fuzzer Char
+alphaChar =
+    oneOf
+        [ charRange 'a' 'z'
+        , charRange 'A' 'Z'
+        ]
+
+
+{-| A fuzzer for alphanumeric ASCII chars: `'a'..'z'`, `'A'..'Z'`, `'0'..'9'`.
+-}
+alphaNumChar : Fuzzer Char
+alphaNumChar =
+    oneOf
+        [ alphaChar
+        , numChar
         ]
 
 
