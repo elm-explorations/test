@@ -2,7 +2,7 @@ module Test.Html.Internal.ElmHtml.Query exposing
     ( findAll
     , getChildren
     , hasTag, hasClasses, hasAttribute, hasBoolAttribute, hasStyle
-    , containsText, textContent
+    , containsText
     , existsDescendant
     )
 
@@ -13,7 +13,7 @@ Lower-level than `Test.Html.Selector`.
 @docs findAll
 @docs getChildren
 @docs hasTag, hasClasses, hasAttribute, hasBoolAttribute, hasStyle
-@docs containsText, textContent
+@docs containsText
 
 -}
 
