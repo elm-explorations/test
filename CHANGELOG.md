@@ -11,6 +11,11 @@
   The old pointfree `Expect.all` can be found under `Expect.passesAll`.
 * `Test.Runner.Failure.Reason` has a new `Multiple` variant for `Expect.oneOf`
   and `Expect.passesOneOf`.
+* `Test.Runner.Failure.InvalidReason` has a new `BadUsage` variant, and the
+  failures that mean "this expectation was used in a way that can't work" now use
+  it instead of `Custom`: equating two floats, and giving `Expect.within` /
+  `Expect.notWithin` / `Expect.equalWithNumbers` a negative tolerance. This is
+  what lets `Expect.not` refuse to invert them.
 
 ### Additions
 
@@ -18,6 +23,30 @@
   data-driven tests.
 * Added `Test.fuzzWithExamples : String -> FuzzOptions a -> Fuzzer a -> List ( String, a ) -> (a -> Expectation) -> Test`
   for fuzz tests with hardcoded (regression) examples.
+* [#216](https://github.com/elm-explorations/test/issues/216): Added
+  `Expect.not : Expectation -> Expectation`, which inverts any expectation:
+  `subject |> Expect.equal expected |> Expect.not` does what `Expect.notEqual`
+  does, and the same works for `Query.has`, `Expect.ok`, `Expect.all`, ... To use
+  it where a `subject -> Expectation` is wanted (`Expect.passesAll`,
+  `Query.each`), compose with `>>`: `Query.has [ tag "ul" ] >> Expect.not`.
+  Expectations that are invalid rather than failing (`Expect.all []`, a negative
+  tolerance, ...) are not inverted, so inverting a broken test can't turn it into
+  a passing one.
+* [#216](https://github.com/elm-explorations/test/issues/216): Added
+  `Expect.NaNBehavior` and
+  `Expect.equalWithNumbers : NaNBehavior -> FloatingPointTolerance -> a -> a -> Expectation`.
+  Unlike `Expect.within`, which only compares two bare `Float`s, this compares
+  numbers wherever they are inside the two values, so `Expect.equal
+  { foo = 3.14 } { foo = pi }` has a composable equivalent. It can also be told
+  to treat `NaN`s as equal to each other.
+* [#216](https://github.com/elm-explorations/test/issues/216): `Expect.equal`
+  (and `Expect.equalWithNumbers`) now report list, array, dict and set diffs in
+  their failure messages, so `Expect.equalLists`, `Expect.equalDicts` and
+  `Expect.equalSets` are no longer needed for nice output. This uses runtime
+  type information, so it works for collections nested in other values too.
+  (With `--optimize`, where constructor tags are uninformative integers, the
+  diffs fall back to the plain `Equality` reason. Pass/fail verdicts are the
+  same in both compilation modes.)
 
 ### Performance improvements
 
@@ -43,6 +72,15 @@
 * Coordinate with `node-test-runner` and `elm-test-rs` on:
   * the change in Node version needed (20+)
   * the new `Multiple` variant of `Test.Runner.Failure.Reason`
+  * the new `BadUsage` variant of `Test.Runner.Failure.InvalidReason`
+* Decide whether to go through with the removals proposed in
+  [#216](https://github.com/elm-explorations/test/issues/216) now that the
+  replacements exist: `Expect.notEqual` (-> `Expect.equal` piped into
+  `Expect.not`), `Expect.within` / `Expect.notWithin` (->
+  `Expect.equalWithNumbers`, piped into `Expect.not`), `Expect.equalLists` /
+  `Expect.equalDicts` / `Expect.equalSets` (-> `Expect.equal`).
+  They're all still exposed for now; the
+  three collection ones are now just `Expect.equal` with a different label.
 
 ## Releases
 

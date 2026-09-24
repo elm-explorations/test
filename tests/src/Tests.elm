@@ -1,5 +1,6 @@
 module Tests exposing (all)
 
+import EqualityTests exposing (equalityTests)
 import Expect
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
@@ -30,6 +31,7 @@ all =
         , expectationTests
         , fuzzerTests
         , floatWithinTests
+        , equalityTests
         , RunnerTests.all
         , RuntimeExceptionTests.all
         , elmHtmlTests

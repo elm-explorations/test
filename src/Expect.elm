@@ -1,7 +1,8 @@
 module Expect exposing
-    ( Expectation, equal, notEqual, all, oneOf
+    ( Expectation, equal, notEqual, not, all, oneOf
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
+    , NaNBehavior(..), equalWithNumbers
     , ok, err, equalLists, equalDicts, equalSets
     , pass, fail, onFail
     , passesAll, passesOneOf
@@ -14,6 +15,7 @@ module Expect exposing
 
   - [`equal`](#equal) `(arg2 == arg1)`
   - [`notEqual`](#notEqual) `(arg2 /= arg1)`
+  - [`not`](#not) (inverts any `Expectation`)
   - [`lessThan`](#lessThan) `(arg2 < arg1)`
   - [`atMost`](#atMost) `(arg2 <= arg1)`
   - [`greaterThan`](#greaterThan) `(arg2 > arg1)`
@@ -23,7 +25,7 @@ module Expect exposing
 
 ## Basic Expectations
 
-@docs Expectation, equal, notEqual, all, oneOf
+@docs Expectation, equal, notEqual, not, all, oneOf
 
 
 ## Numeric Comparisons
@@ -37,6 +39,12 @@ These functions allow you to compare `Float` values up to a specified rounding e
 or both. For an in-depth look, see our [Guide to Floating Point Comparison](#guide-to-floating-point-comparison).
 
 @docs FloatingPointTolerance, within, notWithin
+
+[`equalWithNumbers`](#equalWithNumbers) does the same comparison, but for
+numbers _anywhere inside_ a data structure, so that it composes with the rest of
+your data:
+
+@docs NaNBehavior, equalWithNumbers
 
 
 ## Collections
@@ -110,6 +118,7 @@ import Set exposing (Set)
 import Test.Distribution
 import Test.Expectation
 import Test.Internal as Internal
+import Test.Internal.Equality as Equality
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
@@ -143,12 +152,38 @@ which argument is which:
 
     -}
 
-Do not equate `Float` values; use [`within`](#within) instead.
+Lists, arrays, dicts and sets get a diff of their contents in the failure
+message, so you don't need a special function for them:
+
+    -- Fails
+    Dict.fromList [ ( 1, "one" ), ( 2, "too" ) ]
+        |> Expect.equal (Dict.fromList [ ( 1, "one" ), ( 2, "two" ) ])
+
+    {-
+
+    Dict.fromList [(1,"one"),(2,"too")]
+    ╷
+    │ Expect.equal
+    ╵
+    Dict.fromList [(1,"one"),(2,"two")]
+
+    These keys are extra: [ (2,"too") ]
+    These keys are missing: [ (2,"two") ]
+
+    -}
+
+Do not equate `Float` values; use [`equalWithNumbers`](#equalWithNumbers) or
+[`within`](#within) instead.
 
 -}
 equal : a -> a -> Expectation
-equal =
-    equateWith "Expect.equal" (==)
+equal expected actual =
+    case floatAdvice "Expect.equal" expected actual of
+        Just advice ->
+            badUsage advice
+
+        Nothing ->
+            equalWith Equality.exact "Expect.equal" expected actual
 
 
 {-| Passes if the arguments are not equal.
@@ -172,10 +207,108 @@ equal =
 
     -}
 
+This is the same as `subject |> Expect.equal expected |> Expect.not`.
+
 -}
 notEqual : a -> a -> Expectation
-notEqual =
-    equateWith "Expect.notEqual" (/=)
+notEqual expected actual =
+    case floatAdvice "Expect.notEqual" expected actual of
+        Just advice ->
+            badUsage advice
+
+        Nothing ->
+            testWith Equality "Expect.notEqual" (/=) expected actual
+
+
+{-| Passes if (and only if) the given expectation fails.
+
+    -- Passes, because (100 == 11) is False
+    90
+        + 10
+        |> Expect.equal 11
+        |> Expect.not
+
+    -- Passes, because 3.14 is not that close to pi
+    3.14
+        |> Expect.within (Absolute 0.0001) pi
+        |> Expect.not
+
+This lets you invert _any_ expectation, so expectations don't need to come in
+`x` / `notX` pairs:
+
+    Query.fromHtml html
+        |> Query.has [ tag "ul" ]
+        |> Expect.not
+
+To use it as an argument to [`passesAll`](#passesAll) or
+[`Query.each`](Test-Html-Query#each), compose with `>>`:
+
+    Query.each (Query.has [ tag "ul" ] >> Expect.not)
+
+The failure message is the message the inverted expectation would have shown if
+it had failed:
+
+    -- Fails, because (100 == 100) is True
+    90 + 10
+        |> Expect.equal 100
+        |> Expect.not
+
+    {-
+
+    100
+    ╵
+    │ |> Expect.not (Expect.equal)
+    ╷
+    100
+
+    -}
+
+Expectations that are _invalid_ rather than failing - like `Expect.all []`, or a
+negative tolerance - are not inverted: inverting a broken test would turn it into
+a passing one.
+
+-}
+not : Expectation -> Expectation
+not expectation =
+    case expectation of
+        Test.Expectation.Pass { distributionReport, ifInverted } ->
+            let
+                failure : Test.Expectation.InvertedFailure
+                failure =
+                    case ifInverted of
+                        Just toFailure ->
+                            toFailure ()
+
+                        Nothing ->
+                            { given = Nothing
+                            , description = "Expect.not: the given expectation passed, but it was expected to fail."
+                            , reason = Custom
+                            }
+            in
+            Test.Expectation.Fail
+                { given = failure.given
+                , distributionReport = distributionReport
+                , description = failure.description
+                , reason = failure.reason
+                }
+
+        Test.Expectation.Fail failure ->
+            case failure.reason of
+                Invalid _ ->
+                    expectation
+
+                _ ->
+                    Test.Expectation.Pass
+                        { distributionReport = failure.distributionReport
+                        , ifInverted =
+                            Just
+                                (\() ->
+                                    { given = failure.given
+                                    , description = failure.description
+                                    , reason = failure.reason
+                                    }
+                                )
+                        }
 
 
 {-| Passes if the second argument is less than the first.
@@ -352,9 +485,61 @@ notWithin : FloatingPointTolerance -> Float -> Float -> Expectation
 notWithin tolerance lower upper =
     nonNegativeToleranceError tolerance "notWithin" <|
         compareWith ("Expect.notWithin " ++ Internal.toString tolerance)
-            (\a b -> not <| withinCompare tolerance a b)
+            (\a b -> Basics.not <| withinCompare tolerance a b)
             lower
             upper
+
+
+{-| Whether two `NaN`s should count as equal to each other.
+
+`NaN /= NaN` in both Elm and IEEE 754, which is usually what you want, but is
+annoying when you're testing a computation that's _supposed_ to result in `NaN`.
+
+-}
+type NaNBehavior
+    = NaNsAlwaysEqual
+    | NaNsNeverEqual
+
+
+{-| Like [`equal`](#equal), but compares numbers with the given tolerance (and
+`NaN`s with the given behavior) instead of exactly - no matter how deep inside
+the compared values those numbers are.
+
+    -- Fails: Expect.within only works on two bare Floats
+    { pi = 3.14 } |> Expect.within (Absolute 0.01) { pi = pi }
+
+    -- Passes
+    { pi = 3.14 }
+        |> Expect.equalWithNumbers NaNsNeverEqual (Absolute 0.01) { pi = pi }
+
+    -- Passes: this is what `Expect.within (Absolute 0.01) pi` does
+    3.14 |> Expect.equalWithNumbers NaNsNeverEqual (Absolute 0.01) pi
+
+    -- Passes: unlike `==`, this can be told to accept NaNs
+    ( 0 / 0, 1 )
+        |> Expect.equalWithNumbers NaNsAlwaysEqual (Absolute 0) ( 0 / 0, 1 )
+
+Note that `Int` and `Float` are the same type at runtime, so the tolerance
+applies to `Int`s inside the compared values as well. Use `Absolute 0` /
+`Relative 0` if you only want the `NaN` behavior.
+
+-}
+equalWithNumbers : NaNBehavior -> FloatingPointTolerance -> a -> a -> Expectation
+equalWithNumbers nanBehavior tolerance expected actual =
+    nonNegativeToleranceError tolerance "equalWithNumbers" <|
+        equalWith
+            { nansAreEqual = nanBehavior == NaNsAlwaysEqual
+            , absolute = absolute tolerance
+            , relative = relative tolerance
+            }
+            ("Expect.equalWithNumbers "
+                ++ Internal.toString nanBehavior
+                ++ " ("
+                ++ Internal.toString tolerance
+                ++ ")"
+            )
+            expected
+            actual
 
 
 {-| Passes if the
@@ -392,7 +577,13 @@ ok : Result a b -> Expectation
 ok result =
     case result of
         Ok _ ->
-            pass
+            passWith
+                (\() ->
+                    { given = Nothing
+                    , description = inverted "Expect.ok"
+                    , reason = Comparison "Err _" (Internal.toString result)
+                    }
+                )
 
         Err _ ->
             Test.Expectation.Fail
@@ -446,7 +637,13 @@ err result =
                 }
 
         Err _ ->
-            pass
+            passWith
+                (\() ->
+                    { given = Nothing
+                    , description = inverted "Expect.err"
+                    , reason = Comparison "Ok _" (Internal.toString result)
+                    }
+                )
 
 
 {-| Passes if the arguments are equal lists.
@@ -475,19 +672,12 @@ differed at or which list was longer:
 
     -}
 
+[`equal`](#equal) now reports lists the same way, so you can use that instead.
+
 -}
 equalLists : List a -> List a -> Expectation
 equalLists expected actual =
-    if expected == actual then
-        pass
-
-    else
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , description = "Expect.equalLists"
-            , reason = ListDiff (List.map Internal.toString expected) (List.map Internal.toString actual)
-            }
+    equalWith Equality.exact "Expect.equalLists" expected actual
 
 
 {-| Passes if the arguments are equal dicts.
@@ -516,28 +706,12 @@ or added to each dict:
 
     -}
 
+[`equal`](#equal) now reports dicts the same way, so you can use that instead.
+
 -}
 equalDicts : Dict comparable a -> Dict comparable a -> Expectation
 equalDicts expected actual =
-    if Dict.toList expected == Dict.toList actual then
-        pass
-
-    else
-        let
-            differ dict k v diffs =
-                if Dict.get k dict == Just v then
-                    diffs
-
-                else
-                    ( k, v ) :: diffs
-
-            missingKeys =
-                Dict.foldr (differ actual) [] expected
-
-            extraKeys =
-                Dict.foldr (differ expected) [] actual
-        in
-        reportCollectionFailure "Expect.equalDicts" expected actual missingKeys extraKeys
+    equalWith Equality.exact "Expect.equalDicts" expected actual
 
 
 {-| Passes if the arguments are equal sets.
@@ -566,23 +740,12 @@ or added to each set:
 
     -}
 
+[`equal`](#equal) now reports sets the same way, so you can use that instead.
+
 -}
 equalSets : Set comparable -> Set comparable -> Expectation
 equalSets expected actual =
-    if Set.toList expected == Set.toList actual then
-        pass
-
-    else
-        let
-            missingKeys =
-                Set.diff expected actual
-                    |> Set.toList
-
-            extraKeys =
-                Set.diff actual expected
-                    |> Set.toList
-        in
-        reportCollectionFailure "Expect.equalSets" expected actual missingKeys extraKeys
+    equalWith Equality.exact "Expect.equalSets" expected actual
 
 
 {-| Always passes.
@@ -604,7 +767,10 @@ equalSets expected actual =
 -}
 pass : Expectation
 pass =
-    Test.Expectation.Pass (Test.Distribution.NoDistribution ())
+    Test.Expectation.Pass
+        { distributionReport = Test.Distribution.NoDistribution ()
+        , ifInverted = Nothing
+        }
 
 
 {-| Fails with the given message.
@@ -705,7 +871,13 @@ allHelp : List Expectation -> Expectation
 allHelp list =
     case list of
         [] ->
-            pass
+            passWith
+                (\() ->
+                    { given = Nothing
+                    , description = inverted "Expect.all" ++ ": all of the expectations passed, but at least one of them was expected to fail."
+                    , reason = Custom
+                    }
+                )
 
         check :: rest ->
             case check of
@@ -782,7 +954,13 @@ oneOfHelp list failuresSoFar =
                 }
 
         (Test.Expectation.Pass _) :: _ ->
-            pass
+            passWith
+                (\() ->
+                    { given = Nothing
+                    , description = inverted "Expect.oneOf" ++ ": one of the expectations passed, but all of them were expected to fail."
+                    , reason = Custom
+                    }
+                )
 
         (Test.Expectation.Fail failure) :: rest ->
             oneOfHelp rest
@@ -798,27 +976,45 @@ oneOfHelp list failuresSoFar =
 {---- Private helper functions ----}
 
 
-reportCollectionFailure : String -> a -> b -> List c -> List d -> Expectation
-reportCollectionFailure comparison expected actual missingKeys extraKeys =
-    Test.Expectation.Fail
-        { given = Nothing
-        , distributionReport = Fuzz.Internal.noDistribution
-        , description = comparison
-        , reason =
-            { expected = Internal.toString expected
-            , actual = Internal.toString actual
-            , extra = List.map Internal.toString extraKeys
-            , missing = List.map Internal.toString missingKeys
-            }
-                |> CollectionDiff
+{-| A pass that knows what to report if somebody inverts it with
+[`not`](#not).
+-}
+passWith : (() -> Test.Expectation.InvertedFailure) -> Expectation
+passWith ifInverted =
+    Test.Expectation.Pass
+        { distributionReport = Fuzz.Internal.noDistribution
+        , ifInverted = Just ifInverted
         }
 
 
-{-| String arg is label, e.g. "Expect.equal".
+{-| The label to show for an expectation that [`not`](#not) inverted, e.g.
+"Expect.not (Expect.equal)".
 -}
-equateWith : String -> (a -> b -> Bool) -> b -> a -> Expectation
-equateWith reason comparison b a =
+inverted : String -> String
+inverted label =
+    "Expect.not (" ++ label ++ ")"
+
+
+{-| Fails because the test itself is wrong, rather than because the thing being
+tested is. [`not`](#not) refuses to invert these into passes.
+-}
+badUsage : String -> Expectation
+badUsage description =
+    Test.Expectation.Fail
+        { given = Nothing
+        , distributionReport = Fuzz.Internal.noDistribution
+        , description = description
+        , reason = Invalid BadUsage
+        }
+
+
+{-| Nudge people away from exact equality of `Float`s. String arg is the label,
+e.g. "Expect.equal".
+-}
+floatAdvice : String -> a -> b -> Maybe String
+floatAdvice label expected actual =
     let
+        isJust : Maybe x -> Bool
         isJust x =
             case x of
                 Just _ ->
@@ -827,21 +1023,108 @@ equateWith reason comparison b a =
                 Nothing ->
                     False
 
+        isFloat : String -> Bool
         isFloat x =
-            isJust (String.toFloat x) && not (isJust (String.toInt x))
+            isJust (String.toFloat x) && Basics.not (isJust (String.toInt x))
 
+        usesFloats : Bool
         usesFloats =
-            isFloat (Internal.toString a) || isFloat (Internal.toString b)
+            isFloat (Internal.toString actual) || isFloat (Internal.toString expected)
     in
     if usesFloats then
-        if String.contains reason "not" then
-            fail "Do not use Expect.notEqual with floats. Use Expect.notWithin instead."
+        if String.contains "not" label then
+            Just "Do not use Expect.notEqual with floats. Use Expect.not (Expect.equalWithNumbers ...) or Expect.notWithin instead."
 
         else
-            fail "Do not use Expect.equal with floats. Use Expect.within instead."
+            Just "Do not use Expect.equal with floats. Use Expect.equalWithNumbers or Expect.within instead."
 
     else
-        testWith Equality reason comparison b a
+        Nothing
+
+
+{-| Deep equality, with the nicest failure reason we can produce for whatever
+the two values turn out to be at runtime.
+
+String arg is the label, e.g. "Expect.equal".
+
+-}
+equalWith : Equality.Tolerance -> String -> a -> a -> Expectation
+equalWith tolerance label expected actual =
+    if Equality.deepEqual tolerance expected actual then
+        passWith
+            (\() ->
+                { given = Nothing
+                , description = inverted label
+
+                {- The rich list/dict/set diffs only make sense for values that
+                   actually differ, and these ones don't.
+                -}
+                , reason = Equality (Internal.toString expected) (Internal.toString actual)
+                }
+            )
+
+    else
+        Test.Expectation.Fail
+            { given = Nothing
+            , distributionReport = Fuzz.Internal.noDistribution
+            , description = label
+            , reason = inequalityReason tolerance expected actual
+            }
+
+
+inequalityReason : Equality.Tolerance -> a -> a -> Reason
+inequalityReason tolerance expected actual =
+    case ( Equality.structureOf expected, Equality.structureOf actual ) of
+        ( Equality.AList, Equality.AList ) ->
+            listDiff (Equality.listItems expected) (Equality.listItems actual)
+
+        ( Equality.AnArray, Equality.AnArray ) ->
+            listDiff (Equality.arrayItems expected) (Equality.arrayItems actual)
+
+        ( Equality.ASet, Equality.ASet ) ->
+            collectionDiff tolerance
+                expected
+                actual
+                (Equality.setItems expected)
+                (Equality.setItems actual)
+
+        ( Equality.ADict, Equality.ADict ) ->
+            collectionDiff tolerance
+                expected
+                actual
+                (Equality.dictItems expected)
+                (Equality.dictItems actual)
+
+        _ ->
+            Equality (Internal.toString expected) (Internal.toString actual)
+
+
+listDiff : List item -> List item -> Reason
+listDiff expectedItems actualItems =
+    ListDiff
+        (List.map Internal.toString expectedItems)
+        (List.map Internal.toString actualItems)
+
+
+collectionDiff : Equality.Tolerance -> a -> a -> List item -> List item -> Reason
+collectionDiff tolerance expected actual expectedItems actualItems =
+    let
+        isMissingFrom : List item -> item -> Bool
+        isMissingFrom items item =
+            Basics.not (List.any (Equality.deepEqual tolerance item) items)
+    in
+    CollectionDiff
+        { expected = Internal.toString expected
+        , actual = Internal.toString actual
+        , extra =
+            actualItems
+                |> List.filter (isMissingFrom expectedItems)
+                |> List.map Internal.toString
+        , missing =
+            expectedItems
+                |> List.filter (isMissingFrom actualItems)
+                |> List.map Internal.toString
+        }
 
 
 compareWith : String -> (a -> b -> Bool) -> b -> a -> Expectation
@@ -852,7 +1135,13 @@ compareWith =
 testWith : (String -> String -> Reason) -> String -> (a -> b -> Bool) -> b -> a -> Expectation
 testWith makeReason label runTest expected actual =
     if runTest actual expected then
-        pass
+        passWith
+            (\() ->
+                { given = Nothing
+                , description = inverted label
+                , reason = makeReason (Internal.toString expected) (Internal.toString actual)
+                }
+            )
 
     else
         Test.Expectation.Fail
@@ -900,7 +1189,7 @@ nonNegativeToleranceError tolerance name result =
             { given = Nothing
             , distributionReport = Fuzz.Internal.noDistribution
             , description = "Expect." ++ name ++ " was given negative absolute and relative tolerances"
-            , reason = Custom
+            , reason = Invalid BadUsage
             }
 
     else if absolute tolerance < 0 then
@@ -908,7 +1197,7 @@ nonNegativeToleranceError tolerance name result =
             { given = Nothing
             , distributionReport = Fuzz.Internal.noDistribution
             , description = "Expect." ++ name ++ " was given a negative absolute tolerance"
-            , reason = Custom
+            , reason = Invalid BadUsage
             }
 
     else if relative tolerance < 0 then
@@ -916,7 +1205,7 @@ nonNegativeToleranceError tolerance name result =
             { given = Nothing
             , distributionReport = Fuzz.Internal.noDistribution
             , description = "Expect." ++ name ++ " was given a negative relative tolerance"
-            , reason = Custom
+            , reason = Invalid BadUsage
             }
 
     else
