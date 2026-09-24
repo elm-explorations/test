@@ -32,6 +32,8 @@
   and `Selector.exactText` now match against an element's full text content
   (similar to browser's `textContent`) instead of looking at a single text node
   in isolation.
+* [#210](https://github.com/elm-explorations/test/issues/210): `elm-explorations/webgl`
+  canvases (`WebGL.toHtml*`) are now recognized as `<canvas>` elements.
 
 ## TODOs before release
 

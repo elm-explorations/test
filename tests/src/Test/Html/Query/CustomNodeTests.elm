@@ -19,6 +19,26 @@ all =
                     |> Query.fromHtml
                     |> Query.has
                         [ text "hello with webgl" ]
+        , test "a WebGL canvas matches `tag \"canvas\"` (https://github.com/elm-explorations/test/issues/210)" <|
+            \() ->
+                webGlView
+                    |> Query.fromHtml
+                    |> Query.has [ tag "canvas" ]
+        , test "a plain div does not match `tag \"canvas\"`" <|
+            \() ->
+                div [] []
+                    |> Query.fromHtml
+                    |> Query.hasNot [ tag "canvas" ]
+        , test "an empty WebGL canvas (no entities) still matches `tag \"canvas\"`, thanks to its kernel function names" <|
+            \() ->
+                emptyWebGlView
+                    |> Query.fromHtml
+                    |> Query.has [ tag "canvas" ]
+        , test "a fully-empty WebGL canvas (no entities, no options either) still matches `tag \"canvas\"`" <|
+            \() ->
+                WebGL.toHtmlWith [] [] []
+                    |> Query.fromHtml
+                    |> Query.has [ tag "canvas" ]
         ]
 
 
@@ -32,6 +52,14 @@ webGlView =
             (WebGL.triangles [])
             {}
         ]
+
+
+emptyWebGlView : Html msg
+emptyWebGlView =
+    WebGL.toHtmlWith
+        [ WebGL.alpha True, WebGL.antialias ]
+        []
+        []
 
 
 vertexShader : Shader {} {} {}

@@ -1,6 +1,7 @@
 module Test.Html.Internal.ElmHtml.Markdown exposing
     ( MarkdownOptions, MarkdownModel
     , decodeMarkdownModel
+    , isMarkdownCustomNode
     )
 
 {-| Markdown helpers
@@ -8,6 +9,8 @@ module Test.Html.Internal.ElmHtml.Markdown exposing
 @docs MarkdownOptions, MarkdownModel
 
 @docs decodeMarkdownModel
+
+@docs isMarkdownCustomNode
 
 -}
 
@@ -53,3 +56,14 @@ decodeMarkdownModel : Json.Decode.Decoder MarkdownModel
 decodeMarkdownModel =
     field kernelConstants.markdown.markdown Json.Decode.string
         |> Json.Decode.map (MarkdownModel baseMarkdownModel.options)
+
+
+isMarkdownCustomNode : { customNodeFunctionNames : List String } -> Bool
+isMarkdownCustomNode { customNodeFunctionNames } =
+    List.any isMarkdownKernelFunctionName customNodeFunctionNames
+
+
+isMarkdownKernelFunctionName : String -> Bool
+isMarkdownKernelFunctionName name =
+    (name == "_Markdown_render")
+        || (name == "_Markdown_diff")

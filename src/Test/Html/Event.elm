@@ -419,6 +419,9 @@ findEvent eventName element =
         MarkdownNode node ->
             eventDecoder node
 
+        WebGLNode node ->
+            eventDecoder node
+
 
 checkStopPropagation : Event msg -> Result String Bool
 checkStopPropagation =

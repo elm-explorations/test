@@ -38,6 +38,14 @@ nodeToLines options nodeType =
         MarkdownNode record ->
             [ record.model.markdown ]
 
+        WebGLNode record ->
+            nodeRecordToString options
+                { tag = "canvas"
+                , children = []
+                , facts = record.facts
+                , descendantsCount = 0
+                }
+
 
 {-| same as nodeToString, but with options
 -}

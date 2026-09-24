@@ -36,6 +36,9 @@ getChildren elmHtml =
         MarkdownNode _ ->
             []
 
+        WebGLNode _ ->
+            []
+
 
 {-| Collect descendants (self included) that satisfy a predicate.
 -}
@@ -81,6 +84,9 @@ textContent node =
         CustomNode _ ->
             ""
 
+        WebGLNode _ ->
+            ""
+
         NodeEntry { children } ->
             children
                 |> List.map textContent
@@ -103,6 +109,10 @@ hasTag tag node =
 
         CustomNode _ ->
             False
+
+        WebGLNode _ ->
+            -- elm-explorations/webgl always renders a `<canvas>` element
+            tag == "canvas"
 
 
 hasClasses : List String -> ElmHtml msg -> Bool
@@ -152,6 +162,9 @@ factsOf node =
             Just record.facts
 
         MarkdownNode record ->
+            Just record.facts
+
+        WebGLNode record ->
             Just record.facts
 
         TextTag _ ->
