@@ -112,6 +112,7 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 
 -}
 
+import Array
 import Dict exposing (Dict)
 import Fuzz.Internal
 import Set exposing (Set)
@@ -1084,25 +1085,25 @@ equalWith tolerance label expected actual =
 inequalityReason : Equality.Tolerance -> a -> a -> Reason
 inequalityReason tolerance expected actual =
     case ( Equality.structureOf expected, Equality.structureOf actual ) of
-        ( Equality.AList, Equality.AList ) ->
-            listDiff (Equality.listItems expected) (Equality.listItems actual)
+        ( Equality.AList expectedList, Equality.AList actualList ) ->
+            listDiff expectedList actualList
 
-        ( Equality.AnArray, Equality.AnArray ) ->
-            listDiff (Equality.arrayItems expected) (Equality.arrayItems actual)
+        ( Equality.AnArray expectedArray, Equality.AnArray actualArray ) ->
+            listDiff (Array.toList expectedArray) (Array.toList actualArray)
 
-        ( Equality.ASet, Equality.ASet ) ->
+        ( Equality.ASet expectedSet, Equality.ASet actualSet ) ->
             collectionDiff tolerance
                 expected
                 actual
-                (Equality.setItems expected)
-                (Equality.setItems actual)
+                (Set.toList expectedSet)
+                (Set.toList actualSet)
 
-        ( Equality.ADict, Equality.ADict ) ->
+        ( Equality.ADict expectedDict, Equality.ADict actualDict ) ->
             collectionDiff tolerance
                 expected
                 actual
-                (Equality.dictItems expected)
-                (Equality.dictItems actual)
+                (Dict.toList expectedDict)
+                (Dict.toList actualDict)
 
         _ ->
             Equality (Internal.toString expected) (Internal.toString actual)

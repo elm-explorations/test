@@ -1,6 +1,6 @@
 module Test.Internal.Equality exposing
     ( Tolerance, exact, deepEqual
-    , Structure(..), structureOf, listItems, arrayItems, setItems, dictItems
+    , Structure(..), structureOf
     )
 
 {-| Structural equality that knows about numbers, plus just enough runtime
@@ -10,7 +10,7 @@ Both of these need kernel code: `Expect.equal : a -> a -> Expectation` throws
 away all the type information we'd need to do either of them in Elm.
 
 @docs Tolerance, exact, deepEqual
-@docs Structure, structureOf, listItems, arrayItems, setItems, dictItems
+@docs Structure, structureOf
 
 -}
 
@@ -62,11 +62,11 @@ deepEqual tolerance expected actual =
 {-| What a value looks like at runtime. Anything we don't have a nicer diff for
 (records, custom types, strings, numbers, ...) is `Opaque`.
 -}
-type Structure
-    = AList
-    | AnArray
-    | ASet
-    | ADict
+type Structure key item
+    = AList (List item)
+    | AnArray (Array item)
+    | ASet (Set item)
+    | ADict (Dict key item)
     | Opaque
 
 
@@ -83,7 +83,7 @@ of a collection diff. (Test code can't be compiled with `--optimize` anyway -
 this package needs `Debug.toString`.)
 
 -}
-structureOf : a -> Structure
+structureOf : a -> Structure key item
 structureOf value =
     let
         tag : String
@@ -94,57 +94,19 @@ structureOf value =
         Opaque
 
     else if tag == tags.listNil || tag == tags.listCons then
-        AList
+        AList (kernelUnsafeCoerce value)
 
     else if tag == tags.array then
-        AnArray
+        AnArray (kernelUnsafeCoerce value)
 
     else if tag == tags.setEmpty || tag == tags.setNonEmpty then
-        ASet
+        ASet (kernelUnsafeCoerce value)
 
     else if tag == tags.dictEmpty || tag == tags.dictNonEmpty then
-        ADict
+        ADict (kernelUnsafeCoerce value)
 
     else
         Opaque
-
-
-{-| Only call this on a value [`structureOf`](#structureOf) says is an `AList`.
--}
-listItems : a -> List item
-listItems value =
-    kernelUnsafeCoerce value
-
-
-{-| Only call this on a value [`structureOf`](#structureOf) says is an `AnArray`.
--}
-arrayItems : a -> List item
-arrayItems value =
-    Array.toList (kernelUnsafeCoerce value)
-
-
-{-| Only call this on a value [`structureOf`](#structureOf) says is an `ASet`.
--}
-setItems : a -> List item
-setItems value =
-    let
-        set : Set Int
-        set =
-            kernelUnsafeCoerce value
-    in
-    List.map kernelUnsafeCoerce (Set.toList set)
-
-
-{-| Only call this on a value [`structureOf`](#structureOf) says is an `ADict`.
--}
-dictItems : a -> List ( key, value )
-dictItems value =
-    let
-        dict : Dict Int Int
-        dict =
-            kernelUnsafeCoerce value
-    in
-    List.map kernelUnsafeCoerce (Dict.toList dict)
 
 
 
