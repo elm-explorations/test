@@ -54,3 +54,4 @@ type InvalidReason
     | DuplicatedName
     | DistributionInsufficient
     | DistributionBug
+    | BadUsage

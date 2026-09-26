@@ -59,7 +59,10 @@ validatedFuzzTest desc fuzzer getExpectation distribution =
             in
             case runResult.failure of
                 Nothing ->
-                    Pass runResult.distributionReport
+                    Pass
+                        { distributionReport = runResult.distributionReport
+                        , ifInverted = Nothing
+                        }
 
                 Just failure ->
                     formatExpectation

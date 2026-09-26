@@ -1,5 +1,6 @@
 module Test.Expectation exposing
     ( Expectation(..)
+    , InvertedFailure
     , withDistributionReport
     , withGiven
     )
@@ -9,13 +10,26 @@ import Test.Runner.Failure exposing (Reason)
 
 
 type Expectation
-    = Pass DistributionReport
+    = Pass
+        { distributionReport : DistributionReport
+        , ifInverted : Maybe (() -> InvertedFailure)
+        }
     | Fail
         { given : Maybe String
         , description : String
         , reason : Reason
         , distributionReport : DistributionReport
         }
+
+
+{-| The failure that `Expect.not` should report when it inverts a passing
+expectation.
+-}
+type alias InvertedFailure =
+    { given : Maybe String
+    , description : String
+    , reason : Reason
+    }
 
 
 {-| Set the given (fuzz test input) of an expectation.
@@ -48,5 +62,5 @@ withDistributionReport newDistributionReport expectation =
                 , distributionReport = newDistributionReport
                 }
 
-        Pass _ ->
-            Pass newDistributionReport
+        Pass passed ->
+            Pass { passed | distributionReport = newDistributionReport }
