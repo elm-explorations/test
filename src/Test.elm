@@ -33,7 +33,7 @@ import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
 {-| A test which has yet to be evaluated. When evaluated, it produces one
-or more [`Expectation`](../Expect#Expectation)s.
+or more [`Expectation`](Expect#Expectation)s.
 
 See [`test`](#test) and [`fuzz`](#fuzz) for some ways to create a `Test`.
 
@@ -180,7 +180,7 @@ parameterized untrimmedDesc cases toTest =
 
 
 {-| Return a [`Test`](#Test) that evaluates a single
-[`Expectation`](../Expect#Expectation).
+[`Expectation`](Expect#Expectation).
 
     import Expect
     import Test exposing (test)
@@ -471,7 +471,7 @@ fuzzWithExamples desc options fuzzer examples getTest =
 
 
 {-| Take a function that produces a test, and calls it several (usually 100) times, using a randomly-generated input
-from a [`Fuzzer`](http://package.elm-lang.org/packages/elm-explorations/test/latest/Fuzz) each time. This allows you to
+from a [`Fuzzer`](Fuzz#Fuzzer) each time. This allows you to
 test that a property that should always be true is indeed true under a wide variety of conditions. The function also
 takes a string describing the test.
 

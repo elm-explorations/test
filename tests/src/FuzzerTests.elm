@@ -1,10 +1,12 @@
 module FuzzerTests exposing (fuzzerTests)
 
 import Array
+import Dict
 import Expect exposing (Expectation)
 import Fuzz exposing (..)
 import Helpers exposing (..)
 import Random
+import Set
 import Test exposing (..)
 import Test.Distribution
 import Test.Runner exposing (Simplifiable)
@@ -295,7 +297,7 @@ fuzzerSpecificationTests =
                 , cannotGenerateSatisfying "NaN" Fuzz.percentage isNaN
                 , simplifiesTowards "simplest = lower limit = zero" 0 Fuzz.percentage fullySimplify
                 , simplifiesTowards "non-zero = upper limit = just below 1" (1 - 2 ^ -52) Fuzz.percentage (\v -> v == 0)
-                , simplifiesTowards "non-zero non-one, doesn't shrink nicely"
+                , simplifiesTowards "non-zero non-one, doesn't simplify nicely"
                     0.25000000000000006
                     Fuzz.percentage
                     (\v -> v == 1 - 2 ^ -52 || v <= 0.25)
@@ -320,6 +322,53 @@ fuzzerSpecificationTests =
                     (\c -> Char.toCode c > 0x0001F525)
                 , simplifiesTowards "simplest" ' ' Fuzz.char fullySimplify
                 , simplifiesTowards "next simplest" '!' Fuzz.char (\c -> c == ' ')
+                ]
+            , describe "charRange"
+                [ passes "Range 'a'..'z'" (Fuzz.charRange 'a' 'z') (\c -> c >= 'a' && c <= 'z')
+                , canGenerate 'a' (Fuzz.charRange 'a' 'z')
+                , canGenerate 'z' (Fuzz.charRange 'a' 'z')
+                , simplifiesTowards "simplest" 'a' (Fuzz.charRange 'a' 'z') fullySimplify
+                , passes "Works with reversed args" (Fuzz.charRange 'z' 'a') (\c -> c >= 'a' && c <= 'z')
+                , passes "Single char range" (Fuzz.charRange 'a' 'a') (\c -> c == 'a')
+                ]
+            , describe "binChar"
+                [ passes "Range '0'..'1'" Fuzz.binChar (\c -> c == '0' || c == '1')
+                , canGenerate '0' Fuzz.binChar
+                , canGenerate '1' Fuzz.binChar
+                ]
+            , describe "octChar"
+                [ passes "Range '0'..'7'" Fuzz.octChar (\c -> c >= '0' && c <= '7')
+                , canGenerate '0' Fuzz.octChar
+                , canGenerate '7' Fuzz.octChar
+                ]
+            , describe "numChar"
+                [ passes "Range '0'..'9'" Fuzz.numChar Char.isDigit
+                , canGenerate '0' Fuzz.numChar
+                , canGenerate '9' Fuzz.numChar
+                ]
+            , describe "hexChar"
+                [ passes "Range '0'..'9','a'..'f'"
+                    Fuzz.hexChar
+                    (\c -> Char.isDigit c || (c >= 'a' && c <= 'f'))
+                , canGenerate '0' Fuzz.hexChar
+                , canGenerate '9' Fuzz.hexChar
+                , canGenerate 'a' Fuzz.hexChar
+                , canGenerate 'f' Fuzz.hexChar
+                , cannotGenerate 'g' Fuzz.hexChar
+                , cannotGenerate 'A' Fuzz.hexChar
+                , cannotGenerate 'F' Fuzz.hexChar
+                ]
+            , describe "alphaChar"
+                [ passes "ASCII letters" Fuzz.alphaChar Char.isAlpha
+                , canGenerateSatisfying "lowercase" Fuzz.alphaChar Char.isLower
+                , canGenerateSatisfying "uppercase" Fuzz.alphaChar Char.isUpper
+                , cannotGenerate '0' Fuzz.alphaChar
+                ]
+            , describe "alphaNumChar"
+                [ passes "ASCII letters and digits" Fuzz.alphaNumChar (\c -> Char.isAlpha c || Char.isDigit c)
+                , canGenerateSatisfying "alpha" Fuzz.alphaNumChar Char.isAlpha
+                , canGenerateSatisfying "digit" Fuzz.alphaNumChar Char.isDigit
+                , cannotGenerate '!' Fuzz.alphaNumChar
                 ]
             , describe "asciiString"
                 [ canGenerate "" Fuzz.asciiString
@@ -565,6 +614,98 @@ fuzzerSpecificationTests =
                 , simplifiesTowards "simplest" Array.empty (Fuzz.array Fuzz.int) fullySimplify
                 , simplifiesTowards "next simplest" (Array.fromList [ 0 ]) (Fuzz.array Fuzz.int) (\x -> Array.isEmpty x)
                 ]
+            , describe "arrayOfLength"
+                [ passes "always length 3"
+                    (Fuzz.arrayOfLength 3 Fuzz.unit)
+                    (\array -> Array.length array == 3)
+                , passes "negative length -> empty array"
+                    (Fuzz.arrayOfLength -3 Fuzz.unit)
+                    Array.isEmpty
+                , simplifiesTowards "simplest" (Array.fromList [ 0, 0, 0 ]) (Fuzz.arrayOfLength 3 Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Array.fromList [ 0, 0, 1 ]) (Fuzz.arrayOfLength 3 Fuzz.int) (\x -> x == Array.fromList [ 0, 0, 0 ])
+                ]
+            , describe "arrayOfLengthBetween"
+                [ passes "always in range"
+                    (Fuzz.arrayOfLengthBetween 2 5 Fuzz.unit)
+                    (\array ->
+                        let
+                            length =
+                                Array.length array
+                        in
+                        length >= 2 && length <= 5
+                    )
+                , simplifiesTowards "simplest" (Array.fromList [ 0, 0 ]) (Fuzz.arrayOfLengthBetween 2 5 Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Array.fromList [ 0, 1 ]) (Fuzz.arrayOfLengthBetween 2 5 Fuzz.int) (\x -> x == Array.fromList [ 0, 0 ])
+                , doesNotReject "swapped arguments" (Fuzz.arrayOfLengthBetween 5 -5 Fuzz.unit)
+                ]
+            , describe "shuffledArray"
+                [ passes
+                    "contains the exact same values as in original array"
+                    (Fuzz.list Fuzz.int
+                        |> Fuzz.andThen
+                            (\ints ->
+                                let
+                                    original =
+                                        Array.fromList ints
+                                in
+                                Fuzz.pair
+                                    (Fuzz.constant original)
+                                    (Fuzz.shuffledArray original)
+                            )
+                    )
+                    (\( original, shuffled ) ->
+                        List.sort (Array.toList original) == List.sort (Array.toList shuffled)
+                    )
+                , passes "has the same length as the original array"
+                    (Fuzz.list Fuzz.int
+                        |> Fuzz.andThen
+                            (\ints ->
+                                let
+                                    original =
+                                        Array.fromList ints
+                                in
+                                Fuzz.pair
+                                    (Fuzz.constant original)
+                                    (Fuzz.shuffledArray original)
+                            )
+                    )
+                    (\( original, shuffled ) ->
+                        Array.length original == Array.length shuffled
+                    )
+                , passes "empty array stays empty"
+                    (Fuzz.shuffledArray Array.empty)
+                    Array.isEmpty
+                , canGenerate (Array.fromList [ 30, 80, 50 ]) (Fuzz.shuffledArray (Array.fromList [ 50, 30, 80 ]))
+                , simplifiesTowards "simplest = original ordering"
+                    (Array.fromList [ 50, 30, 80 ])
+                    (Fuzz.shuffledArray (Array.fromList [ 50, 30, 80 ]))
+                    fullySimplify
+                ]
+            , describe "set"
+                [ canGenerateWith { runs = 1000 } Set.empty (Fuzz.set Fuzz.int)
+                , canGenerateSatisfying "non-empty set"
+                    (Fuzz.set Fuzz.int)
+                    (not << Set.isEmpty)
+                , passes "values in range"
+                    (Fuzz.set (Fuzz.intRange 1 10))
+                    (\set -> List.all (\n -> n >= 1 && n <= 10) (Set.toList set))
+                , simplifiesTowards "simplest" Set.empty (Fuzz.set Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Set.singleton 0) (Fuzz.set Fuzz.int) Set.isEmpty
+                ]
+            , describe "dict"
+                [ canGenerateWith { runs = 1000 } Dict.empty (Fuzz.dict Fuzz.int Fuzz.int)
+                , canGenerateSatisfying "non-empty dict"
+                    (Fuzz.dict Fuzz.int Fuzz.int)
+                    (not << Dict.isEmpty)
+                , passes "keys and values in range"
+                    (Fuzz.dict (Fuzz.intRange 1 10) (Fuzz.intRange 20 30))
+                    (\dict ->
+                        List.all (\k -> k >= 1 && k <= 10) (Dict.keys dict)
+                            && List.all (\v -> v >= 20 && v <= 30) (Dict.values dict)
+                    )
+                , simplifiesTowards "simplest" Dict.empty (Fuzz.dict Fuzz.int Fuzz.int) fullySimplify
+                , simplifiesTowards "next simplest" (Dict.singleton 0 0) (Fuzz.dict Fuzz.int Fuzz.int) Dict.isEmpty
+                ]
             , describe "uniformInt"
                 [ cannotGenerateSatisfying "any Infinity"
                     (Fuzz.uniformInt 10)
@@ -658,17 +799,6 @@ fuzzerSpecificationTests =
                     [ 50, 30, 80 ]
                     (Fuzz.shuffledList [ 50, 30, 80 ])
                     fullySimplify
-                , passes "list sort is stable"
-                    (Fuzz.listOfLength 5 Fuzz.int)
-                    (\list ->
-                        let
-                            sortBy indexes xs =
-                                List.map2 Tuple.pair indexes xs
-                                    |> List.sortBy Tuple.first
-                                    |> List.map Tuple.second
-                        in
-                        sortBy [ 0, 0, 0, 0, 0 ] list == sortBy [ 0, 1, 2, 3, 4 ] list
-                    )
                 ]
             , describe "sequence"
                 [ passes "keeps the list length"

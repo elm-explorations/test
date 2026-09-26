@@ -581,8 +581,8 @@ hasNot selectors query =
             else
                 Expect.pass
 
-        Err _ ->
-            Expect.pass
+        Err error ->
+            Expect.fail (queryErrorToString error)
 
 
 showSelectorOutcome : List (ElmHtml msg) -> Selector -> String

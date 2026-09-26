@@ -2,11 +2,15 @@ module Fuzz exposing
     ( Fuzzer, examples, labelExamples
     , int, intRange, uniformInt, intAtLeast, intAtMost
     , float, niceFloat, percentage, floatRange, floatAtLeast, floatAtMost
-    , char, asciiChar
+    , char, asciiChar, charRange
+    , numChar, hexChar, octChar, binChar
+    , alphaChar, alphaNumChar
     , string, stringOfLength, stringOfLengthBetween, asciiString, asciiStringOfLength, asciiStringOfLengthBetween
     , pair, triple
     , list, listOfLength, listOfLengthBetween, shuffledList
-    , array, maybe, result
+    , array, arrayOfLength, arrayOfLengthBetween, shuffledArray
+    , set, dict
+    , maybe, result
     , bool, unit, order, weightedBool
     , oneOf, oneOfValues, frequency, frequencyValues
     , constant, invalid, filter, filterMap
@@ -39,7 +43,9 @@ can usually find the simplest input that reproduces a bug.
 
 ## String-related fuzzers
 
-@docs char, asciiChar
+@docs char, asciiChar, charRange
+@docs numChar, hexChar, octChar, binChar
+@docs alphaChar, alphaNumChar
 @docs string, stringOfLength, stringOfLengthBetween, asciiString, asciiStringOfLength, asciiStringOfLengthBetween
 
 
@@ -47,7 +53,9 @@ can usually find the simplest input that reproduces a bug.
 
 @docs pair, triple
 @docs list, listOfLength, listOfLengthBetween, shuffledList
-@docs array, maybe, result
+@docs array, arrayOfLength, arrayOfLengthBetween, shuffledArray
+@docs set, dict
+@docs maybe, result
 
 
 ## Other fuzzers
@@ -79,11 +87,13 @@ import Dict exposing (Dict)
 import Fuzz.Float
 import Fuzz.Internal exposing (Fuzzer(..))
 import GenResult exposing (GenResult(..))
+import MicroArrayExtra
 import MicroDictExtra as Dict
 import MicroListExtra as List
 import PRNG exposing (PRNG(..))
 import Random
 import RandomRun
+import Set exposing (Set)
 
 
 {-| The representation of fuzzers is opaque. Conceptually, a `Fuzzer a` consists
@@ -307,11 +317,11 @@ use [`Fuzz.niceFloat`](#niceFloat).
 float : Fuzzer Float
 float =
     intFrequency
-        [ {- Just to shrink nicely. The wellShrinkingFloat below needs 3 items
+        [ {- Just to simplify nicely. The wellSimplifyingFloat below needs 3 items
              in the RandomRun so sometimes it's not an option anymore.
           -}
           ( 1, constant 0 )
-        , ( 5, wellShrinkingFloat )
+        , ( 5, wellSimplifyingFloat )
         , ( 1, constant (1 / 0) )
         , ( 1, constant (-1 / 0) )
         , ( 1, constant (0 / 0) )
@@ -327,20 +337,20 @@ Will never try infinities or NaN.
 -}
 niceFloat : Fuzzer Float
 niceFloat =
-    wellShrinkingFloat
+    wellSimplifyingFloat
 
 
 {-| This float fuzzer will prefer non-fractional floats and (if it must) nice
 fractions.
 -}
-wellShrinkingFloat : Fuzzer Float
-wellShrinkingFloat =
+wellSimplifyingFloat : Fuzzer Float
+wellSimplifyingFloat =
     map3
         (\hi lo shouldNegate ->
             let
                 f : Float
                 f =
-                    Fuzz.Float.wellShrinkingFloat ( hi, lo )
+                    Fuzz.Float.wellSimplifyingFloat ( hi, lo )
             in
             if shouldNegate then
                 negate f
@@ -356,7 +366,7 @@ wellShrinkingFloat =
 
 {-| Fuzzer generating floats in range `n..Infinity`.
 
-The positive part of the range will shrink nicely, the negative part will shrink uniformly.
+The positive part of the range will simplify nicely, the negative part will simplify uniformly.
 
 The fuzzer will occasionally try the minimum, 0 (if in range) and Infinity.
 
@@ -366,7 +376,7 @@ floatAtLeast n =
     if n <= 0 then
         intFrequency
             [ ( 4, floatRange n 0 )
-            , ( 4, wellShrinkingFloat |> map abs )
+            , ( 4, wellSimplifyingFloat |> map abs )
             , ( 2, constant n )
             , ( 2, constant (1 / 0) )
             , ( 1, constant 0 )
@@ -374,7 +384,7 @@ floatAtLeast n =
 
     else
         intFrequency
-            [ ( 8, wellShrinkingFloat |> map (\x -> n + abs x) )
+            [ ( 8, wellSimplifyingFloat |> map (\x -> n + abs x) )
             , ( 2, constant n )
             , ( 2, constant (1 / 0) )
             ]
@@ -382,7 +392,7 @@ floatAtLeast n =
 
 {-| Fuzzer generating floats in range `-Infinity..n`.
 
-The negative part of the range will shrink nicely, the positive part will shrink uniformly.
+The negative part of the range will simplify nicely, the positive part will simplify uniformly.
 
 The fuzzer will occasionally try the maximum, 0 (if in range) and -Infinity.
 
@@ -392,7 +402,7 @@ floatAtMost n =
     if n >= 0 then
         intFrequency
             [ ( 4, floatRange 0 n )
-            , ( 4, wellShrinkingFloat |> map (negate << abs) )
+            , ( 4, wellSimplifyingFloat |> map (negate << abs) )
             , ( 2, constant n )
             , ( 2, constant (-1 / 0) )
             , ( 1, constant 0 )
@@ -400,7 +410,7 @@ floatAtMost n =
 
     else
         intFrequency
-            [ ( 8, wellShrinkingFloat |> map (\x -> n - abs x) )
+            [ ( 8, wellSimplifyingFloat |> map (\x -> n - abs x) )
             , ( 2, constant n )
             , ( 2, constant (-1 / 0) )
             ]
@@ -408,7 +418,7 @@ floatAtMost n =
 
 {-| A fuzzer for float values within between a given minimum and maximum (inclusive).
 
-Shrunken values will also be within the range.
+Simplified values will also be within the range.
 
 -}
 floatRange : Float -> Float -> Fuzzer Float
@@ -452,8 +462,8 @@ floatRange lo hi =
             ]
 
 
-{-| This float fuzzer won't shrink nicely (to integers or nice fractions). For
-that, use `wellShrinkingFloat`.
+{-| This float fuzzer won't simplify nicely (to integers or nice fractions). For
+that, use `wellSimplifyingFloat`.
 -}
 scaledFloat : Float -> Float -> Fuzzer Float
 scaledFloat lo hi =
@@ -473,7 +483,7 @@ inclusive and `1.0` exclusive, in an uniform fashion.
 
 Will occasionally try the boundaries.
 
-Doesn't shrink to nice values like [`Fuzz.float`](#float) does; shrinks towards
+Doesn't simplify to nice values like [`Fuzz.float`](#float) does; simplifies towards
 zero.
 
 -}
@@ -511,8 +521,7 @@ whole Unicode range.
 asciiChar : Fuzzer Char
 asciiChar =
     -- TODO: what about preferring nasty chars like \, /, $, @ (interpolation, SQL injections, ...)?
-    intRange 32 126
-        |> map Char.fromCode
+    charRange ' ' '~'
 
 
 {-| A fuzzer for arbitrary Unicode char values.
@@ -569,6 +578,70 @@ char =
         , ( 1, combiningDiacriticalMarkChar )
         , ( 1, emojiChar )
         , ( 1, arbitraryUnicodeChar )
+        ]
+
+
+{-| A fuzzer for Char values in the given (inclusive) range.
+
+    Fuzz.charRange 'a' 'z' : Fuzzer Char
+    Fuzz.charRange 'A' 'Z' : Fuzzer Char
+    Fuzz.charRange '0' '9' : Fuzzer Char
+
+-}
+charRange : Char -> Char -> Fuzzer Char
+charRange lo hi =
+    intRange (Char.toCode lo) (Char.toCode hi)
+        |> map Char.fromCode
+
+
+{-| A fuzzer for binary digit chars: `'0'..'1'`.
+-}
+binChar : Fuzzer Char
+binChar =
+    charRange '0' '1'
+
+
+{-| A fuzzer for octal digit chars: `'0'..'7'`.
+-}
+octChar : Fuzzer Char
+octChar =
+    charRange '0' '7'
+
+
+{-| A fuzzer for decimal digit chars: `'0'..'9'`.
+-}
+numChar : Fuzzer Char
+numChar =
+    charRange '0' '9'
+
+
+{-| A fuzzer for hexadecimal digit chars: `'0'..'9'`, `'a'..'f'`.
+-}
+hexChar : Fuzzer Char
+hexChar =
+    oneOf
+        [ numChar
+        , charRange 'a' 'f'
+        ]
+
+
+{-| A fuzzer for ASCII letter chars: `'a'..'z'`, `'A'..'Z'`.
+-}
+alphaChar : Fuzzer Char
+alphaChar =
+    oneOf
+        [ charRange 'a' 'z'
+        , charRange 'A' 'Z'
+        ]
+
+
+{-| A fuzzer for alphanumeric ASCII chars: `'a'..'z'`, `'A'..'Z'`, `'0'..'9'`.
+-}
+alphaNumChar : Fuzzer Char
+alphaNumChar =
+    oneOf
+        [ alphaChar
+        , numChar
         ]
 
 
@@ -750,11 +823,78 @@ listOfLengthBetween lo hi itemFuzzer =
 
 
 {-| Given a fuzzer of a type, create a fuzzer of an array of that type.
-Generates random arrays of varying length, favoring shorter arrays.
+Generates random arrays of varying length, up to 32 elements.
 -}
 array : Fuzzer a -> Fuzzer (Array a)
 array fuzzer =
     map Array.fromList (list fuzzer)
+
+
+{-| Given a fuzzer of a type, create a fuzzer of an array of that type.
+Generates random arrays of exactly the specified length.
+-}
+arrayOfLength : Int -> Fuzzer a -> Fuzzer (Array a)
+arrayOfLength n fuzzer =
+    map Array.fromList (listOfLength n fuzzer)
+
+
+{-| Given a fuzzer of a type, create a fuzzer of an array of that type.
+Generates random arrays of length between the two given integers.
+-}
+arrayOfLengthBetween : Int -> Int -> Fuzzer a -> Fuzzer (Array a)
+arrayOfLengthBetween lo hi fuzzer =
+    map Array.fromList (listOfLengthBetween lo hi fuzzer)
+
+
+{-| A fuzzer that shuffles the given array.
+-}
+shuffledArray : Array a -> Fuzzer (Array a)
+shuffledArray input =
+    {- Uses Fisher-Yates:
+       https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+    -}
+    let
+        len =
+            Array.length input
+
+        go : Int -> Fuzzer (Array a) -> Fuzzer (Array a)
+        go i acc =
+            if i >= len then
+                acc
+
+            else
+                go (i + 1) (shuffledArrayStep i acc)
+    in
+    go 1 (constant input)
+
+
+{-| Helper to work around the TCO bug
+(<https://github.com/elm/compiler/issues/2268>) while keeping TCO itself.
+-}
+shuffledArrayStep : Int -> Fuzzer (Array a) -> Fuzzer (Array a)
+shuffledArrayStep i acc =
+    acc
+        |> andThen
+            (\arr ->
+                uniformInt i
+                    |> map (\k -> MicroArrayExtra.swap i (i - k) arr)
+            )
+
+
+{-| Given a fuzzer of a comparable type, create a fuzzer of a set of that type.
+Generates random sets of varying size, up to 32 elements.
+-}
+set : Fuzzer comparable -> Fuzzer (Set comparable)
+set fuzzer =
+    map Set.fromList (list fuzzer)
+
+
+{-| Given fuzzers for a comparable key type and a value type, create a fuzzer of a dict.
+Generates random dicts of varying size, up to 32 entries.
+-}
+dict : Fuzzer comparable -> Fuzzer a -> Fuzzer (Dict comparable a)
+dict keyFuzzer valueFuzzer =
+    map Dict.fromList (list (pair keyFuzzer valueFuzzer))
 
 
 {-| Create a fuzzer of pairs from two fuzzers.
@@ -1436,7 +1576,7 @@ items:
             )
 
 This will work! Different fuzzers will have different PRNG usage patterns
-though and will shrink with varying success. The currently best known way to
+though and will simplify with varying success. The currently best known way to
 fuzz a list of items is based on a "flip a coin, `andThen` generate a value and
 repeat or end" approach, and is implemented in the [`Fuzz.list`](#list) helpers
 in this module. Use them instead of rolling your own list generator!
@@ -1480,14 +1620,14 @@ lazy thunk =
 -}
 shuffledList : List a -> Fuzzer (List a)
 shuffledList items =
-    items
-        |> traverse (\item -> int |> map (\index -> ( index, item )))
-        |> map
-            (\listWithIndexes ->
-                listWithIndexes
-                    |> List.sortBy Tuple.first
-                    |> List.map Tuple.second
-            )
+    -- Array round-robin is fast enough for small lists and faster for large
+    -- lists: Array swaps are O(n log n) while a List implementation of
+    -- Fisher-Yates would be O(n^2).
+    -- Previously we had a sort-random-key implementation which had 2x the
+    -- RandomRun footprint and had slightly worse statistical properties
+    -- (identity permutation was favored).
+    shuffledArray (Array.fromList items)
+        |> map Array.toList
 
 
 {-| Executes every fuzzer in the list and collects their values into the returned
@@ -1600,7 +1740,7 @@ rollDice maxValue diceGenerator =
 
                         Just ( hardcodedChoice, restOfChoices ) ->
                             if hardcodedChoice < 0 then
-                                -- This happens eg. when decrementing after delete shrink
+                                -- This happens eg. when decrementing after a delete-chunk simplify
                                 Rejected
                                     { reason = "elm-test internals: generated a choice < 0"
                                     , prng = prng
@@ -1840,9 +1980,9 @@ Convert a Random.Generator into a Fuzzer.
 
 Works internally by generating a random seed and running `Random.step`.
 
-Note this will not shrink well (in fact it will shrink randomly, to smaller
+Note this will not simplify well (in fact it will simplify randomly, to smaller
 _seeds_), as Generators are black boxes from the perspective of Fuzzers. If you
-want meaningful shrinking, define fuzzers using the other functions in this
+want meaningful simplifying, define fuzzers using the other functions in this
 module!
 
 -}

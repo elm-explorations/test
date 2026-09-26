@@ -47,11 +47,20 @@
   (With `--optimize`, where constructor tags are uninformative integers, the
   diffs fall back to the plain `Equality` reason. Pass/fail verdicts are the
   same in both compilation modes.)
+* [#223](https://github.com/elm-explorations/test/issues/223): Added
+  `Fuzz.charRange` and convenience Char fuzzers: `Fuzz.binChar`, `octChar`,
+  `hexChar`, `numChar`, `alphaChar` and `alphaNumChar`.
+* [#236](https://github.com/elm-explorations/test/issues/236): Added
+  `Fuzz.set` and `Fuzz.dict`.
+* [#238](https://github.com/elm-explorations/test/issues/238): Added
+  `Fuzz.arrayOfLength`, `Fuzz.arrayOfLengthBetween` and `Fuzz.shuffledArray`.
 
 ### Performance improvements
 
 * [#272](https://github.com/elm-explorations/test/pull/272): Reimplemented
   `RandomRun` with TypedArrays for faster fuzzing and simplifying operations.
+* Reimplemented `Fuzz.shuffledList` with Fisher-Yates, got a smaller RandomRun
+  footprint and slightly better statistical properties.
 
 ### Bugfixes
 
@@ -61,6 +70,15 @@
   and `Selector.exactText` now match against an element's full text content
   (similar to browser's `textContent`) instead of looking at a single text node
   in isolation.
+* [#176](https://github.com/elm-explorations/test/issues/176): `Query.hasNot`
+  no longer turns a failure from an earlier step in the query chain (e.g. a
+  `Query.find` that matched nothing) into a pass. `hasNot` now only inverts
+  its own selector check.
+
+### Other
+
+* [#117](https://github.com/elm-explorations/test/issues/117): Fixed broken
+  documentation links.
 
 ## TODOs before release
 

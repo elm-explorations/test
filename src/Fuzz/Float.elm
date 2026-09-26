@@ -6,7 +6,7 @@ module Fuzz.Float exposing
     , maxFractionalFloat
     , setExponent
     , setMantissa
-    , wellShrinkingFloat
+    , wellSimplifyingFloat
     )
 
 import Array exposing (Array)
@@ -105,8 +105,8 @@ For how the reordering works, read the Hypothesis file, but essentially it will
 prefer simpler fractions and smaller positive numbers, so eg. 0, 0.5, 0.25, ...
 
 -}
-wellShrinkingFloat : ( Int, Int ) -> Float
-wellShrinkingFloat ( hi, lo ) =
+wellSimplifyingFloat : ( Int, Int ) -> Float
+wellSimplifyingFloat ( hi, lo ) =
     if isFractional hi then
         let
             rawExponent : Int

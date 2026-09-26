@@ -412,13 +412,13 @@ deleteChunkTests =
                     inBounds =
                         c.startIndex + c.size <= len && c.startIndex >= 0
 
-                    shrinks =
+                    simplifies =
                         inBounds && c.size > 0
 
                     resultLen =
                         RandomRun.length (RandomRun.deleteChunk c r)
                 in
-                if shrinks then
+                if simplifies then
                     (resultLen < len)
                         |> Expect.equal True
                         |> Expect.onFail "deleting an in-bounds chunk with size > 0 should shorten the run"

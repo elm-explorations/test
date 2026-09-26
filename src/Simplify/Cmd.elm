@@ -21,8 +21,8 @@ type SimplifyCmdType
     | {- 64bit floats are represented by pairs of two 32bit integers (plus one
          0/1 bool-int to the right of them to handle the sign).
 
-         That makes them harder to shrink: the MinimizeChoice shrinker just cares
-         about one number and the RedistributeChoices shrinker has the (unhelpful
+         That makes them harder to simplify: the MinimizeChoice simplifier just cares
+         about one number and the RedistributeChoices simplifier has the (unhelpful
          for floats) property that the sum of the integers must be preserved.
 
          What we need is to minimize parts of the integers in separation:
