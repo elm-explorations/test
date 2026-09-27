@@ -57,3 +57,35 @@ jobs:
 
       - name: Check formatting
         run: npm run format
+
+  elm-review:
+    # This job is to run elm-review
+    name: elm-review
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node: ['26']
+    steps:
+      # Clone the repository
+      - uses: actions/checkout@v7
+
+      # Setup Node JS
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # Install elm-review
+      - name: Install elm-review
+        run: npm ci --no-audit
+
+      # Install elm and cache ELM_HOME
+      - name: Install elm
+        uses: mpizenberg/elm-tooling-action@v2
+        with:
+          cache-key: tests-${{ matrix.os }}-node${{ matrix.node }}-0
+          cache-restore-key: tests-${{ matrix.os }}-node${{ matrix.node }}
+
+      - name: Run elm-review
+        run: npm run review
