@@ -28,8 +28,8 @@ all =
                     in
                     toTests suite
                         |> Expect.equal
-                            { seenSkip = False
-                            , seenOnly = True
+                            { excludedDueToSkip = 0
+                            , excludedDueToOnly = Just 2
                             , unitTestsLabels = [ [ "three tests", "two tests", "is an only" ] ]
                             , fuzzTestsLabels = []
                             }
@@ -59,8 +59,8 @@ all =
                     in
                     toTests suite
                         |> Expect.equal
-                            { seenSkip = False
-                            , seenOnly = True
+                            { excludedDueToSkip = 0
+                            , excludedDueToOnly = Just 4
                             , unitTestsLabels =
                                 [ [ "root", "B", "1" ]
                                 , [ "root", "C", "2" ]
@@ -84,8 +84,8 @@ all =
                     in
                     toTests suite
                         |> Expect.equal
-                            { seenSkip = True
-                            , seenOnly = True
+                            { excludedDueToSkip = 1
+                            , excludedDueToOnly = Just 1
                             , unitTestsLabels = [ [ "three tests", "two tests", "fails" ] ]
                             , fuzzTestsLabels = []
                             }
@@ -104,8 +104,8 @@ all =
                     in
                     toTests suite
                         |> Expect.equal
-                            { seenSkip = True
-                            , seenOnly = False
+                            { excludedDueToSkip = 2
+                            , excludedDueToOnly = Nothing
                             , unitTestsLabels = [ [ "three tests", "passes" ] ]
                             , fuzzTestsLabels = []
                             }
@@ -124,8 +124,8 @@ all =
                     in
                     toTests suite
                         |> Expect.equal
-                            { seenSkip = True
-                            , seenOnly = False
+                            { excludedDueToSkip = 2
+                            , excludedDueToOnly = Nothing
                             , unitTestsLabels = [ [ "three tests", "passes" ] ]
                             , fuzzTestsLabels = []
                             }
@@ -133,8 +133,8 @@ all =
                 \_ ->
                     toTests (Test.skip <| test "passes" expectPass)
                         |> Expect.equal
-                            { seenSkip = True
-                            , seenOnly = False
+                            { excludedDueToSkip = 1
+                            , excludedDueToOnly = Nothing
                             , unitTestsLabels = []
                             , fuzzTestsLabels = []
                             }
@@ -142,8 +142,8 @@ all =
                 \_ ->
                     toTests (test "passes" expectPass)
                         |> Expect.equal
-                            { seenSkip = False
-                            , seenOnly = False
+                            { excludedDueToSkip = 0
+                            , excludedDueToOnly = Nothing
                             , unitTestsLabels = [ [ "passes" ] ]
                             , fuzzTestsLabels = []
                             }
@@ -230,8 +230,8 @@ all =
 toTests :
     Test
     ->
-        { seenSkip : Bool
-        , seenOnly : Bool
+        { excludedDueToSkip : Int
+        , excludedDueToOnly : Maybe Int
         , unitTestsLabels : List (List String)
         , fuzzTestsLabels : List (List String)
         }
@@ -240,8 +240,8 @@ toTests test =
         tests =
             Runner.toTests test
     in
-    { seenSkip = Runner.getSeenSkip tests
-    , seenOnly = Runner.getSeenOnly tests
+    { excludedDueToSkip = Runner.getExcludedDueToSkip tests
+    , excludedDueToOnly = Runner.getExcludedDueToOnly tests
     , unitTestsLabels =
         Runner.getUnitTests tests
             |> Array.toList

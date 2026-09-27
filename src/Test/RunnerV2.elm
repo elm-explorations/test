@@ -1,5 +1,5 @@
 module Test.RunnerV2 exposing
-    ( toTests, Tests, getUnitTests, getFuzzTests, getSeenSkip, getSeenOnly
+    ( toTests, Tests, getUnitTests, getFuzzTests, getExcludedDueToSkip, getExcludedDueToOnly
     , UnitTest, getUnitTestTag, getUnitTestLabels, runUnitTest, runUnitTestWithUnbufferedLogs
     , UnitTestExpectation(..), UnitTestFailData, getUnitTestFailDescription, getUnitTestFailReason
     , FuzzTest, getFuzzTestTag, getFuzzTestLabels, getFuzzTestRuns, runFuzzTest, runFuzzTestWithUnbufferedLogs
@@ -18,7 +18,7 @@ This module supersedes the deprecated [Test.Runner](Test.Runner) module.
 
 ## Consume tests
 
-@docs toTests, Tests, getUnitTests, getFuzzTests, getSeenSkip, getSeenOnly
+@docs toTests, Tests, getUnitTests, getFuzzTests, getExcludedDueToSkip, getExcludedDueToOnly
 
 
 ## Unit Tests
@@ -62,14 +62,15 @@ import Test.Runner.Failure exposing (Reason(..))
 
   - `unitTests : Array UnitTest`
   - `fuzzTests : Array FuzzTest`
-  - `seenSkip : Bool`
-  - `seenOnly : Bool`
+  - `excludedDueToSkip : Int`
+  - `excludedDueToOnly : Maybe Int`
 
 Use the various `get*` functions to access each field.
 
 The lists of unit tests and fuzz tests only include tests that should be run,
-after taking [`skip`](Test#skip) and [`only`](Test#only) into account. The `seenSkip` and `seenOnly`
-fields tell if any `skip` and/or `only` reduced the number of tests returned.
+after taking [`skip`](Test#skip) and [`only`](Test#only) into account.
+The `excludedDueToSkip` and `excludedDueToOnly` fields tell if any
+`skip` and/or `only` reduced the number of tests returned, and by how much.
 A runner could fail the test run if `skip` or `only` was used.
 
 -}
@@ -80,8 +81,8 @@ type Tests
 type alias TestsData =
     { unitTests : Array UnitTest
     , fuzzTests : Array FuzzTest
-    , seenSkip : Bool
-    , seenOnly : Bool
+    , excludedDueToSkip : Int
+    , excludedDueToOnly : Maybe Int
     }
 
 
@@ -99,18 +100,25 @@ getFuzzTests (Tests testsData) =
     testsData.fuzzTests
 
 
-{-| Get whether `skip` was used.
+{-| Get how many tests were excluded due to `skip`.
+If `skip` wasn’t used at all, this returns 0.
 -}
-getSeenSkip : Tests -> Bool
-getSeenSkip (Tests testsData) =
-    testsData.seenSkip
+getExcludedDueToSkip : Tests -> Int
+getExcludedDueToSkip (Tests testsData) =
+    testsData.excludedDueToSkip
 
 
-{-| Get whether `only` was used.
+{-| Get how many tests were excluded due to `only`.
+
+  - If `only` wasn’t used at all, this returns `Nothing`.
+  - If `only` was used but didn’t exclude anything, this returns `Just 0`.
+  - If `only` and excluded `n` tests, this returns `Just n`.
+  - If a test is excluded both due to `skip` _and_ `only`, it is only counted as excluded due to `skip`.
+
 -}
-getSeenOnly : Tests -> Bool
-getSeenOnly (Tests testsData) =
-    testsData.seenOnly
+getExcludedDueToOnly : Tests -> Maybe Int
+getExcludedDueToOnly (Tests testsData) =
+    testsData.excludedDueToOnly
 
 
 {-| A unit test.
@@ -481,8 +489,8 @@ toTestsHelper tag labels test =
                     )
                     Array.empty
             , fuzzTests = Array.empty
-            , seenSkip = False
-            , seenOnly = False
+            , excludedDueToSkip = 0
+            , excludedDueToOnly = Nothing
             }
 
         Internal.ElmTestVariant__FuzzTest maybeRuns thunk ->
@@ -497,8 +505,8 @@ toTestsHelper tag labels test =
                         }
                     )
                     Array.empty
-            , seenSkip = False
-            , seenOnly = False
+            , excludedDueToSkip = 0
+            , excludedDueToOnly = Nothing
             }
 
         Internal.ElmTestVariant__Labeled label subTest ->
@@ -510,8 +518,8 @@ toTestsHelper tag labels test =
         Internal.ElmTestVariant__Skipped subTest ->
             { unitTests = Array.empty
             , fuzzTests = Array.empty
-            , seenSkip = True
-            , seenOnly = False
+            , excludedDueToSkip = countSkipped subTest
+            , excludedDueToOnly = Nothing
             }
 
         Internal.ElmTestVariant__Only subTest ->
@@ -519,17 +527,17 @@ toTestsHelper tag labels test =
                 sub =
                     toTestsHelper tag labels subTest
             in
-            -- As an optimization, if `seenOnly` is already
-            -- the correct value, skip creating a new record.
-            if sub.seenOnly then
+            -- As an optimization, if `excludedDueToOnly` is already
+            -- the correct value (`Just n`), skip creating a new record.
+            if sub.excludedDueToOnly /= Nothing then
                 sub
 
             else
                 -- Not using record update for performance.
                 { unitTests = sub.unitTests
                 , fuzzTests = sub.fuzzTests
-                , seenSkip = sub.seenSkip
-                , seenOnly = True
+                , excludedDueToSkip = sub.excludedDueToSkip
+                , excludedDueToOnly = Just 0
                 }
 
         Internal.ElmTestVariant__Batch subTests ->
@@ -540,63 +548,73 @@ toTestsHelper tag labels test =
                             sub =
                                 toTestsHelper tag labels subTest
 
-                            seenSkip =
-                                acc.seenSkip || sub.seenSkip
+                            excludedDueToSkip =
+                                acc.excludedDueToSkip + sub.excludedDueToSkip
                         in
-                        -- If neither has seen only, use all of the tests combined.
-                        -- If both have seen only, both have already narrowed down
-                        -- their respective tests to only the marked ones, so use
-                        -- all of the tests combined in that case, too.
-                        if acc.seenOnly == sub.seenOnly then
-                            { unitTests = Array.append acc.unitTests sub.unitTests
-                            , fuzzTests = Array.append acc.fuzzTests sub.fuzzTests
-                            , seenSkip = seenSkip
-                            , seenOnly = acc.seenOnly
-                            }
+                        -- Using nested `case` to avoid allocating a tuple.
+                        case acc.excludedDueToOnly of
+                            Just accOnly ->
+                                case sub.excludedDueToOnly of
+                                    Just subOnly ->
+                                        { unitTests = Array.append acc.unitTests sub.unitTests
+                                        , fuzzTests = Array.append acc.fuzzTests sub.fuzzTests
+                                        , excludedDueToSkip = excludedDueToSkip
+                                        , excludedDueToOnly = Just (accOnly + subOnly)
+                                        }
 
-                        else
-                        -- If `acc` has seen only, but not `sub`,
-                        -- only use the tests from `acc`.
-                        if
-                            acc.seenOnly
-                        then
-                            -- As an optimization, if `seenSkip` is already
-                            -- the correct value, skip creating a new record.
-                            if acc.seenSkip == seenSkip then
-                                acc
+                                    Nothing ->
+                                        { unitTests = acc.unitTests
+                                        , fuzzTests = acc.fuzzTests
+                                        , excludedDueToSkip = excludedDueToSkip
+                                        , excludedDueToOnly = Just (accOnly + Array.length sub.unitTests + Array.length sub.fuzzTests)
+                                        }
 
-                            else
-                                -- Not using record update for performance.
-                                { unitTests = acc.unitTests
-                                , fuzzTests = acc.fuzzTests
-                                , seenSkip = seenSkip
-                                , seenOnly = acc.seenOnly
-                                }
+                            Nothing ->
+                                case sub.excludedDueToOnly of
+                                    Just subOnly ->
+                                        { unitTests = sub.unitTests
+                                        , fuzzTests = sub.fuzzTests
+                                        , excludedDueToSkip = excludedDueToSkip
+                                        , excludedDueToOnly = Just (subOnly + Array.length acc.unitTests + Array.length acc.fuzzTests)
+                                        }
 
-                        else
-                        -- If `sub` has seen only, but not `acc`,
-                        -- only use the tests from `sub`.
-                        -- (This is the only remaining case.)
-                        -- As an optimization, if `seenSkip` is already
-                        -- the correct value, skip creating a new record.
-                        if
-                            sub.seenSkip == seenSkip
-                        then
-                            sub
-
-                        else
-                            -- Not using record update for performance.
-                            { unitTests = sub.unitTests
-                            , fuzzTests = sub.fuzzTests
-                            , seenSkip = seenSkip
-                            , seenOnly = sub.seenOnly
-                            }
+                                    Nothing ->
+                                        { unitTests = Array.append acc.unitTests sub.unitTests
+                                        , fuzzTests = Array.append acc.fuzzTests sub.fuzzTests
+                                        , excludedDueToSkip = excludedDueToSkip
+                                        , excludedDueToOnly = Nothing
+                                        }
                     )
                     { unitTests = Array.empty
                     , fuzzTests = Array.empty
-                    , seenSkip = False
-                    , seenOnly = False
+                    , excludedDueToSkip = 0
+                    , excludedDueToOnly = Nothing
                     }
+
+
+countSkipped : Test -> Int
+countSkipped test =
+    case Internal.unwrapTestVariant test of
+        Internal.ElmTestVariant__UnitTest _ ->
+            1
+
+        Internal.ElmTestVariant__FuzzTest _ _ ->
+            1
+
+        Internal.ElmTestVariant__Labeled _ subTest ->
+            countSkipped subTest
+
+        Internal.ElmTestVariant__Tagged _ subTest ->
+            countSkipped subTest
+
+        Internal.ElmTestVariant__Skipped subTest ->
+            countSkipped subTest
+
+        Internal.ElmTestVariant__Only subTest ->
+            countSkipped subTest
+
+        Internal.ElmTestVariant__Batch tests ->
+            List.foldl (\subTest sum -> countSkipped subTest + sum) 0 tests
 
 
 toUnitTestExpectation : Expectation -> UnitTestExpectation
