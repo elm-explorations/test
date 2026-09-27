@@ -1,4 +1,4 @@
-# elm test [![Travis build Status](http://travis-ci.org/elm-explorations/test.svg?branch=master)](https://travis-ci.org/elm-explorations/test)
+# elm test
 
 Write unit and fuzz tests for Elm code.
 
