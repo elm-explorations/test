@@ -5,9 +5,7 @@ import Expect
 import Fuzz
 import Helpers exposing (expectPass)
 import Json.Encode
-import Random
 import Test exposing (..)
-import Test.Runner.Failure
 import Test.RunnerV2 as Runner exposing (Tests, UnitTestExpectation(..))
 
 
@@ -190,10 +188,10 @@ all =
                     let
                         tests =
                             [ test "test" testImpl
-                            , fuzz Fuzz.int "fuzz" testImpl
-                            , fuzz2 Fuzz.int Fuzz.int "fuzz2" (\_ -> testImpl)
-                            , fuzz3 Fuzz.int Fuzz.int Fuzz.int "fuzz2" (\_ _ -> testImpl)
-                            , fuzzWith { distribution = noDistribution, runs = 1 } Fuzz.int "fuzzWith" testImpl
+                            , fuzz "fuzz" Fuzz.int testImpl
+                            , fuzz2 "fuzz2" Fuzz.int Fuzz.int (\_ -> testImpl)
+                            , fuzz3 "fuzz2" Fuzz.int Fuzz.int Fuzz.int (\_ _ -> testImpl)
+                            , fuzzWith "fuzzWith" { distribution = noDistribution, runs = 1 } Fuzz.int testImpl
                             , only (test "only" testImpl)
                             , skip (test "skip" testImpl)
                             , describe "describe" [ test "described" testImpl ]
