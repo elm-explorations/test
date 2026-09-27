@@ -1,10 +1,10 @@
 module Test.Expectation exposing
     ( Expectation(..)
-    , withDistributionReport
-    , withGiven
+    , FailData
+    , fail
     )
 
-import Test.Distribution exposing (DistributionReport)
+import Test.Distribution exposing (DistributionReport(..))
 import Test.Runner.Failure exposing (Reason)
 
 
@@ -12,41 +12,23 @@ type Expectation
     = Pass DistributionReport
     | Fail
         { given : Maybe String
-        , description : String
-        , reason : Reason
+        , failData : FailData
         , distributionReport : DistributionReport
         }
 
 
-{-| Set the given (fuzz test input) of an expectation.
+{-| The data the `Expect` module can set for failing expectations.
 -}
-withGiven : String -> Expectation -> Expectation
-withGiven newGiven expectation =
-    case expectation of
-        Fail failure ->
-            Fail
-                { given = Just newGiven
-                , description = failure.description
-                , reason = failure.reason
-                , distributionReport = failure.distributionReport
-                }
-
-        Pass _ ->
-            expectation
+type alias FailData =
+    { description : String
+    , reason : Reason
+    }
 
 
-{-| Set the distribution report of an expectation.
--}
-withDistributionReport : DistributionReport -> Expectation -> Expectation
-withDistributionReport newDistributionReport expectation =
-    case expectation of
-        Fail failure ->
-            Fail
-                { given = failure.given
-                , description = failure.description
-                , reason = failure.reason
-                , distributionReport = newDistributionReport
-                }
-
-        Pass _ ->
-            Pass newDistributionReport
+fail : FailData -> Expectation
+fail failData =
+    Fail
+        { failData = failData
+        , given = Nothing
+        , distributionReport = NoDistribution ()
+        }

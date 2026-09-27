@@ -11,7 +11,7 @@ import Random
 import Simplify
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
-import Test.Expectation exposing (Expectation(..))
+import Test.Expectation exposing (Expectation(..), FailData)
 import Test.Internal exposing (Test(..), blankDescriptionFailure)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
@@ -62,15 +62,17 @@ validatedFuzzTest desc fuzzer getExpectation distribution =
                     Pass runResult.distributionReport
 
                 Just failure ->
-                    formatExpectation
-                        failure.given
-                        (Test.Expectation.withDistributionReport runResult.distributionReport failure.expectation)
+                    Fail
+                        { given = failure.given
+                        , failData = failure.failData
+                        , distributionReport = runResult.distributionReport
+                        }
         )
 
 
 type alias Failure =
     { given : Maybe String
-    , expectation : Expectation
+    , failData : FailData
     }
 
 
@@ -415,13 +417,10 @@ distributionBugRunResult =
     , failure =
         Just
             { given = Nothing
-            , expectation =
-                Test.Expectation.Fail
-                    { given = Nothing
-                    , distributionReport = Fuzz.Internal.noDistribution
-                    , description = "elm-test distribution collection bug"
-                    , reason = Invalid DistributionBug
-                    }
+            , failData =
+                { description = "elm-test distribution collection bug"
+                , reason = Invalid DistributionBug
+                }
             }
     }
 
@@ -429,22 +428,19 @@ distributionBugRunResult =
 distributionInsufficientFailure : DistributionFailure -> Failure
 distributionInsufficientFailure failure =
     { given = Nothing
-    , expectation =
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , description =
-                """Distribution of label "{LABEL}" was insufficient:
+    , failData =
+        { description =
+            """Distribution of label "{LABEL}" was insufficient:
   expected:  {EXPECTED_PERCENTAGE}
   got:       {ACTUAL_PERCENTAGE}.
 
 (Generated {RUNS} values.)"""
-                    |> String.replace "{LABEL}" failure.label
-                    |> String.replace "{EXPECTED_PERCENTAGE}" (formatExpectedDistribution failure.expectedDistribution)
-                    |> String.replace "{ACTUAL_PERCENTAGE}" (Test.Distribution.Internal.formatPct failure.actualPercentage)
-                    |> String.replace "{RUNS}" (String.fromInt failure.runsElapsed)
-            , reason = Invalid DistributionInsufficient
-            }
+                |> String.replace "{LABEL}" failure.label
+                |> String.replace "{EXPECTED_PERCENTAGE}" (formatExpectedDistribution failure.expectedDistribution)
+                |> String.replace "{ACTUAL_PERCENTAGE}" (Test.Distribution.Internal.formatPct failure.actualPercentage)
+                |> String.replace "{RUNS}" (String.fromInt failure.runsElapsed)
+        , reason = Invalid DistributionInsufficient
+        }
     }
 
 
@@ -491,13 +487,10 @@ runOnce c state =
                 Rejected { reason } ->
                     ( Just
                         { given = Nothing
-                        , expectation =
-                            Test.Expectation.Fail
-                                { given = Nothing
-                                , distributionReport = Fuzz.Internal.noDistribution
-                                , description = reason
-                                , reason = Invalid InvalidFuzzer
-                                }
+                        , failData =
+                            { description = reason
+                            , reason = Invalid InvalidFuzzer
+                            }
                         }
                     , state.distributionCount
                     )
@@ -506,13 +499,19 @@ runOnce c state =
                     let
                         failure : Maybe Failure
                         failure =
-                            testGeneratedValue
-                                { getExpectation = c.testFn
-                                , fuzzer = c.fuzzer
-                                , randomRun = PRNG.getRun prng
-                                , value = value
-                                , expectation = c.testFn value
-                                }
+                            case c.testFn value of
+                                Pass _ ->
+                                    Nothing
+
+                                Fail { failData } ->
+                                    Just <|
+                                        findSimplestFailure
+                                            { getExpectation = c.testFn
+                                            , fuzzer = c.fuzzer
+                                            , randomRun = PRNG.getRun prng
+                                            , value = value
+                                            , failData = failData
+                                            }
 
                         distributionCounter : Maybe (Dict (List String) Int)
                         distributionCounter =
@@ -597,32 +596,12 @@ stepSeed seed =
         |> Tuple.second
 
 
-testGeneratedValue : Simplify.State a -> Maybe Failure
-testGeneratedValue state =
-    case state.expectation of
-        Pass _ ->
-            Nothing
-
-        Fail _ ->
-            Just <| findSimplestFailure state
-
-
 findSimplestFailure : Simplify.State a -> Failure
 findSimplestFailure state =
     let
-        ( simplestValue, _, expectation ) =
+        ( simplestValue, _, failData ) =
             Simplify.simplify state
     in
     { given = Just <| Test.Internal.toString simplestValue
-    , expectation = expectation
+    , failData = failData
     }
-
-
-formatExpectation : Maybe String -> Expectation -> Expectation
-formatExpectation given expectation =
-    case given of
-        Nothing ->
-            expectation
-
-        Just given_ ->
-            Test.Expectation.withGiven given_ expectation

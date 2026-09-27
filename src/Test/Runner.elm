@@ -413,8 +413,8 @@ getFailureReason expectation =
         Test.Expectation.Fail record ->
             Just
                 { given = record.given
-                , description = record.description
-                , reason = Failure.flatten record.reason
+                , description = record.failData.description
+                , reason = Failure.flatten record.failData.reason
                 }
 
 
@@ -439,8 +439,8 @@ isTodo expectation =
         Test.Expectation.Pass _ ->
             False
 
-        Test.Expectation.Fail { reason } ->
-            reason == TODO
+        Test.Expectation.Fail { failData } ->
+            failData.reason == TODO
 
 
 {-| A standard way to format descriptions and test labels, to keep things
@@ -531,24 +531,29 @@ your test.
 -}
 simplify : (a -> Expectation) -> ( a, Simplifiable a ) -> Maybe ( a, Simplifiable a )
 simplify getExpectation ( value, Simplifiable { randomRun, fuzzer } ) =
-    let
-        ( newValue, newRandomRun, _ ) =
-            Simplify.simplify
-                { getExpectation = getExpectation
-                , fuzzer = fuzzer
-                , randomRun = randomRun
-                , value = value
-                , expectation = getExpectation value
-                }
-    in
-    if RandomRun.equal newRandomRun randomRun then
-        Nothing
+    case getExpectation value of
+        Test.Expectation.Pass _ ->
+            Nothing
 
-    else
-        Just
-            ( newValue
-            , Simplifiable
-                { randomRun = newRandomRun
-                , fuzzer = fuzzer
-                }
-            )
+        Test.Expectation.Fail { failData } ->
+            let
+                ( newValue, newRandomRun, _ ) =
+                    Simplify.simplify
+                        { getExpectation = getExpectation
+                        , fuzzer = fuzzer
+                        , randomRun = randomRun
+                        , value = value
+                        , failData = failData
+                        }
+            in
+            if RandomRun.equal newRandomRun randomRun then
+                Nothing
+
+            else
+                Just
+                    ( newValue
+                    , Simplifiable
+                        { randomRun = newRandomRun
+                        , fuzzer = fuzzer
+                        }
+                    )
