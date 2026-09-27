@@ -24,7 +24,7 @@ import Html exposing (Attribute)
 import Json.Decode
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes
 import Test.Html.Internal.Inert as Inert
-import Test.Html.Selector.Internal as Internal exposing (..)
+import Test.Html.Selector.Internal as Internal exposing (Selector(..), namedAttr, namedBoolAttr)
 
 
 {-| A selector used to filter sets of elements.
@@ -33,7 +33,8 @@ type alias Selector =
     Internal.Selector
 
 
-{-| Combine the given selectors into one which requires all of them to match.
+{-| Combine the given selectors into one which requires all of them to match
+the **same element**.
 
     import Html
     import Html.Attributes as Attr
@@ -177,8 +178,8 @@ id =
 
 -}
 tag : String -> Selector
-tag name =
-    Tag name
+tag =
+    Tag
 
 
 {-| Matches elements that have the given attribute in a way that makes sense
@@ -187,40 +188,44 @@ given their semantics in `Html`.
 attribute : Attribute Never -> Selector
 attribute attr =
     case Inert.parseAttribute attr of
-        Ok (InternalTypes.Attribute { key, value }) ->
-            if String.toLower key == "class" then
-                value
+        Ok (InternalTypes.Attribute record) ->
+            if String.toLower record.name == "class" then
+                record.value
                     |> String.split " "
                     |> Classes
 
             else
-                namedAttr key value
+                Internal.Attribute record
 
         Ok (InternalTypes.Property { key, value }) ->
             if key == "className" then
-                value
-                    |> Json.Decode.decodeValue Json.Decode.string
-                    |> Result.map (String.split " ")
-                    |> Result.withDefault []
-                    |> Classes
+                case Json.Decode.decodeValue Json.Decode.string value of
+                    Ok classesStr ->
+                        Classes (String.split " " classesStr)
+
+                    Err _ ->
+                        Classes []
 
             else
                 value
                     |> Json.Decode.decodeValue Json.Decode.string
-                    |> Result.map (namedAttr key)
+                    |> Result.map (\v -> namedAttr key v)
                     |> orElseLazy
                         (\() ->
                             value
                                 |> Json.Decode.decodeValue Json.Decode.bool
-                                |> Result.map (namedBoolAttr key)
+                                |> Result.map (\b -> namedBoolAttr key b)
                         )
-                    |> Result.withDefault Invalid
+                    |> Result.withDefault Internal.invalid
 
-        Ok (InternalTypes.Style { key, value }) ->
-            Style { key = key, value = value }
+        Ok (InternalTypes.Style record) ->
+            Style record
 
-        _ ->
-            Invalid
+        Ok (InternalTypes.NamespacedAttribute _) ->
+            Internal.invalid
+
+        Err _ ->
+            Internal.invalid
 
 
 {-| Matches elements that have the given style properties (and possibly others as well).
@@ -248,7 +253,7 @@ style key value =
 
 
 {-| Matches elements that have a
-[`text`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#text)
+[`text`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#text)
 attribute _containing_ the given value.
 
 `Selector.text "11,22"` will match `Html.text "11,222"`.
@@ -262,7 +267,7 @@ text =
 
 
 {-| Matches elements that have a
-[`text`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#text)
+[`text`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#text)
 attribute with _exactly_ the given value (sans leading/trailing whitespace).
 
 `Selector.exactText "11,22"` will _not_ match `Html.text "11,222"`.
@@ -280,7 +285,9 @@ exactText =
     Internal.ExactText
 
 
-{-| Matches elements whose descendants match the given selectors.
+{-| Matches elements that have a descendant matching all of the given
+selectors (the same rule as [`all`](#all) applies: every selector in the
+list has to match that one descendant, not several different ones).
 
 (You will get the element and **not** the descendant.)
 
@@ -316,7 +323,7 @@ containing =
 
 
 {-| Matches elements that have a
-[`selected`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#selected)
+[`selected`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#selected)
 attribute with the given value.
 -}
 selected : Bool -> Selector
@@ -325,7 +332,7 @@ selected =
 
 
 {-| Matches elements that have a
-[`disabled`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#disabled)
+[`disabled`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#disabled)
 attribute with the given value.
 -}
 disabled : Bool -> Selector
@@ -334,7 +341,7 @@ disabled =
 
 
 {-| Matches elements that have a
-[`checked`](http://package.elm-lang.org/packages/elm-lang/html/latest/Html-Attributes#checked)
+[`checked`](https://package.elm-lang.org/packages/elm/html/latest/Html-Attributes#checked)
 attribute with the given value.
 -}
 checked : Bool -> Selector

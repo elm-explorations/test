@@ -6,7 +6,6 @@ import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
 import MicroDictExtra as Dict
 import MicroListExtra as List
-import MicroMaybeExtra as Maybe
 import PRNG
 import Random
 import RandomRun exposing (RandomRun)
@@ -15,14 +14,13 @@ import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
 import Test.Expectation exposing (Expectation(..), FailData, FuzzTestExpectation(..))
 import Test.Internal exposing (Test, TestVariant(..), blankDescriptionFailure)
-import Test.Runner.Distribution
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
 {-| Reject always-failing tests because of bad names.
 -}
-fuzzTest : Maybe Int -> Distribution a -> Fuzzer a -> String -> (a -> Expectation) -> Test
-fuzzTest maybeRuns distribution fuzzer untrimmedDesc getExpectation =
+fuzzTest : String -> Maybe Int -> Distribution a -> Fuzzer a -> (a -> Expectation) -> Test
+fuzzTest untrimmedDesc maybeRuns distribution fuzzer getExpectation =
     let
         desc =
             String.trim untrimmedDesc
@@ -127,7 +125,7 @@ tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts =
                                     }
 
                             -- In this mode we can't do a distribution report, because we ran just once.
-                            , distributionReport = NoDistribution
+                            , distributionReport = NoDistribution ()
                             }
 
             Rejected _ ->
@@ -169,9 +167,10 @@ initLoopState initialSeed distribution =
             Test.Distribution.Internal.getDistributionLabels distribution
                 |> Maybe.map
                     (\labels ->
-                        labels
-                            |> List.map (\( label, _ ) -> ( [ label ], 0 ))
-                            |> Dict.fromList
+                        List.foldl
+                            (\( label, _ ) dict -> Dict.insert [ label ] 0 dict)
+                            Dict.empty
+                            labels
                     )
     in
     { runsElapsed = 0
@@ -218,7 +217,7 @@ fuzzLoop c state =
             { distributionReport =
                 case state.distributionCount of
                     Nothing ->
-                        NoDistribution
+                        Fuzz.Internal.noDistribution
 
                     Just distributionCount ->
                         DistributionToReport
@@ -240,7 +239,7 @@ fuzzLoop c state =
             else
                 case c.distribution of
                     NoDistributionNeeded ->
-                        { distributionReport = NoDistribution
+                        { distributionReport = Fuzz.Internal.noDistribution
                         , failure = Nothing
                         }
 
@@ -298,7 +297,13 @@ fuzzLoop c state =
                                         newState =
                                             runNTimes (2 ^ state.nextPowerOfTwo) c state
                                     in
-                                    fuzzLoop c { newState | nextPowerOfTwo = newState.nextPowerOfTwo + 1 }
+                                    fuzzLoop c
+                                        { runsElapsed = newState.runsElapsed
+                                        , distributionCount = newState.distributionCount
+                                        , nextPowerOfTwo = newState.nextPowerOfTwo + 1
+                                        , failure = newState.failure
+                                        , currentSeed = newState.currentSeed
+                                        }
 
                                 Just failedLabel ->
                                     distributionFailRunResult normalizedDistributionCount failedLabel
@@ -309,150 +314,146 @@ type alias DistributionFailure =
     , actualPercentage : Float
     , expectedDistribution : ExpectedDistribution
     , runsElapsed : Int
-    , distributionCount : Dict (List String) Int
     }
 
 
 allSufficientlyCovered : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Bool
 allSufficientlyCovered c state normalizedDistributionCount =
-    Maybe.map2 Tuple.pair
-        normalizedDistributionCount
-        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
-        |> Maybe.andThen
-            (\( distributionCount, expectedDistributions ) ->
-                let
-                    expectedDistributions_ : Dict String ExpectedDistribution
-                    expectedDistributions_ =
-                        Dict.fromList expectedDistributions
-                in
-                distributionCount
+    case normalizedDistributionCount of
+        Nothing ->
+            False
+
+        Just distributionCount ->
+            case Test.Distribution.Internal.getExpectedDistributions c.distribution of
+                Nothing ->
+                    False
+
+                Just expectedDistributions ->
                     -- Needs normalized distribution count:
-                    |> Dict.toList
-                    |> List.filterMap
-                        (\( labels, count ) ->
+                    Dict.foldr
+                        (\labels count soFar ->
                             case labels of
                                 [ onlyLabel ] ->
-                                    Just ( onlyLabel, count )
+                                    soFar && isLabelSufficientlyCovered state.runsElapsed expectedDistributions onlyLabel count
 
                                 _ ->
-                                    Nothing
+                                    soFar
                         )
-                    |> Maybe.traverse
-                        (\( labels, count ) ->
-                            Dict.get labels expectedDistributions_
-                                |> Maybe.map (\expectedDistribution -> ( labels, count, expectedDistribution ))
-                        )
-                    |> Maybe.map
-                        (List.all
-                            (\( _, count, expectedDistribution ) ->
-                                case expectedDistribution of
-                                    -- Zero and MoreThanZero will get checked in the Success case
-                                    Zero ->
-                                        True
+                        True
+                        distributionCount
 
-                                    MoreThanZero ->
-                                        True
 
-                                    AtLeast n ->
-                                        Test.Distribution.Internal.sufficientlyCovered state.runsElapsed count (n / 100)
-                            )
-                        )
-            )
-        -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
-        |> Maybe.withDefault False
+isLabelSufficientlyCovered : Int -> Dict String ExpectedDistribution -> String -> Int -> Bool
+isLabelSufficientlyCovered runsElapsed expectedDistributions labels count =
+    case Dict.get labels expectedDistributions of
+        Nothing ->
+            -- `Nothing` means something went wrong. We're answering the question "are all labels sufficiently covered?" and so the way to fail here is `False`.
+            False
+
+        Just expectedDistribution ->
+            case expectedDistribution of
+                -- Zero and MoreThanZero will get checked in the Success case
+                Zero ->
+                    True
+
+                MoreThanZero ->
+                    True
+
+                AtLeast n ->
+                    Test.Distribution.Internal.sufficientlyCovered runsElapsed count (n / 100)
 
 
 findBadZeroRelatedCase : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
 findBadZeroRelatedCase c state normalizedDistributionCount =
-    Maybe.map2 Tuple.pair
-        normalizedDistributionCount
-        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
-        |> Maybe.andThen
-            (\( distributionCount, expectedDistributions ) ->
-                expectedDistributions
-                    |> List.find
-                        (\( label, expectedDistribution ) ->
-                            case expectedDistribution of
-                                Zero ->
-                                    -- TODO short-circuit Zero sooner: as soon as we increment its counter, during runNTimes.
-                                    Dict.get [ label ] distributionCount
-                                        -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
-                                        |> Maybe.withDefault 1
-                                        |> (/=) 0
+    case normalizedDistributionCount of
+        Nothing ->
+            Nothing
 
-                                MoreThanZero ->
-                                    Dict.get [ label ] distributionCount
-                                        -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
-                                        |> Maybe.withDefault 0
-                                        |> (==) 0
+        Just distributionCount ->
+            case Test.Distribution.Internal.getExpectedDistributionsAsList c.distribution of
+                Nothing ->
+                    Nothing
 
-                                AtLeast _ ->
-                                    False
-                        )
-                    |> Maybe.andThen
-                        (\( label, expectedDistribution ) ->
-                            Dict.get [ label ] distributionCount
-                                |> Maybe.map
-                                    (\count ->
-                                        { label = label
-                                        , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
-                                        , expectedDistribution = expectedDistribution
-                                        , runsElapsed = state.runsElapsed
-                                        , distributionCount = distributionCount
-                                        }
-                                    )
-                        )
-            )
+                Just expectedDistributions ->
+                    expectedDistributions
+                        |> List.find
+                            (\( expectedDistribution, label, _ ) ->
+                                case expectedDistribution of
+                                    Zero ->
+                                        -- TODO short-circuit Zero sooner: as soon as we increment its counter, during runNTimes.
+                                        Dict.get [ label ] distributionCount
+                                            -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
+                                            |> Maybe.withDefault 1
+                                            |> (/=) 0
+
+                                    MoreThanZero ->
+                                        Dict.get [ label ] distributionCount
+                                            -- TODO it would be better if we returned a bug failure here instead of failing with a dummy value
+                                            |> Maybe.withDefault 0
+                                            |> (==) 0
+
+                                    AtLeast _ ->
+                                        False
+                            )
+                        |> Maybe.andThen
+                            (\( expectedDistribution, label, _ ) ->
+                                Dict.get [ label ] distributionCount
+                                    |> Maybe.map
+                                        (\count ->
+                                            { label = label
+                                            , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
+                                            , expectedDistribution = expectedDistribution
+                                            , runsElapsed = state.runsElapsed
+                                            }
+                                        )
+                            )
 
 
 findInsufficientlyCoveredLabel : LoopConstants a -> LoopState -> Maybe (Dict (List String) Int) -> Maybe DistributionFailure
 findInsufficientlyCoveredLabel c state normalizedDistributionCount =
-    Maybe.map2 Tuple.pair
-        normalizedDistributionCount
-        (Test.Distribution.Internal.getExpectedDistributions c.distribution)
-        |> Maybe.andThen
-            (\( distributionCount, expectedDistributions ) ->
-                let
-                    expectedDistributions_ : Dict String ExpectedDistribution
-                    expectedDistributions_ =
-                        Dict.fromList expectedDistributions
-                in
-                -- TODO loop ExpectedDistributions instead of looping the label combinations?
-                distributionCount
-                    -- Needs normalized distribution count:
-                    |> Dict.toList
-                    |> List.filterMap
-                        (\( labels, count ) ->
-                            case labels of
-                                [ onlyLabel ] ->
-                                    Dict.get onlyLabel expectedDistributions_
-                                        |> Maybe.map (\expectedDistribution -> ( onlyLabel, count, expectedDistribution ))
+    case normalizedDistributionCount of
+        Nothing ->
+            Nothing
 
-                                _ ->
-                                    Nothing
-                        )
-                    |> List.find
-                        (\( _, count, expectedDistribution ) ->
-                            case expectedDistribution of
-                                Zero ->
-                                    False
+        Just distributionCount ->
+            case Test.Distribution.Internal.getExpectedDistributions c.distribution of
+                Nothing ->
+                    Nothing
 
-                                MoreThanZero ->
-                                    False
+                Just expectedDistributions ->
+                    -- TODO loop ExpectedDistributions instead of looping the label combinations?
+                    distributionCount
+                        -- Needs normalized distribution count:
+                        |> Dict.toList
+                        |> List.findMap
+                            (\( labels, count ) ->
+                                case labels of
+                                    [ onlyLabel ] ->
+                                        case Dict.get onlyLabel expectedDistributions of
+                                            Just Zero ->
+                                                Nothing
 
-                                AtLeast n ->
-                                    Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100)
-                        )
-                    |> Maybe.map
-                        (\( label, count, expectedDistribution ) ->
-                            { label = label
-                            , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
-                            , expectedDistribution = expectedDistribution
-                            , runsElapsed = state.runsElapsed
-                            , distributionCount = distributionCount
-                            }
-                        )
-            )
+                                            Just MoreThanZero ->
+                                                Nothing
+
+                                            Just ((AtLeast n) as expectedDistribution) ->
+                                                if Test.Distribution.Internal.insufficientlyCovered state.runsElapsed count (n / 100) then
+                                                    Just
+                                                        { label = onlyLabel
+                                                        , actualPercentage = toFloat count * 100 / toFloat state.runsElapsed
+                                                        , expectedDistribution = expectedDistribution
+                                                        , runsElapsed = state.runsElapsed
+                                                        }
+
+                                                else
+                                                    Nothing
+
+                                            Nothing ->
+                                                Nothing
+
+                                    _ ->
+                                        Nothing
+                            )
 
 
 distributionFailRunResult : Maybe (Dict (List String) Int) -> DistributionFailure -> RunResult
@@ -477,7 +478,7 @@ distributionFailRunResult normalizedDistributionCount failedLabel =
 
 distributionBugRunResult : RunResult
 distributionBugRunResult =
-    { distributionReport = NoDistribution
+    { distributionReport = Fuzz.Internal.noDistribution
     , failure =
         Just
             { given = Nothing
@@ -604,11 +605,11 @@ runOnce c state =
                     in
                     ( failure, distributionCounter )
     in
-    { state
-        | failure = maybeFailure
-        , distributionCount = newDistributionCounter
-        , currentSeed = nextSeed
-        , runsElapsed = state.runsElapsed + 1
+    { failure = maybeFailure
+    , distributionCount = newDistributionCounter
+    , currentSeed = nextSeed
+    , runsElapsed = state.runsElapsed + 1
+    , nextPowerOfTwo = state.nextPowerOfTwo
     }
 
 
@@ -619,14 +620,16 @@ includeCombinationsInBaseCounts distribution =
             (\labels count ->
                 case labels of
                     [ single ] ->
-                        let
-                            combinations : List Int
-                            combinations =
-                                distribution
-                                    |> Dict.filter (\k _ -> List.length k > 1 && List.member single k)
-                                    |> Dict.values
-                        in
-                        count + List.sum combinations
+                        Dict.foldr
+                            (\k value sum ->
+                                if List.hasMultipleItems k && List.member single k then
+                                    value + sum
+
+                                else
+                                    sum
+                            )
+                            count
+                            distribution
 
                     _ ->
                         count

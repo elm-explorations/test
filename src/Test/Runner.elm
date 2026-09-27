@@ -52,7 +52,6 @@ import PRNG
 import Random
 import RandomRun exposing (RandomRun)
 import Simplify
-import String
 import Test exposing (Test)
 import Test.Distribution exposing (DistributionReport)
 import Test.Expectation
@@ -323,8 +322,21 @@ distributeSeedsHelp hashed runs seed test =
                 next =
                     distributeSeedsHelp hashed runs seed subTest
             in
-            -- `only` all the things!
-            { next | only = next.all }
+            if List.isEmpty next.only then
+                -- The subTest doesn't use Only but we do. Everything inside subTest should run.
+                { seed = next.seed
+                , all = next.all
+                , only = next.all
+                , skipped = next.skipped
+                }
+
+            else
+                -- The subTest uses Only (and we do too): keep subTest's `.only` as it's more specific.
+                { seed = next.seed
+                , all = next.all
+                , only = next.only
+                , skipped = next.skipped
+                }
 
         Internal.ElmTestVariant__Batch tests ->
             List.foldl (batchDistribute hashed runs) (emptyDistribution seed) tests

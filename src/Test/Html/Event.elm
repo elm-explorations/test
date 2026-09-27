@@ -140,10 +140,9 @@ when testing that an event handler is _not_ present.
 toResult : Event msg -> Result String msg
 toResult event =
     findHandler event
-        |> Result.map (Decode.map .message)
         |> Result.andThen
             (\handler ->
-                Decode.decodeValue handler (eventPayload event)
+                Decode.decodeValue (Decode.map .message handler) (eventPayload event)
                     |> Result.mapError Decode.errorToString
             )
 
@@ -434,9 +433,8 @@ checkPreventDefault =
 checkEffect : (Handling msg -> Bool) -> Event msg -> Result String Bool
 checkEffect extractor event =
     findHandler event
-        |> Result.map (Decode.map extractor)
         |> Result.andThen
             (\handler ->
-                Decode.decodeValue handler (eventPayload event)
+                Decode.decodeValue (Decode.map extractor handler) (eventPayload event)
                     |> Result.mapError Decode.errorToString
             )

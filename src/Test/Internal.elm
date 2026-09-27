@@ -2,9 +2,7 @@ module Test.Internal exposing (Test, TestVariant(..), blankDescriptionFailure, d
 
 import Elm.Kernel.Test
 import Random
-import RandomRun exposing (RandomRun)
 import Set exposing (Set)
-import Task exposing (Task)
 import Test.Expectation exposing (Expectation, FuzzTestExpectation)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
@@ -58,9 +56,14 @@ identifyTest =
 {-| Create a test that always fails for the given reason and description.
 -}
 failNow : { description : String, reason : Reason } -> Test
-failNow record =
+failNow { description, reason } =
     ElmTestVariant__UnitTest
-        (\() -> Test.Expectation.fail record)
+        (\() ->
+            Test.Expectation.fail
+                { description = description
+                , reason = reason
+                }
+        )
         |> wrapTestVariant
 
 

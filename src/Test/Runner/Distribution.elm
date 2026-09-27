@@ -33,7 +33,7 @@ formatTable { runsElapsed, distributionCount } =
                 |> List.filter
                     (\( labels, count ) ->
                         not
-                            ((List.length labels == 1)
+                            (List.isSingleton labels
                                 && (count == 0)
                                 && isStrictSubset distributionList labels
                             )
@@ -54,7 +54,7 @@ formatTable { runsElapsed, distributionCount } =
         ( baseRows, combinationsRows ) =
             distribution
                 |> List.sortBy (\( _, count, _ ) -> negate count)
-                |> List.partition (\( labels, _, _ ) -> List.length labels <= 1)
+                |> List.partition (\( labels, _, _ ) -> not (List.hasMultipleItems labels))
 
         reorderedTable =
             baseRows ++ combinationsRows
@@ -71,7 +71,7 @@ formatTable { runsElapsed, distributionCount } =
                             ( labels, _, _ ) =
                                 item
                         in
-                        List.length labels > 1
+                        List.hasMultipleItems labels
                     )
                 |> Maybe.withDefault ( rawTable, [] )
 

@@ -1,4 +1,4 @@
-module Test.Html.ExampleApp exposing (exampleModel, view)
+module Test.Html.ExampleApp exposing (view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -7,22 +7,13 @@ import Html.Keyed as Keyed
 import Html.Lazy as Lazy
 
 
-type alias Model =
-    ()
-
-
-exampleModel : Model
-exampleModel =
-    ()
-
-
 type Msg
     = GoToHome
     | GoToExamples
 
 
-view : Model -> Html Msg
-view _ =
+view : Html Msg
+view =
     div [ class "container" ]
         [ header [ class "funky themed", id "heading" ]
             [ a [ href "http://elm-lang.org", onClick GoToHome ] [ text "home" ]

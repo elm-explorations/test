@@ -157,7 +157,7 @@ findAll selectors (Internal.Single showTrace query) =
                 |> Query.fromHtml
                 |> Query.findAll [ tag "li" ]
                 |> Query.keep ( tag "a" )
-                |> Expect.all
+                |> Expect.passesAll
                     [ Query.each (Query.has [ tag "a" ])
                     , Query.first >> Query.has [ Test.Html.Selector.text "first item" ]
                     ]
@@ -502,7 +502,7 @@ hasNot selectors (Internal.Single showTrace query) =
                 |> Query.fromHtml
                 |> Query.findAll [ tag "ul" ]
                 |> Query.each
-                    (Expect.all
+                    (Expect.passesAll
                         [ Query.has [ tag "ul" ]
                         , Query.has [ classes [ "items", "active" ] ]
                         ]

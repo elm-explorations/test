@@ -1,8 +1,8 @@
 module DebugConfig exposing
     ( shouldLogFirstFailure
     , shouldLogFuzzTests
-    , shouldLogShrinkAttempts
-    , shouldLogShrinkProgress
+    , shouldLogSimplifyAttempts
+    , shouldLogSimplifyProgress
     )
 
 
@@ -11,13 +11,13 @@ shouldLogFirstFailure =
     False
 
 
-shouldLogShrinkProgress : Bool
-shouldLogShrinkProgress =
+shouldLogSimplifyProgress : Bool
+shouldLogSimplifyProgress =
     False
 
 
-shouldLogShrinkAttempts : Bool
-shouldLogShrinkAttempts =
+shouldLogSimplifyAttempts : Bool
+shouldLogSimplifyAttempts =
     False
 
 

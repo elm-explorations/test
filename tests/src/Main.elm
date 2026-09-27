@@ -8,7 +8,6 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 
 -}
 
-import Platform
 import Runner.Log
 import Runner.String exposing (Summary)
 import SeedTests
@@ -56,7 +55,11 @@ and Test.only which do not automatically fail.
 -}
 removeAutoFail : Summary -> Summary
 removeAutoFail summary =
-    { summary | autoFail = Nothing }
+    { output = summary.output
+    , passed = summary.passed
+    , failed = summary.failed
+    , autoFail = Nothing
+    }
 
 
 combineSummaries : Summary -> Summary -> Summary

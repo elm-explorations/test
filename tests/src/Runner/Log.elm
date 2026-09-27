@@ -23,7 +23,6 @@ if the tests all passed, and 1 if any failed.
 
 import Random
 import Runner.String exposing (Summary)
-import String
 import Test exposing (Test)
 
 

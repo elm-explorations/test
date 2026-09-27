@@ -8,15 +8,61 @@ import Html
 import Html.Attributes as Attr
 import Test exposing (..)
 import Test.Html.Query as Query
-import Test.Html.Selector exposing (..)
+import Test.Html.Selector as Selector exposing (..)
 
 
 all : Test
 all =
     describe "Test.Html.Selector"
         [ bug13
+        , bug137
         , textSelectors
         , exactTextSelectors
+        , selectorAllTests
+        ]
+
+
+{-| <https://github.com/elm-explorations/test/issues/137>
+
+`Selector.text` and `Selector.exactText` match against an element's full text
+content instead of a single text node in isolation.
+
+-}
+bug137 : Test
+bug137 =
+    describe "Reproducing bug #137"
+        [ test "a string split across sibling text nodes is found" <|
+            \() ->
+                Html.div []
+                    [ Html.text "Click to "
+                    , Html.text "continue"
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ text "Click to continue" ]
+        , test "a string split across sibling text nodes is found via exactText" <|
+            \() ->
+                Html.div []
+                    [ Html.text "Click to "
+                    , Html.text "continue"
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ exactText "Click to continue" ]
+        , test "a string split across a nested element is found" <|
+            \() ->
+                Html.div []
+                    [ Html.text "Click to "
+                    , Html.strong [] [ Html.text "continue" ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ text "Click to continue" ]
+        , test "no separator is added between adjacent nodes with no whitespace of their own" <|
+            \() ->
+                Html.div []
+                    [ Html.span [] [ Html.text "$" ]
+                    , Html.span [] [ Html.text "100" ]
+                    ]
+                    |> Query.fromHtml
+                    |> Query.has [ exactText "$100" ]
         ]
 
 
@@ -46,7 +92,7 @@ bug13 =
 textSelectors : Test
 textSelectors =
     describe "Selector.text"
-        [ fuzz3 (list string) string (list string) "Finds one result" <|
+        [ fuzz3 "Finds one result" (list string) string (list string) <|
             \before str after ->
                 let
                     textNodes =
@@ -57,7 +103,7 @@ textSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has [ text str ]
-        , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
+        , fuzz3 "Finds multiple results" (list string) (list string) (list string) <|
             \before strings after ->
                 let
                     textNodes =
@@ -68,7 +114,7 @@ textSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has (List.map text strings)
-        , fuzz3 (list string) string (list string) "Finds a submatch" <|
+        , fuzz3 "Finds a submatch" (list string) string (list string) <|
             \before str after ->
                 let
                     textNodes =
@@ -90,7 +136,7 @@ nonemptyString =
 exactTextSelectors : Test
 exactTextSelectors =
     describe "Selector.exactText"
-        [ fuzz3 (list string) string (list string) "Finds one result" <|
+        [ fuzz3 "Finds one result" (list string) string (list string) <|
             \before str after ->
                 let
                     textNodes =
@@ -101,7 +147,7 @@ exactTextSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has [ exactText str ]
-        , fuzz3 (list string) (list string) (list string) "Finds multiple results" <|
+        , fuzz3 "Finds multiple results" (list string) (list string) (list string) <|
             \before strings after ->
                 let
                     textNodes =
@@ -112,7 +158,7 @@ exactTextSelectors =
                 Html.div [] textNodes
                     |> Query.fromHtml
                     |> Query.has (List.map exactText strings)
-        , fuzz3 (list nonemptyString) nonemptyString (list nonemptyString) "Doesn't find a submatch" <|
+        , fuzz3 "Doesn't find a submatch" (list nonemptyString) nonemptyString (list nonemptyString) <|
             \before str after ->
                 let
                     str1 =
@@ -144,4 +190,85 @@ exactTextSelectors =
                 """ ]
                     |> Query.fromHtml
                     |> Query.hasNot [ exactText "We like whitespace" ]
+        ]
+
+
+{-| <https://github.com/elm-explorations/test/issues/213>
+<https://github.com/elm-explorations/test/issues/214>
+
+`Selector.all` must require all of its selectors to match the same element.
+
+-}
+selectorAllTests : Test
+selectorAllTests =
+    let
+        html =
+            Html.fieldset [ Attr.disabled False ]
+                [ Html.button [ Attr.disabled True ]
+                    [ Html.text "Reply"
+                    ]
+                ]
+    in
+    describe "Selector.all"
+        [ test "passes with an empty list" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has [ Selector.all [] ]
+        , test "passes if a single selector matches" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has [ Selector.all [ tag "fieldset" ] ]
+        , test "passes if every selector matches the same element" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ Selector.all
+                            [ tag "fieldset"
+                            , attribute (Attr.disabled False)
+                            ]
+                        ]
+        , test "fails if the selectors are only satisfied by different elements (regression for #213)" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.hasNot
+                        [ Selector.all
+                            [ tag "fieldset"
+                            , attribute (Attr.disabled True)
+                            ]
+                        ]
+        , test "fails if no element matches" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.hasNot
+                        [ Selector.all
+                            [ tag "strong"
+                            , attribute (Attr.disabled True)
+                            ]
+                        ]
+        , test "still finds text among the same element's descendants" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.has
+                        [ Selector.all
+                            [ tag "button"
+                            , text "Reply"
+                            ]
+                        ]
+        , test "Query.find returns the element that matched, not a descendant" <|
+            \() ->
+                html
+                    |> Query.fromHtml
+                    |> Query.find
+                        [ Selector.all
+                            [ tag "button"
+                            , attribute (Attr.disabled True)
+                            ]
+                        ]
+                    |> Query.has [ text "Reply" ]
         ]

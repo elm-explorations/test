@@ -16,47 +16,36 @@ import RandomRun exposing (RandomRun)
 
 
 type PRNG
-    = Random
-        { run : RandomRun
-        , seed : Random.Seed
-        }
-    | Hardcoded
-        { wholeRun : RandomRun
-        , unusedPart : RandomRun
-        }
+    = -- PERF: optimized from record to custom type arguments to skip _Utils_update:
+      Random RandomRun Random.Seed
+    | Hardcoded {- wholeRun: -} RandomRun {- unusedPart: -} RandomRun
 
 
 random : Random.Seed -> PRNG
 random seed =
-    Random
-        { run = RandomRun.empty
-        , seed = seed
-        }
+    Random RandomRun.empty seed
 
 
 hardcoded : RandomRun -> PRNG
 hardcoded run =
-    Hardcoded
-        { wholeRun = run
-        , unusedPart = run
-        }
+    Hardcoded run run
 
 
 getRun : PRNG -> RandomRun
 getRun prng =
     case prng of
-        Random { run } ->
+        Random run _ ->
             run
 
-        Hardcoded { wholeRun } ->
+        Hardcoded wholeRun _ ->
             wholeRun
 
 
 getSeed : PRNG -> Maybe Random.Seed
 getSeed prng =
     case prng of
-        Random { seed } ->
+        Random _ seed ->
             Just seed
 
-        Hardcoded _ ->
+        Hardcoded _ _ ->
             Nothing

@@ -1,3 +1,67 @@
+## Unreleased changes >2.2.1
+
+### Breaking changes
+
+* `Test.fuzz`, `Test.fuzz2`, `Test.fuzz3` and `Test.fuzzWith` now take the test
+  name as the first argument.
+* [#214](https://github.com/elm-explorations/test/pull/214): `Selector.all` (and
+  `Selector.containing` when given more than one selector) now require every
+  selector to match the same element.
+* `Expect.all`'s type signature changed to `List Expectation -> Expectation`.
+  The old pointfree `Expect.all` can be found under `Expect.passesAll`.
+* `Test.Runner.Failure.Reason` has a new `Multiple` variant for `Expect.oneOf`
+  and `Expect.passesOneOf`.
+
+### Additions
+
+* Added `Test.parameterized : String -> List a -> (a -> Test) -> Test` for
+  data-driven tests.
+* Added `Test.fuzzWithExamples : String -> FuzzOptions a -> Fuzzer a -> List ( String, a ) -> (a -> Expectation) -> Test`
+  for fuzz tests with hardcoded (regression) examples.
+* [#223](https://github.com/elm-explorations/test/issues/223): Added
+  `Fuzz.charRange` and convenience Char fuzzers: `Fuzz.binChar`, `octChar`,
+  `hexChar`, `numChar`, `alphaChar` and `alphaNumChar`.
+* [#236](https://github.com/elm-explorations/test/issues/236): Added
+  `Fuzz.set` and `Fuzz.dict`.
+* [#238](https://github.com/elm-explorations/test/issues/238): Added
+  `Fuzz.arrayOfLength`, `Fuzz.arrayOfLengthBetween` and `Fuzz.shuffledArray`.
+
+### Performance improvements
+
+* [#272](https://github.com/elm-explorations/test/pull/272): Reimplemented
+  `RandomRun` with TypedArrays for faster fuzzing and simplifying operations.
+* Reimplemented `Fuzz.shuffledList` with Fisher-Yates, got a smaller RandomRun
+  footprint and slightly better statistical properties.
+
+### Bugfixes
+
+* [#256](https://github.com/elm-explorations/test/pull/256): Nested `Test.only`
+  aren't ignored anymore.
+* [#137](https://github.com/elm-explorations/test/issues/137): `Selector.text`
+  and `Selector.exactText` now match against an element's full text content
+  (similar to browser's `textContent`) instead of looking at a single text node
+  in isolation.
+* [#176](https://github.com/elm-explorations/test/issues/176): `Query.hasNot`
+  no longer turns a failure from an earlier step in the query chain (e.g. a
+  `Query.find` that matched nothing) into a pass. `hasNot` now only inverts
+  its own selector check.
+
+### Other
+
+* [#117](https://github.com/elm-explorations/test/issues/117): Fixed broken
+  documentation links.
+
+## TODOs before release
+
+* Make an elm-review rule to upgrade from 2.2.1 or so to the new version:
+  * Switch `Test.fuzz*` arguments
+  * `Expect.all` -> `Expect.passesAll`
+  * Do we want to detect `Expect.all [\() -> ...] ()` and instead of changing to
+    `Expect.passesAll {- same -}`, change to `Expect.all [...]`?
+* Coordinate with `node-test-runner` and `elm-test-rs` on:
+  * the change in Node version needed (20+)
+  * the new `Multiple` variant of `Test.Runner.Failure.Reason`
+
 ## Releases
 
 | Version                                                          | Notes                                                                                                                                              |

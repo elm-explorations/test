@@ -1,11 +1,11 @@
 module Test.Html.Internal.ElmHtml.Markdown exposing
-    ( MarkdownOptions, MarkdownModel, baseMarkdownModel
+    ( MarkdownOptions, MarkdownModel
     , decodeMarkdownModel
     )
 
 {-| Markdown helpers
 
-@docs MarkdownOptions, MarkdownModel, baseMarkdownModel
+@docs MarkdownOptions, MarkdownModel
 
 @docs decodeMarkdownModel
 

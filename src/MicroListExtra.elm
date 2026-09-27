@@ -1,9 +1,9 @@
 module MicroListExtra exposing
-    ( fastConcat
-    , fastConcatMap
-    , find
+    ( find
+    , findMap
     , getAt
-    , setAt
+    , hasMultipleItems
+    , isSingleton
     , splitWhen
     , transpose
     , unique
@@ -21,27 +21,6 @@ getAt index list =
             |> List.head
 
 
-setAt : Int -> a -> Int -> List a -> List a
-setAt index value length list =
-    if length <= index || index < 0 then
-        list
-
-    else
-        List.take index list
-            ++ value
-            :: List.drop (index + 1) list
-
-
-fastConcat : List (List a) -> List a
-fastConcat =
-    List.foldr (++) []
-
-
-fastConcatMap : (a -> List b) -> List a -> List b
-fastConcatMap f =
-    List.foldr (\e a -> f e ++ a) []
-
-
 find : (a -> Bool) -> List a -> Maybe a
 find predicate list =
     case list of
@@ -54,6 +33,21 @@ find predicate list =
 
             else
                 find predicate rest
+
+
+findMap : (a -> Maybe b) -> List a -> Maybe b
+findMap predicate list =
+    case list of
+        [] ->
+            Nothing
+
+        first :: rest ->
+            case predicate first of
+                Nothing ->
+                    findMap predicate rest
+
+                justB ->
+                    justB
 
 
 splitWhen : (a -> Bool) -> List a -> Maybe ( List a, List a )
@@ -99,6 +93,26 @@ rowsLength listOfLists =
 
         x :: _ ->
             List.length x
+
+
+isSingleton : List a -> Bool
+isSingleton list =
+    case list of
+        [ _ ] ->
+            True
+
+        _ ->
+            False
+
+
+hasMultipleItems : List a -> Bool
+hasMultipleItems list =
+    case list of
+        _ :: _ :: _ ->
+            True
+
+        _ ->
+            False
 
 
 unique : List a -> List a

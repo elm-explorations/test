@@ -57,7 +57,7 @@ fail failData =
     Fail
         { failData = failData
         , given = Nothing
-        , distributionReport = NoDistribution
+        , distributionReport = NoDistribution ()
         }
 
 

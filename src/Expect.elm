@@ -1,9 +1,10 @@
 module Expect exposing
-    ( Expectation, equal, notEqual, all
+    ( Expectation, equal, notEqual, all, oneOf
     , lessThan, atMost, greaterThan, atLeast
     , FloatingPointTolerance(..), within, notWithin
     , ok, err, equalLists, equalDicts, equalSets
     , pass, fail, onFail
+    , passesAll, passesOneOf
     )
 
 {-| A library to create `Expectation`s, which describe a claim to be tested.
@@ -22,7 +23,7 @@ module Expect exposing
 
 ## Basic Expectations
 
-@docs Expectation, equal, notEqual, all
+@docs Expectation, equal, notEqual, all, oneOf
 
 
 ## Numeric Comparisons
@@ -48,6 +49,7 @@ or both. For an in-depth look, see our [Guide to Floating Point Comparison](#gui
 These functions will let you build your own expectations.
 
 @docs pass, fail, onFail
+@docs passesAll, passesOneOf
 
 
 ## Guide to Floating Point Comparison
@@ -87,8 +89,8 @@ If we use a relative tolerance of `0.01` instead, the circle area comparison bec
 as long as `r` isn't [too close to zero](https://en.wikipedia.org/wiki/Denormal_number).
 
     fuzz
-        (floatRange 0.000001 100000)
         "Circle half-circumference with relative tolerance"
+        (floatRange 0.000001 100000)
         (\r -> r * 3.14 |> Expect.within (Relative 0.001) (r * pi))
 
 
@@ -355,7 +357,7 @@ notWithin tolerance lower upper =
 
 
 {-| Passes if the
-[`Result`](https://package.elm-lang.org/packages/lang/core/latest/Result) is
+[`Result`](https://package.elm-lang.org/packages/elm/core/latest/Result) is
 an `Ok` rather than `Err`. This is useful for tests where you expect not to see
 an error, but you don't care what the actual result is.
 
@@ -392,14 +394,14 @@ ok result =
             pass
 
         Err _ ->
-            { description = "Expect.ok"
-            , reason = Comparison "Ok _" (Internal.toString result)
-            }
-                |> Test.Expectation.fail
+            Test.Expectation.fail
+                { description = "Expect.ok"
+                , reason = Comparison "Ok _" (Internal.toString result)
+                }
 
 
 {-| Passes if the
-[`Result`](http://package.elm-lang.org/packages/elm-lang/core/latest/Result) is
+[`Result`](https://package.elm-lang.org/packages/elm/core/latest/Result) is
 an `Err` rather than `Ok`. This is useful for tests where you expect to get an
 error but you don't care what the actual error is.
 
@@ -433,10 +435,10 @@ err : Result a b -> Expectation
 err result =
     case result of
         Ok _ ->
-            { description = "Expect.err"
-            , reason = Comparison "Err _" (Internal.toString result)
-            }
-                |> Test.Expectation.fail
+            Test.Expectation.fail
+                { description = "Expect.err"
+                , reason = Comparison "Err _" (Internal.toString result)
+                }
 
         Err _ ->
             pass
@@ -475,10 +477,10 @@ equalLists expected actual =
         pass
 
     else
-        { description = "Expect.equalLists"
-        , reason = ListDiff (List.map Internal.toString expected) (List.map Internal.toString actual)
-        }
-            |> Test.Expectation.fail
+        Test.Expectation.fail
+            { description = "Expect.equalLists"
+            , reason = ListDiff (List.map Internal.toString expected) (List.map Internal.toString actual)
+            }
 
 
 {-| Passes if the arguments are equal dicts.
@@ -595,7 +597,7 @@ equalSets expected actual =
 -}
 pass : Expectation
 pass =
-    Test.Expectation.Pass Test.Distribution.NoDistribution
+    Test.Expectation.Pass (Test.Distribution.NoDistribution ())
 
 
 {-| Fails with the given message.
@@ -617,7 +619,10 @@ pass =
 -}
 fail : String -> Expectation
 fail str =
-    Test.Expectation.fail { description = str, reason = Custom }
+    Test.Expectation.fail
+        { description = str
+        , reason = Custom
+        }
 
 
 {-| If the given expectation fails, replace its failure message with a custom one.
@@ -634,42 +639,25 @@ onFail str expectation =
             expectation
 
         Test.Expectation.Fail failure ->
-            Test.Expectation.Fail { failure | failData = { description = str, reason = Custom } }
+            Test.Expectation.Fail
+                { given = failure.given
+                , distributionReport = failure.distributionReport
+                , failData = { description = str, reason = Custom }
+                }
 
 
-{-| Passes if each of the given functions passes when applied to the subject.
-
-Passing an empty list is assumed to be a mistake, so `Expect.all []`
-will always return a failed expectation no matter what else it is passed.
+{-| Passes if all given expectations pass.
 
     Expect.all
-        [ Expect.greaterThan -2
-        , Expect.lessThan 5
+        [ user.name |> Expect.notEqual ""
+        , user.age |> Expect.atLeast 0
         ]
-        (List.length [])
-    -- Passes because (0 > -2) is True and (0 < 5) is also True
 
-Failures resemble code written in pipeline style, so you can tell
-which argument is which:
-
-    -- Fails because (0 < -10) is False
-    List.length []
-        |> Expect.all
-            [ Expect.greaterThan -2
-            , Expect.lessThan -10
-            , Expect.equal 0
-            ]
-    {-
-    0
-    ╷
-    │ Expect.lessThan
-    ╵
-    -10
-    -}
+`Expect.all []` is reported as a test failure.
 
 -}
-all : List (subject -> Expectation) -> subject -> Expectation
-all list query =
+all : List Expectation -> Expectation
+all list =
     if List.isEmpty list then
         Test.Expectation.fail
             { reason = Invalid EmptyList
@@ -677,22 +665,117 @@ all list query =
             }
 
     else
-        allHelp list query
+        allHelp list
 
 
-allHelp : List (subject -> Expectation) -> subject -> Expectation
-allHelp list query =
+{-| Passes if each of the given functions passes when applied to the subject.
+
+See also [`all`](#all).
+
+Useful as an argument to [`Query.each`](Test-Html-Query#each):
+
+    Query.each
+        (Expect.passesAll
+            [ Query.has [ tag "ul" ]
+            , Query.has [ classes [ "items", "active" ] ]
+            ]
+        )
+
+`Expect.passesAll [] _` is reported as a test failure.
+
+-}
+passesAll : List (subject -> Expectation) -> subject -> Expectation
+passesAll checks subject =
+    all (List.map (\check -> check subject) checks)
+
+
+allHelp : List Expectation -> Expectation
+allHelp list =
     case list of
         [] ->
             pass
 
         check :: rest ->
-            case check query of
+            case check of
                 Test.Expectation.Pass _ ->
-                    allHelp rest query
+                    allHelp rest
 
                 outcome ->
                     outcome
+
+
+{-| Passes if at least one of the given expectations passes.
+
+    Expect.oneOf
+        [ user.isPremiumMember |> Expect.equal True
+        , user.cartTotal |> Expect.atLeast 50
+        , user.coupon |> Expect.notEqual Nothing
+        ]
+
+If none of them pass, the failure lists all the inner failures.
+
+`Expect.oneOf []` is reported as a test failure.
+
+-}
+oneOf : List Expectation -> Expectation
+oneOf list =
+    if List.isEmpty list then
+        Test.Expectation.fail
+            { reason = Invalid EmptyList
+            , description = "Expect.oneOf was given an empty list. You must make at least one expectation to have a valid test!"
+            }
+
+    else
+        oneOfHelp list []
+
+
+{-| Passes if at least one of the given functions passes when applied to the subject.
+
+See also [`oneOf`](#oneOf).
+
+Useful as an argument to [`Query.each`](Test-Html-Query#each):
+
+    Query.each
+        (Expect.passesOneOf
+            [ Query.has [ tag "ul" ]
+            , Query.has [ tag "ol" ]
+            ]
+        )
+
+`Expect.passesOneOf [] _` is reported as a test failure.
+
+-}
+passesOneOf : List (subject -> Expectation) -> subject -> Expectation
+passesOneOf checks subject =
+    oneOf (List.map (\check -> check subject) checks)
+
+
+oneOfHelp :
+    List Expectation
+    -> List { given : Maybe String, description : String, reason : Reason }
+    -> Expectation
+oneOfHelp list failuresSoFar =
+    case list of
+        [] ->
+            Test.Expectation.fail
+                { reason = Multiple (List.reverse failuresSoFar)
+                , description =
+                    "Expect.oneOf: none of the "
+                        ++ String.fromInt (List.length failuresSoFar)
+                        ++ " expectations passed."
+                }
+
+        (Test.Expectation.Pass _) :: _ ->
+            pass
+
+        (Test.Expectation.Fail failure) :: rest ->
+            oneOfHelp rest
+                ({ given = failure.given
+                 , description = failure.failData.description
+                 , reason = failure.failData.reason
+                 }
+                    :: failuresSoFar
+                )
 
 
 
@@ -701,16 +784,16 @@ allHelp list query =
 
 reportCollectionFailure : String -> a -> b -> List c -> List d -> Expectation
 reportCollectionFailure comparison expected actual missingKeys extraKeys =
-    { description = comparison
-    , reason =
-        { expected = Internal.toString expected
-        , actual = Internal.toString actual
-        , extra = List.map Internal.toString extraKeys
-        , missing = List.map Internal.toString missingKeys
+    Test.Expectation.fail
+        { description = comparison
+        , reason =
+            { expected = Internal.toString expected
+            , actual = Internal.toString actual
+            , extra = List.map Internal.toString extraKeys
+            , missing = List.map Internal.toString missingKeys
+            }
+                |> CollectionDiff
         }
-            |> CollectionDiff
-    }
-        |> Test.Expectation.fail
 
 
 {-| String arg is label, e.g. "Expect.equal".
@@ -731,16 +814,13 @@ equateWith reason comparison b a =
 
         usesFloats =
             isFloat (Internal.toString a) || isFloat (Internal.toString b)
-
-        floatError =
-            if String.contains reason "not" then
-                "Do not use Expect.notEqual with floats. Use Expect.notWithin instead."
-
-            else
-                "Do not use Expect.equal with floats. Use Expect.within instead."
     in
     if usesFloats then
-        fail floatError
+        if String.contains reason "not" then
+            fail "Do not use Expect.notEqual with floats. Use Expect.notWithin instead."
+
+        else
+            fail "Do not use Expect.equal with floats. Use Expect.within instead."
 
     else
         testWith Equality reason comparison b a
@@ -757,10 +837,10 @@ testWith makeReason label runTest expected actual =
         pass
 
     else
-        { description = label
-        , reason = makeReason (Internal.toString expected) (Internal.toString actual)
-        }
-            |> Test.Expectation.fail
+        Test.Expectation.fail
+            { description = label
+            , reason = makeReason (Internal.toString expected) (Internal.toString actual)
+            }
 
 
 
@@ -796,13 +876,22 @@ relative tolerance =
 nonNegativeToleranceError : FloatingPointTolerance -> String -> Expectation -> Expectation
 nonNegativeToleranceError tolerance name result =
     if absolute tolerance < 0 && relative tolerance < 0 then
-        Test.Expectation.fail { description = "Expect." ++ name ++ " was given negative absolute and relative tolerances", reason = Custom }
+        Test.Expectation.fail
+            { description = "Expect." ++ name ++ " was given negative absolute and relative tolerances"
+            , reason = Custom
+            }
 
     else if absolute tolerance < 0 then
-        Test.Expectation.fail { description = "Expect." ++ name ++ " was given a negative absolute tolerance", reason = Custom }
+        Test.Expectation.fail
+            { description = "Expect." ++ name ++ " was given a negative absolute tolerance"
+            , reason = Custom
+            }
 
     else if relative tolerance < 0 then
-        Test.Expectation.fail { description = "Expect." ++ name ++ " was given a negative relative tolerance", reason = Custom }
+        Test.Expectation.fail
+            { description = "Expect." ++ name ++ " was given a negative relative tolerance"
+            , reason = Custom
+            }
 
     else
         result
@@ -810,12 +899,9 @@ nonNegativeToleranceError tolerance name result =
 
 withinCompare : FloatingPointTolerance -> Float -> Float -> Bool
 withinCompare tolerance a b =
-    let
-        withinAbsoluteTolerance =
-            a - absolute tolerance <= b && b <= a + absolute tolerance
-
-        withinRelativeTolerance =
-            (a - abs (a * relative tolerance) <= b && b <= a + abs (a * relative tolerance))
-                || (b - abs (b * relative tolerance) <= a && a <= b + abs (b * relative tolerance))
-    in
-    (a == b) || withinAbsoluteTolerance || withinRelativeTolerance
+    (a == b)
+        -- within absolute tolerance
+        || (a - absolute tolerance <= b && b <= a + absolute tolerance)
+        -- within relative tolerance
+        || (a - abs (a * relative tolerance) <= b && b <= a + abs (a * relative tolerance))
+        || (b - abs (b * relative tolerance) <= a && a <= b + abs (b * relative tolerance))

@@ -1,4 +1,13 @@
-module Test.Html.Selector.Internal exposing (Selector(..), hasAll, namedAttr, namedBoolAttr, query, queryAll, queryAllChildren, selectorToString, styleToString)
+module Test.Html.Selector.Internal exposing
+    ( Selector(..)
+    , findDescendants
+    , hasAll
+    , invalid
+    , keepMatching
+    , namedAttr
+    , namedBoolAttr
+    , selectorToString
+    )
 
 import Test.Html.Internal.ElmHtml.InternalTypes exposing (ElmHtml)
 import Test.Html.Internal.ElmHtml.Query as ElmHtmlQuery
@@ -15,23 +24,16 @@ type Selector
     | Text String
     | ExactText String
     | Containing (List Selector)
-    | Invalid
+    | Invalid ()
+
+
+invalid : Selector
+invalid =
+    Invalid ()
 
 
 selectorToString : Selector -> String
 selectorToString criteria =
-    let
-        quoteString s =
-            "\"" ++ s ++ "\""
-
-        boolToString b =
-            case b of
-                True ->
-                    "True"
-
-                False ->
-                    "False"
-    in
     case criteria of
         All list ->
             list
@@ -77,8 +79,22 @@ selectorToString criteria =
             in
             "containing [ " ++ selectors ++ " ] "
 
-        Invalid ->
+        Invalid () ->
             "invalid"
+
+
+quoteString : String -> String
+quoteString s =
+    "\"" ++ s ++ "\""
+
+
+boolToString : Bool -> String
+boolToString b =
+    if b then
+        "True"
+
+    else
+        "False"
 
 
 styleToString : { key : String, value : String } -> String
@@ -86,106 +102,80 @@ styleToString { key, value } =
     key ++ ":" ++ value
 
 
+matches : Selector -> ElmHtml msg -> Bool
+matches selector node =
+    case selector of
+        All selectors ->
+            List.all (\s -> matches s node) selectors
+
+        Classes classes ->
+            ElmHtmlQuery.hasClasses classes node
+
+        Class class ->
+            ElmHtmlQuery.hasClasses [ class ] node
+
+        Attribute { name, value } ->
+            ElmHtmlQuery.hasAttribute name value node
+
+        BoolAttribute { name, value } ->
+            ElmHtmlQuery.hasBoolAttribute name value node
+
+        Style style ->
+            ElmHtmlQuery.hasStyle style node
+
+        Tag name ->
+            ElmHtmlQuery.hasTag name node
+
+        Text text ->
+            hasDescendantText (String.contains text) node
+
+        ExactText text ->
+            hasDescendantText ((==) text) node
+
+        Containing selectors ->
+            ElmHtmlQuery.getChildren node
+                |> List.any (ElmHtmlQuery.existsDescendant (matches (All selectors)))
+
+        Invalid () ->
+            False
+
+
+hasDescendantText : (String -> Bool) -> ElmHtml msg -> Bool
+hasDescendantText predicate node =
+    ElmHtmlQuery.existsDescendant (ElmHtmlQuery.containsText predicate) node
+
+
 hasAll : List Selector -> List (ElmHtml msg) -> Bool
 hasAll selectors elems =
     case selectors of
         [] ->
-            True
+            not (List.isEmpty elems)
 
-        selector :: rest ->
-            if List.isEmpty (queryAll [ selector ] elems) then
-                False
-
-            else
-                hasAll rest elems
+        _ ->
+            List.any (ElmHtmlQuery.existsDescendant (matches (All selectors))) elems
 
 
-queryAll : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
-queryAll selectors list =
+{-| Search the whole subtree of each element for descendants (self included)
+matching every selector in the list, all on the same element.
+-}
+findDescendants : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+findDescendants selectors elems =
     case selectors of
         [] ->
-            list
+            elems
 
-        selector :: rest ->
-            query ElmHtmlQuery.query queryAll selector list
-                |> queryAll rest
+        _ ->
+            List.concatMap (ElmHtmlQuery.findAll (matches (All selectors))) elems
 
 
-queryAllChildren : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
-queryAllChildren selectors list =
+keepMatching : List Selector -> List (ElmHtml msg) -> List (ElmHtml msg)
+keepMatching selectors elems =
     case selectors of
         [] ->
-            list
+            elems
 
-        selector :: rest ->
-            query ElmHtmlQuery.queryChildren queryAllChildren selector list
-                |> queryAllChildren rest
-
-
-query :
-    (ElmHtmlQuery.Selector -> ElmHtml msg -> List (ElmHtml msg))
-    -> (List Selector -> List (ElmHtml msg) -> List (ElmHtml msg))
-    -> Selector
-    -> List (ElmHtml msg)
-    -> List (ElmHtml msg)
-query fn fnAll selector list =
-    case list of
-        [] ->
-            list
-
-        elems ->
-            case selector of
-                All selectors ->
-                    fnAll selectors elems
-
-                Classes classes ->
-                    List.concatMap (fn (ElmHtmlQuery.ClassList classes)) elems
-
-                Class class ->
-                    List.concatMap (fn (ElmHtmlQuery.ClassList [ class ])) elems
-
-                Attribute { name, value } ->
-                    List.concatMap (fn (ElmHtmlQuery.Attribute name value)) elems
-
-                BoolAttribute { name, value } ->
-                    List.concatMap (fn (ElmHtmlQuery.BoolAttribute name value)) elems
-
-                Style style ->
-                    List.concatMap (fn (ElmHtmlQuery.Style style)) elems
-
-                Tag name ->
-                    List.concatMap (fn (ElmHtmlQuery.Tag name)) elems
-
-                Text text ->
-                    List.concatMap (fn (ElmHtmlQuery.ContainsText text)) elems
-
-                ExactText text ->
-                    List.concatMap (fn (ElmHtmlQuery.ContainsExactText text)) elems
-
-                Containing selectors ->
-                    let
-                        anyDescendantsMatch elem =
-                            case ElmHtmlQuery.getChildren elem of
-                                [] ->
-                                    -- We have no children;
-                                    -- no descendants can possibly match.
-                                    False
-
-                                children ->
-                                    case query fn fnAll (All selectors) children of
-                                        [] ->
-                                            -- None of our children matched,
-                                            -- but their descendants might!
-                                            List.any anyDescendantsMatch children
-
-                                        _ :: _ ->
-                                            -- At least one child matched. Yay!
-                                            True
-                    in
-                    List.filter anyDescendantsMatch elems
-
-                Invalid ->
-                    []
+        _ ->
+            List.filter (matches (All selectors)) elems
 
 
 namedAttr : String -> String -> Selector

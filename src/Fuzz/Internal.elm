@@ -1,4 +1,4 @@
-module Fuzz.Internal exposing (Fuzzer(..), generate)
+module Fuzz.Internal exposing (Fuzzer(..), generate, noDistribution)
 
 {-| This module is here just to hide the `generate` function from the end users
 of the library.
@@ -6,6 +6,7 @@ of the library.
 
 import GenResult exposing (GenResult)
 import PRNG exposing (PRNG)
+import Test.Distribution exposing (DistributionReport)
 
 
 type Fuzzer a
@@ -15,3 +16,8 @@ type Fuzzer a
 generate : PRNG -> Fuzzer a -> GenResult a
 generate prng (Fuzzer fuzzer) =
     fuzzer prng
+
+
+noDistribution : DistributionReport
+noDistribution =
+    Test.Distribution.NoDistribution ()

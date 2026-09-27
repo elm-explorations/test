@@ -28,17 +28,16 @@ isBitSet index num =
 
 int52FromTuple : ( Int, Int ) -> Int
 int52FromTuple ( highBits, lowBits ) =
-    (+)
-        (highBits
-            |> keepBits 20
-            |> signedToUnsigned
-            -- Bitwise.shiftLeftBy 32 would be buggy, so we do:
-            |> (*) 0x0000000100000000
-        )
-        (lowBits
+    (highBits
+        |> keepBits 20
+        |> signedToUnsigned
+        -- Bitwise.shiftLeftBy 32 would be buggy, so we do:
+        |> (*) 0x0000000100000000
+    )
+        + (lowBits
             |> signedToUnsigned
             |> keepBits 32
-        )
+          )
 
 
 int52ToTuple : Int -> ( Int, Int )
@@ -94,9 +93,7 @@ reverseByte b_ =
 reverseByteTable : Array Int
 reverseByteTable =
     -- TODO PERF `Dict Int Int` or `IntDict Int` or `List` instead? Benchmark?
-    List.range 0 255
-        |> List.map reverseByte
-        |> Array.fromList
+    Array.initialize (255 + 1) reverseByte
 
 
 memoizedReverseByte : Int -> Int

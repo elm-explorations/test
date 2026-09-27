@@ -5,6 +5,7 @@ import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
 import Helpers exposing (..)
+import Random
 import RandomRunTests
 import RunnerTests
 import RunnerV2Tests
@@ -18,6 +19,7 @@ import Test.Html.Query.MarkdownTests
 import Test.Html.QueryTests
 import Test.Html.SelectorTests
 import Test.Runner
+import Test.Runner.Failure
 
 
 all : Test
@@ -68,7 +70,7 @@ readmeExample =
                     "ABCDEFG"
                         |> String.reverse
                         |> Expect.equal "GFEDCBA"
-            , fuzz string "restores the original string if you run it again" <|
+            , fuzz "restores the original string if you run it again" string <|
                 \randomlyGeneratedString ->
                     randomlyGeneratedString
                         |> String.reverse
@@ -94,9 +96,70 @@ expectationTests =
         , describe "Expect.all"
             [ test "fails with empty list" <|
                 \_ ->
-                    "dummy subject"
-                        |> Expect.all []
+                    Expect.all []
                         |> expectToFail
+            ]
+        , describe "Expect.oneOf"
+            [ test "fails with empty list" <|
+                \_ ->
+                    Expect.oneOf []
+                        |> expectToFail
+            , test "passes if the subject satisfies at least one of the expectations" <|
+                \_ ->
+                    let
+                        user =
+                            { isPremiumMember = False
+                            , cartTotal = 75
+                            , coupon = Nothing
+                            }
+                    in
+                    Expect.oneOf
+                        [ user.isPremiumMember |> Expect.equal True
+                        , user.cartTotal |> Expect.atLeast 50
+                        , user.coupon |> Expect.notEqual Nothing
+                        ]
+            , test "fails if the subject satisfies none of the expectations" <|
+                \_ ->
+                    let
+                        user =
+                            { isPremiumMember = False
+                            , cartTotal = 10
+                            , coupon = Nothing
+                            }
+                    in
+                    Expect.oneOf
+                        [ user.isPremiumMember |> Expect.equal True
+                        , user.cartTotal |> Expect.atLeast 50
+                        , user.coupon |> Expect.notEqual Nothing
+                        ]
+                        |> expectToFail
+            , test "reports every failed expectation when none pass" <|
+                \_ ->
+                    let
+                        user =
+                            { isPremiumMember = False
+                            , cartTotal = 10
+                            , coupon = Nothing
+                            }
+
+                        checks =
+                            [ user.isPremiumMember |> Expect.equal True
+                            , user.cartTotal |> Expect.atLeast 50
+                            , user.coupon |> Expect.notEqual Nothing
+                            ]
+                    in
+                    case Test.Runner.getFailureReason (Expect.oneOf checks) of
+                        Just { reason } ->
+                            case reason of
+                                Test.Runner.Failure.Multiple failures ->
+                                    List.length failures
+                                        |> Expect.equal (List.length checks)
+
+                                _ ->
+                                    Expect.fail "expected a Multiple reason"
+
+                        Nothing ->
+                            Expect.fail "expected a failure"
             ]
         , describe "Expect.equal"
             [ test "fails when equating two floats (see #230)" <|
@@ -126,7 +189,7 @@ expectationTests =
 regressions : Test
 regressions =
     describe "regression tests"
-        [ fuzz (intRange 1 32) "for elm-community/elm-test #39" <|
+        [ fuzz "for elm-community/elm-test #39" (intRange 1 32) <|
             \positiveInt ->
                 positiveInt
                     |> Expect.greaterThan 0
@@ -138,8 +201,8 @@ regressions =
                (Issue numbers refer to elm-community/elm-test.)
             -}
             \() ->
-                fuzz (intRange 1 8)
-                    "fuzz tests run 100 times"
+                fuzz "fuzz tests run 100 times"
+                    (intRange 1 8)
                     (Expect.notEqual 5)
                     |> expectTestToFail
         , test "the String.reverse bug that prevented us from releasing unicode string fuzzers in August 2017 is now fixed" <|
@@ -177,23 +240,49 @@ testTests =
         , describe "fuzz"
             [ test "fails with empty name" <|
                 \() ->
-                    fuzz Fuzz.bool "" expectPass
+                    fuzz "" Fuzz.bool expectPass
                         |> expectTestToFail
             ]
         , describe "fuzzWith"
             [ test "fails with fewer than 1 run" <|
                 \() ->
-                    fuzzWith { runs = 0, distribution = noDistribution }
+                    fuzzWith "nonpositive"
+                        { runs = 0, distribution = noDistribution }
                         Fuzz.bool
-                        "nonpositive"
                         expectPass
                         |> expectTestToFail
             , test "fails with empty name" <|
                 \() ->
-                    fuzzWith { runs = 1, distribution = noDistribution }
+                    fuzzWith ""
+                        { runs = 1, distribution = noDistribution }
                         Fuzz.bool
-                        ""
                         expectPass
+                        |> expectTestToFail
+            ]
+        , describe "fuzzWithExamples"
+            [ test "fails with fewer than 1 run" <|
+                \() ->
+                    fuzzWithExamples "nonpositive"
+                        { runs = 0, distribution = noDistribution }
+                        Fuzz.bool
+                        []
+                        expectPass
+                        |> expectTestToFail
+            , test "fails with empty name" <|
+                \() ->
+                    fuzzWithExamples ""
+                        { runs = 1, distribution = noDistribution }
+                        Fuzz.bool
+                        []
+                        expectPass
+                        |> expectTestToFail
+            , test "fails with empty sub name" <|
+                \() ->
+                    fuzzWithExamples "x"
+                        { runs = 1, distribution = noDistribution }
+                        Fuzz.int
+                        [ ( "", 987461349871874 ) ]
+                        (\n -> n |> Expect.equal 987461349871874)
                         |> expectTestToFail
             ]
         , describe "Test.todo"
@@ -206,6 +295,87 @@ testTests =
             , test "Simple failures are not TODO" <|
                 \_ ->
                     Expect.fail "reason" |> Test.Runner.isTodo |> Expect.equal False
+            ]
+        , describe "parameterized"
+            [ test "fails with empty list" <|
+                \() ->
+                    parameterized "x" [] (\n -> test (String.fromInt n) expectPass)
+                        |> expectTestToFail
+            , test "fails with empty description" <|
+                \() ->
+                    parameterized "" [ 1 ] (\n -> test (String.fromInt n) expectPass)
+                        |> expectTestToFail
+            , test "fails with whitespace-only description" <|
+                \() ->
+                    parameterized "   " [ 1 ] (\n -> test (String.fromInt n) expectPass)
+                        |> expectTestToFail
+            , test "fails when generated tests have duplicate names" <|
+                \() ->
+                    parameterized "outer" [ 1, 2 ] (\_ -> test "dup" expectPass)
+                        |> expectTestToFail
+            , test "fails when it contains the same name as a child test" <|
+                \() ->
+                    parameterized "dup" [ 1 ] (\_ -> test "dup" expectPass)
+                        |> expectTestToFail
+            , test "passes when all cases pass" <|
+                \() ->
+                    let
+                        testCases : List ( Int, Int, Int )
+                        testCases =
+                            [ ( 1, 1, 2 )
+                            , ( 5, 0, 5 )
+                            ]
+
+                        testCase : ( Int, Int, Int ) -> Test
+                        testCase ( a, b, expectedSum ) =
+                            test (Debug.toString ( a, b )) <|
+                                \() ->
+                                    (a + b)
+                                        |> Expect.equal expectedSum
+                    in
+                    parameterized "addition" testCases testCase
+                        |> expectTestToPass
+            , test "fails when a case fails" <|
+                \() ->
+                    parameterized "x" [ 1 ] (\_ -> test "case" (\() -> Expect.fail "oops"))
+                        |> expectTestToFail
+            , test "fails when any of several cases fails" <|
+                \() ->
+                    parameterized "x"
+                        [ 1, 2 ]
+                        (\n ->
+                            if n == 1 then
+                                test "one" expectPass
+
+                            else
+                                test "two" (\() -> Expect.fail "oops")
+                        )
+                        |> expectTestToPass
+                        |> expectToFail
+            , test "groups each case under the outer description" <|
+                \() ->
+                    let
+                        suite =
+                            parameterized "outer"
+                                [ 1, 2 ]
+                                (\n -> test ("case " ++ String.fromInt n) expectPass)
+                    in
+                    case Test.Runner.fromTest 100 (Random.initialSeed 123) suite of
+                        Test.Runner.Plain runners ->
+                            List.map .labels runners
+                                |> Expect.equal
+                                    [ [ "case 1", "outer" ]
+                                    , [ "case 2", "outer" ]
+                                    ]
+
+                        Test.Runner.Only _ ->
+                            Expect.fail "Expected Plain runners, got Only"
+
+                        Test.Runner.Skipping _ ->
+                            Expect.fail "Expected Plain runners, got Skipping"
+
+                        Test.Runner.Invalid msg ->
+                            Expect.fail ("Expected Plain runners, got Invalid: " ++ msg)
             ]
         , identicalNamesAreRejectedTests
         ]

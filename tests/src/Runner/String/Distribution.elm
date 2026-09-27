@@ -1,16 +1,12 @@
 module Runner.String.Distribution exposing (report)
 
-import Dict exposing (Dict)
-import Expect exposing (Expectation)
-import Set exposing (Set)
 import Test.Distribution exposing (DistributionReport(..))
-import Test.Runner
 
 
 report : List String -> DistributionReport -> Maybe String
 report testBreadcrumbs distributionReport =
     case distributionReport of
-        NoDistribution ->
+        NoDistribution () ->
             Nothing
 
         DistributionToReport r ->

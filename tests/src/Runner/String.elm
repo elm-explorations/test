@@ -11,7 +11,6 @@ Note that this always uses an initial seed of 902101337, since it can't do effec
 
 -}
 
-import Dict exposing (Dict)
 import Expect exposing (Expectation)
 import Random
 import Runner.String.Distribution
@@ -39,13 +38,31 @@ toOutput summary seededRunners =
     in
     case seededRunners of
         Plain runners ->
-            render { summary | autoFail = Nothing } runners
+            render
+                { output = summary.output
+                , passed = summary.passed
+                , failed = summary.failed
+                , autoFail = Nothing
+                }
+                runners
 
         Only runners ->
-            render { summary | autoFail = Just "Test.only was used" } runners
+            render
+                { output = summary.output
+                , passed = summary.passed
+                , failed = summary.failed
+                , autoFail = Just "Test.only was used"
+                }
+                runners
 
         Skipping runners ->
-            render { summary | autoFail = Just "Test.skip was used" } runners
+            render
+                { output = summary.output
+                , passed = summary.passed
+                , failed = summary.failed
+                , autoFail = Just "Test.skip was used"
+                }
+                runners
 
         Invalid message ->
             { output = message, passed = 0, failed = 0, autoFail = Nothing }
@@ -76,24 +93,22 @@ fromExpectation labels expectation summary =
                 |> Test.Runner.getDistributionReport
                 |> Runner.String.Distribution.report labels
 
-        summaryWithDistribution : Summary
-        summaryWithDistribution =
+        output : String
+        output =
             case distributionReport of
                 Nothing ->
-                    summary
+                    summary.output
 
                 Just distribution ->
-                    { summary
-                        | output =
-                            summary.output
-                                ++ "\n\n"
-                                ++ distribution
-                                ++ "\n"
-                    }
+                    summary.output ++ "\n\n" ++ distribution ++ "\n"
     in
     case Test.Runner.getFailureReason expectation of
         Nothing ->
-            { summaryWithDistribution | passed = summaryWithDistribution.passed + 1 }
+            { output = output
+            , failed = summary.failed
+            , passed = summary.passed + 1
+            , autoFail = summary.autoFail
+            }
 
         Just { given, description, reason } ->
             let
@@ -109,16 +124,18 @@ fromExpectation labels expectation summary =
                             "Given " ++ g ++ "\n\n"
 
                 newOutput =
-                    "\n\n"
+                    output
+                        ++ "\n\n"
                         ++ outputLabels labels
                         ++ "\n"
-                        ++ (prefix ++ indentLines message)
+                        ++ prefix
+                        ++ indentLines message
                         ++ "\n"
             in
-            { summaryWithDistribution
-                | output = summaryWithDistribution.output ++ newOutput
-                , failed = summaryWithDistribution.failed + 1
-                , passed = summaryWithDistribution.passed
+            { output = newOutput
+            , failed = summary.failed + 1
+            , passed = summary.passed
+            , autoFail = summary.autoFail
             }
 
 
@@ -137,11 +154,6 @@ defaultSeed =
 defaultRuns : Int
 defaultRuns =
     100
-
-
-wrap : String -> String -> String
-wrap delimiter string =
-    delimiter ++ string ++ delimiter
 
 
 indentLines : String -> String

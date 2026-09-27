@@ -87,8 +87,8 @@ simplifyWhileProgress state =
     if RandomRun.equal nextState.randomRun state.randomRun then
         let
             _ =
-                if DebugConfig.shouldLogShrinkProgress then
-                    logState "shrank successfully" state
+                if DebugConfig.shouldLogSimplifyProgress then
+                    logState "simplified successfully" state
 
                 else
                     state
@@ -143,14 +143,13 @@ logRun label run =
 logState : String -> State a -> State a
 logState label state =
     let
-        runString =
-            Debug.toString (RandomRun.toList state.randomRun)
-    in
-    let
         _ =
             case Fuzz.Internal.generate (PRNG.hardcoded state.randomRun) state.fuzzer of
                 Generated { value } ->
                     let
+                        runString =
+                            Debug.toString (RandomRun.toList state.randomRun)
+
                         _ =
                             Debug.log (label ++ " - " ++ runString ++ " --->") value
                     in
@@ -166,40 +165,36 @@ runCmd : SimplifyCmd -> State a -> SimplifyResult a
 runCmd cmd state =
     let
         _ =
-            if DebugConfig.shouldLogShrinkAttempts then
+            if DebugConfig.shouldLogSimplifyAttempts then
                 logRun ("trying " ++ Debug.toString cmd.type_ ++ " on") state.randomRun
 
             else
                 state.randomRun
     in
-    let
-        result =
-            case cmd.type_ of
-                DeleteChunkAndMaybeDecrementPrevious chunk ->
-                    deleteChunkAndMaybeDecrementPrevious chunk state
+    case cmd.type_ of
+        DeleteChunkAndMaybeDecrementPrevious chunk ->
+            deleteChunkAndMaybeDecrementPrevious chunk state
 
-                ReplaceChunkWithZero chunk ->
-                    replaceChunkWithZero chunk state
+        ReplaceChunkWithZero chunk ->
+            replaceChunkWithZero chunk state
 
-                SortChunk chunk ->
-                    sortChunk chunk state
+        SortChunk chunk ->
+            sortChunk chunk state
 
-                MinimizeFloat options ->
-                    minimizeFloat options state
+        MinimizeFloat options ->
+            minimizeFloat options state
 
-                MinimizeChoice options ->
-                    minimizeChoice options state
+        MinimizeChoice options ->
+            minimizeChoice options state
 
-                RedistributeChoicesAndMaybeIncrement options ->
-                    redistributeChoicesAndMaybeIncrement options state
+        RedistributeChoicesAndMaybeIncrement options ->
+            redistributeChoicesAndMaybeIncrement options state
 
-                DecrementTogether options ->
-                    decrementTogether options state
+        DecrementTogether options ->
+            decrementTogether options state
 
-                SwapChunkWithNeighbour chunk ->
-                    swapChunkWithNeighbour chunk state
-    in
-    result
+        SwapChunkWithNeighbour chunk ->
+            swapChunkWithNeighbour chunk state
 
 
 {-| Tries the new RandomRun with the given fuzzer and test fn, and if the run
@@ -214,7 +209,7 @@ keepIfBetter newRandomRun state =
     else
         let
             _ =
-                if DebugConfig.shouldLogShrinkAttempts then
+                if DebugConfig.shouldLogSimplifyAttempts then
                     logRun "trying to parse" newRandomRun
 
                 else
@@ -226,7 +221,7 @@ keepIfBetter newRandomRun state =
                     Pass _ ->
                         let
                             _ =
-                                if DebugConfig.shouldLogShrinkAttempts then
+                                if DebugConfig.shouldLogSimplifyAttempts then
                                     Debug.log "parsed but didn't fail the test" value
 
                                 else
@@ -238,26 +233,27 @@ keepIfBetter newRandomRun state =
                         if RandomRun.compare state.randomRun newRandomRun == GT then
                             let
                                 _ =
-                                    if DebugConfig.shouldLogShrinkAttempts then
-                                        Debug.log "parsed, failed, shrunk" value
+                                    if DebugConfig.shouldLogSimplifyAttempts then
+                                        Debug.log "parsed, failed, simplified" value
 
                                     else
                                         value
                             in
                             { wasImprovement = True
                             , newState =
-                                { state
-                                    | value = value
-                                    , randomRun = newRandomRun
-                                    , failData = failData
+                                { getExpectation = state.getExpectation
+                                , fuzzer = state.fuzzer
+                                , value = value
+                                , randomRun = newRandomRun
+                                , failData = failData
                                 }
                             }
 
                         else
                             let
                                 _ =
-                                    if DebugConfig.shouldLogShrinkAttempts then
-                                        Debug.log "parsed, failed, didn't shrink" value
+                                    if DebugConfig.shouldLogSimplifyAttempts then
+                                        Debug.log "parsed, failed, didn't simplify" value
 
                                     else
                                         value
@@ -358,7 +354,7 @@ minimizeFloat { leftIndex } state =
                                     exponent =
                                         Fuzz.Float.getExponent ( hi, lo )
                                 in
-                                binarySearchShrink
+                                binarySearchSimplify
                                     { low = 0
                                     , high = exponent
                                     , state = state_
@@ -389,7 +385,7 @@ minimizeFloat { leftIndex } state =
                                     mantissa =
                                         Fuzz.Float.getMantissa ( hi, lo )
                                 in
-                                binarySearchShrink
+                                binarySearchSimplify
                                     { low = 0
                                     , high = mantissa
                                     , state = state_
@@ -423,7 +419,7 @@ minimizeChoice { index } state =
                 noImprovement state
 
             else
-                binarySearchShrink
+                binarySearchSimplify
                     { low = 0
                     , high = value
                     , state = state
@@ -466,10 +462,16 @@ redistributeChoicesAndMaybeIncrement options state =
 
                 go : RandomRun -> SimplifyResult a
                 go initialRun =
-                    binarySearchShrink
+                    binarySearchSimplify
                         { low = 0
                         , high = newLeftValue
-                        , state = { newState | randomRun = initialRun }
+                        , state =
+                            { getExpectation = newState.getExpectation
+                            , fuzzer = newState.fuzzer
+                            , value = newState.value
+                            , randomRun = initialRun
+                            , failData = newState.failData
+                            }
                         , updateRun =
                             \value accRun ->
                                 RandomRun.replace
@@ -479,11 +481,11 @@ redistributeChoicesAndMaybeIncrement options state =
                                     accRun
                         }
 
-                afterShrinkAlone =
+                afterSimplifyAlone =
                     keepIfBetter (go newState.randomRun).newState.randomRun newState
             in
-            if afterShrinkAlone.wasImprovement then
-                afterShrinkAlone
+            if afterSimplifyAlone.wasImprovement then
+                afterSimplifyAlone
 
             else
                 let
@@ -527,18 +529,18 @@ redistributeChoicesAndMaybeIncrement options state =
                         newState.randomRun
                             |> RandomRun.update (options.rightIndex - 1) (\x -> x + 1)
 
-                    afterIncrementAndShrink =
+                    afterIncrementAndSimplify =
                         keepIfBetter (go runWithIncrementedRightBucket).newState.randomRun newState
                 in
-                if afterIncrementAndShrink.wasImprovement then
-                    afterIncrementAndShrink
+                if afterIncrementAndSimplify.wasImprovement then
+                    afterIncrementAndSimplify
 
                 else
                     afterSwap
 
 
 
--- BINARY SEARCH SHRINKING
+-- BINARY SEARCH SIMPLIFYING
 
 
 type alias BinarySearchOptions a =
@@ -549,8 +551,8 @@ type alias BinarySearchOptions a =
     }
 
 
-binarySearchShrink : BinarySearchOptions a -> SimplifyResult a
-binarySearchShrink ({ updateRun, low, state } as options) =
+binarySearchSimplify : BinarySearchOptions a -> SimplifyResult a
+binarySearchSimplify ({ updateRun, low, state } as options) =
     let
         -- Let's try the best case first
         runWithLow =
@@ -575,7 +577,7 @@ binarySearchLoop old ({ low, high, state, updateRun } as options) =
                 {- `(low + high) // 2` would cause integer overflow
 
                    `(low + (high - low) // 2)` would use `truncate` which
-                   converts to 32bit and has caused this binaryShrinkLoop inside
+                   converts to 32bit and has caused this binarySimplifyLoop inside
                    MinimizeFloat to loop infinitely in the past.
                 -}
                 low + round ((toFloat high - toFloat low) / 2)
@@ -588,13 +590,25 @@ binarySearchLoop old ({ low, high, state, updateRun } as options) =
 
             optionsWithNewRange =
                 if afterMid.wasImprovement then
-                    { options | high = mid }
+                    { low = options.low
+                    , high = mid
+                    , state = options.state
+                    , updateRun = options.updateRun
+                    }
 
                 else
-                    { options | low = mid }
+                    { low = mid
+                    , high = options.high
+                    , state = options.state
+                    , updateRun = options.updateRun
+                    }
 
             newOptions =
-                { optionsWithNewRange | state = afterMid.newState }
+                { low = optionsWithNewRange.low
+                , high = optionsWithNewRange.high
+                , state = afterMid.newState
+                , updateRun = optionsWithNewRange.updateRun
+                }
         in
         binarySearchLoop { wasImprovement = afterMid.wasImprovement } newOptions
 

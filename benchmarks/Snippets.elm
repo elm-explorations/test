@@ -7,98 +7,98 @@ import Test exposing (Test, fuzz)
 
 intPass : Test
 intPass =
-    fuzz Fuzz.int "(passes) int" <|
+    fuzz "(passes) int" Fuzz.int <|
         \_ ->
             Expect.pass
 
 
 intFail : Test
 intFail =
-    fuzz Fuzz.int "(fails) int" <|
+    fuzz "(fails) int" Fuzz.int <|
         \numbers ->
             Expect.fail "Failed"
 
 
 intRangePass : Test
 intRangePass =
-    fuzz (Fuzz.intRange 10 100) "(passes) intRange" <|
+    fuzz "(passes) intRange" (Fuzz.intRange 10 100) <|
         \_ ->
             Expect.pass
 
 
 intRangeFail : Test
 intRangeFail =
-    fuzz (Fuzz.intRange 10 100) "(fails) intRange" <|
+    fuzz "(fails) intRange" (Fuzz.intRange 10 100) <|
         \numbers ->
             Expect.fail "Failed"
 
 
 stringPass : Test
 stringPass =
-    fuzz Fuzz.string "(passes) string" <|
+    fuzz "(passes) string" Fuzz.string <|
         \_ ->
             Expect.pass
 
 
 stringFail : Test
 stringFail =
-    fuzz Fuzz.string "(fails) string" <|
+    fuzz "(fails) string" Fuzz.string <|
         \numbers ->
             Expect.fail "Failed"
 
 
 floatPass : Test
 floatPass =
-    fuzz Fuzz.float "(passes) float" <|
+    fuzz "(passes) float" Fuzz.float <|
         \_ ->
             Expect.pass
 
 
 floatFail : Test
 floatFail =
-    fuzz Fuzz.float "(fails) float" <|
+    fuzz "(fails) float" Fuzz.float <|
         \numbers ->
             Expect.fail "Failed"
 
 
 boolPass : Test
 boolPass =
-    fuzz Fuzz.bool "(passes) bool" <|
+    fuzz "(passes) bool" Fuzz.bool <|
         \_ ->
             Expect.pass
 
 
 boolFail : Test
 boolFail =
-    fuzz Fuzz.bool "(fails) bool" <|
+    fuzz "(fails) bool" Fuzz.bool <|
         \numbers ->
             Expect.fail "Failed"
 
 
 charPass : Test
 charPass =
-    fuzz Fuzz.char "(passes) char" <|
+    fuzz "(passes) char" Fuzz.char <|
         \_ ->
             Expect.pass
 
 
 charFail : Test
 charFail =
-    fuzz Fuzz.char "(fails) char" <|
+    fuzz "(fails) char" Fuzz.char <|
         \numbers ->
             Expect.fail "Failed"
 
 
 listIntPass : Test
 listIntPass =
-    fuzz (Fuzz.list Fuzz.int) "(passes) list of int" <|
+    fuzz "(passes) list of int" (Fuzz.list Fuzz.int) <|
         \_ ->
             Expect.pass
 
 
 listIntFail : Test
 listIntFail =
-    fuzz (Fuzz.list Fuzz.int) "(fails) list of int" <|
+    fuzz "(fails) list of int" (Fuzz.list Fuzz.int) <|
         {- The empty list is the first value the list simplifier will try.
            If we immediately fail on that example than we're not doing a lot of simplifying.
         -}
@@ -107,65 +107,65 @@ listIntFail =
 
 maybeIntPass : Test
 maybeIntPass =
-    fuzz (Fuzz.maybe Fuzz.int) "(passes) maybe of int" <|
+    fuzz "(passes) maybe of int" (Fuzz.maybe Fuzz.int) <|
         \_ ->
             Expect.pass
 
 
 maybeIntFail : Test
 maybeIntFail =
-    fuzz (Fuzz.maybe Fuzz.int) "(fails) maybe of int" <|
+    fuzz "(fails) maybe of int" (Fuzz.maybe Fuzz.int) <|
         \numbers ->
             Expect.fail "Failed"
 
 
 resultPass : Test
 resultPass =
-    fuzz (Fuzz.result Fuzz.string Fuzz.int) "(passes) result of string and int" <|
+    fuzz "(passes) result of string and int" (Fuzz.result Fuzz.string Fuzz.int) <|
         \_ ->
             Expect.pass
 
 
 resultFail : Test
 resultFail =
-    fuzz (Fuzz.result Fuzz.string Fuzz.int) "(fails) result of string and int" <|
+    fuzz "(fails) result of string and int" (Fuzz.result Fuzz.string Fuzz.int) <|
         \numbers ->
             Expect.fail "Failed"
 
 
 mapPass : Test
 mapPass =
-    fuzz even "(passes) map" <|
+    fuzz "(passes) map" even <|
         \_ -> Expect.pass
 
 
 mapFail : Test
 mapFail =
-    fuzz even "(fails) map" <|
+    fuzz "(fails) map" even <|
         \_ -> Expect.fail "Failed"
 
 
 andMapPass : Test
 andMapPass =
-    fuzz person "(passes) andMap" <|
+    fuzz "(passes) andMap" person <|
         \_ -> Expect.pass
 
 
 andMapFail : Test
 andMapFail =
-    fuzz person "(fails) andMap" <|
+    fuzz "(fails) andMap" person <|
         \_ -> Expect.fail "Failed"
 
 
 map5Pass : Test
 map5Pass =
-    fuzz person2 "(passes) map5" <|
+    fuzz "(passes) map5" person2 <|
         \_ -> Expect.pass
 
 
 map5Fail : Test
 map5Fail =
-    fuzz person2 "(fails) map5" <|
+    fuzz "(fails) map5" person2 <|
         \_ -> Expect.fail "Failed"
 
 

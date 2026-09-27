@@ -4,7 +4,6 @@ module Simplify.Cmd exposing
     , cmdsForRun
     )
 
-import MicroListExtra as List
 import RandomRun exposing (Chunk, RandomRun)
 import Set exposing (Set)
 
@@ -22,8 +21,8 @@ type SimplifyCmdType
     | {- 64bit floats are represented by pairs of two 32bit integers (plus one
          0/1 bool-int to the right of them to handle the sign).
 
-         That makes them harder to shrink: the MinimizeChoice shrinker just cares
-         about one number and the RedistributeChoices shrinker has the (unhelpful
+         That makes them harder to simplify: the MinimizeChoice simplifier just cares
+         about one number and the RedistributeChoices simplifier has the (unhelpful
          for floats) property that the sum of the integers must be preserved.
 
          What we need is to minimize parts of the integers in separation:
@@ -86,12 +85,15 @@ cmdsForRun run =
     let
         length =
             RandomRun.length run
+
+        randomRunList =
+            RandomRun.toList run
     in
-    List.fastConcat
+    List.concat
         [ deletionCmds length
         , zeroCmds length
-        , minimizeChoiceCmds run length
-        , minimizeFloatCmds run length
+        , minimizeChoiceCmds randomRunList
+        , minimizeFloatCmds randomRunList length
         , sortCmds length
         , redistributeCmds length
         , decrementTogetherCmds length
@@ -103,33 +105,31 @@ deletionCmds : Int -> List SimplifyCmd
 deletionCmds length =
     chunkCmds
         DeleteChunkAndMaybeDecrementPrevious
-        { length = length
-        , allowChunksOfSize1 = True
-        }
+        length
+        True
 
 
 zeroCmds : Int -> List SimplifyCmd
 zeroCmds length =
     chunkCmds
         ReplaceChunkWithZero
-        { length = length
-        , allowChunksOfSize1 = False -- already happens in binary search
-        }
+        length
+        -- already happens in binary search
+        False
 
 
 sortCmds : Int -> List SimplifyCmd
 sortCmds length =
     chunkCmds
         SortChunk
-        { length = length
-        , allowChunksOfSize1 = False -- doesn't make sense for sorting
-        }
+        length
+        -- doesn't make sense for sorting
+        False
 
 
-minimizeChoiceCmds : RandomRun -> Int -> List SimplifyCmd
-minimizeChoiceCmds run length =
+minimizeChoiceCmds : List Int -> List SimplifyCmd
+minimizeChoiceCmds run =
     run
-        |> RandomRun.toList
         |> List.indexedMap Tuple.pair
         |> List.filterMap
             (\( index, value ) ->
@@ -145,36 +145,51 @@ minimizeChoiceCmds run length =
             )
 
 
-minimizeFloatCmds : RandomRun -> Int -> List SimplifyCmd
+minimizeFloatCmds : List Int -> Int -> List SimplifyCmd
 minimizeFloatCmds run length =
     let
         possibleBoolIndexes : Set Int
         possibleBoolIndexes =
-            run
-                |> RandomRun.toList
-                |> List.indexedMap Tuple.pair
-                |> List.filterMap
-                    (\( index, value ) ->
-                        if value > 1 then
-                            Nothing
-
-                        else
-                            Just index
-                    )
-                |> Set.fromList
+            computePossibleBoolIndexes 0 run Set.empty
     in
-    List.range 0 (length - 3)
-        |> List.filterMap
-            (\index ->
-                if Set.member (index + 2) possibleBoolIndexes then
-                    Just
-                        { type_ = MinimizeFloat { leftIndex = index }
-                        , minLength = index + 3
-                        }
+    minimizeFloatCmdsHelp possibleBoolIndexes (length - 3) []
 
-                else
-                    Nothing
+
+minimizeFloatCmdsHelp : Set Int -> Int -> List SimplifyCmd -> List SimplifyCmd
+minimizeFloatCmdsHelp possibleBoolIndexes index list =
+    if index < 0 then
+        list
+
+    else
+        minimizeFloatCmdsHelp possibleBoolIndexes
+            (index - 1)
+            (if Set.member (index + 2) possibleBoolIndexes then
+                { type_ = MinimizeFloat { leftIndex = index }
+                , minLength = index + 3
+                }
+                    :: list
+
+             else
+                list
             )
+
+
+computePossibleBoolIndexes : Int -> List Int -> Set Int -> Set Int
+computePossibleBoolIndexes index run set =
+    case run of
+        [] ->
+            set
+
+        value :: rest ->
+            computePossibleBoolIndexes
+                (index + 1)
+                rest
+                (if value > 1 then
+                    set
+
+                 else
+                    Set.insert index set
+                )
 
 
 decrementTogetherCmds : Int -> List SimplifyCmd
@@ -187,21 +202,21 @@ decrementTogetherCmds length =
             else
                 2
     in
-    List.range 0 (length - 2)
-        |> List.fastConcatMap
-            (\index ->
+    reverseRange (length - 2) 0 []
+        |> List.foldl
+            (\index acc ->
                 let
                     maxOffset =
                         min
                             maxOffsetLimit
                             (length - index - 1)
                 in
-                List.range 1 maxOffset
-                    |> List.fastConcatMap
-                        (\offset ->
-                            [ 4, 2, 1 ]
-                                |> List.map
-                                    (\by ->
+                reverseRange maxOffset 1 []
+                    |> List.foldl
+                        (\offset acc1 ->
+                            [ 1, 2, 4 ]
+                                |> List.foldl
+                                    (\by acc2 ->
                                         let
                                             rightIndex =
                                                 index + offset
@@ -214,48 +229,66 @@ decrementTogetherCmds length =
                                                 }
                                         , minLength = rightIndex + 1
                                         }
+                                            :: acc2
                                     )
+                                    acc1
                         )
+                        acc
             )
+            []
+
+
+reverseRange : Int -> Int -> List Int -> List Int
+reverseRange hi lo list =
+    if hi >= lo then
+        reverseRange hi (lo + 1) (lo :: list)
+
+    else
+        list
 
 
 redistributeCmds : Int -> List SimplifyCmd
 redistributeCmds length =
-    let
-        forOffset : Int -> List SimplifyCmd
-        forOffset offset =
-            if offset >= length then
-                []
+    []
+        |> forOffset length 3 0
+        |> forOffset length 2 0
+        |> forOffset length 1 0
 
-            else
-                List.range 0 (length - 1 - offset)
-                    |> List.reverse
-                    |> List.map
-                        (\leftIndex ->
-                            { type_ =
-                                RedistributeChoicesAndMaybeIncrement
-                                    { leftIndex = leftIndex
-                                    , rightIndex = leftIndex + offset
-                                    }
-                            , minLength = leftIndex + offset + 1
-                            }
-                        )
-    in
-    forOffset 3 ++ forOffset 2 ++ forOffset 1
+
+forOffset : Int -> Int -> Int -> List SimplifyCmd -> List SimplifyCmd
+forOffset length offset leftIndex cmds =
+    if leftIndex > (length - 1 - offset) then
+        cmds
+
+    else
+        forOffset length
+            offset
+            (leftIndex + 1)
+            ({ type_ =
+                RedistributeChoicesAndMaybeIncrement
+                    { leftIndex = leftIndex
+                    , rightIndex = leftIndex + offset
+                    }
+             , minLength = leftIndex + offset + 1
+             }
+                :: cmds
+            )
 
 
 swapCmds : Int -> List SimplifyCmd
 swapCmds length =
     chunkCmds
         SwapChunkWithNeighbour
-        { length = length
-        , allowChunksOfSize1 = False -- other Cmds are already doing the case with size=1
-        }
+        length
+        False
+        -- other Cmds are already doing the case with size=1
         |> List.map
             (\cmd ->
                 case cmd.type_ of
                     SwapChunkWithNeighbour chunk ->
-                        { cmd | minLength = cmd.minLength + chunk.size }
+                        { type_ = cmd.type_
+                        , minLength = cmd.minLength + chunk.size
+                        }
 
                     _ ->
                         cmd
@@ -299,9 +332,10 @@ SortChunk { chunkSize = 8, startIndex = 2 } -- [..XXXXXXXX]
 -}
 chunkCmds :
     ({ size : Int, startIndex : Int } -> SimplifyCmdType)
-    -> { length : Int, allowChunksOfSize1 : Bool }
+    -> Int
+    -> Bool
     -> List SimplifyCmd
-chunkCmds toType { length, allowChunksOfSize1 } =
+chunkCmds toType length allowChunksOfSize1 =
     let
         initChunkSize : Int
         initChunkSize =
