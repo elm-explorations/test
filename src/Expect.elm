@@ -395,10 +395,8 @@ ok result =
             pass
 
         Err _ ->
-            Test.Expectation.Fail
-                { given = Nothing
-                , distributionReport = Fuzz.Internal.noDistribution
-                , description = "Expect.ok"
+            Test.Expectation.fail
+                { description = "Expect.ok"
                 , reason = Comparison "Ok _" (Internal.toString result)
                 }
 
@@ -438,10 +436,8 @@ err : Result a b -> Expectation
 err result =
     case result of
         Ok _ ->
-            Test.Expectation.Fail
-                { given = Nothing
-                , distributionReport = Fuzz.Internal.noDistribution
-                , description = "Expect.err"
+            Test.Expectation.fail
+                { description = "Expect.err"
                 , reason = Comparison "Err _" (Internal.toString result)
                 }
 
@@ -482,10 +478,8 @@ equalLists expected actual =
         pass
 
     else
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , description = "Expect.equalLists"
+        Test.Expectation.fail
+            { description = "Expect.equalLists"
             , reason = ListDiff (List.map Internal.toString expected) (List.map Internal.toString actual)
             }
 
@@ -626,10 +620,8 @@ pass =
 -}
 fail : String -> Expectation
 fail str =
-    Test.Expectation.Fail
-        { given = Nothing
-        , distributionReport = Fuzz.Internal.noDistribution
-        , description = str
+    Test.Expectation.fail
+        { description = str
         , reason = Custom
         }
 
@@ -650,8 +642,10 @@ onFail str expectation =
         Test.Expectation.Fail failure ->
             Test.Expectation.Fail
                 { given = failure.given
-                , description = str
-                , reason = Custom
+                , failData =
+                    { description = str
+                    , reason = Custom
+                    }
                 , distributionReport = failure.distributionReport
                 }
 
@@ -669,10 +663,8 @@ onFail str expectation =
 all : List Expectation -> Expectation
 all list =
     if List.isEmpty list then
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , reason = Invalid EmptyList
+        Test.Expectation.fail
+            { reason = Invalid EmptyList
             , description = "Expect.all was given an empty list. You must make at least one expectation to have a valid test!"
             }
 
@@ -732,10 +724,8 @@ If none of them pass, the failure lists all the inner failures.
 oneOf : List Expectation -> Expectation
 oneOf list =
     if List.isEmpty list then
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , reason = Invalid EmptyList
+        Test.Expectation.fail
+            { reason = Invalid EmptyList
             , description = "Expect.oneOf was given an empty list. You must make at least one expectation to have a valid test!"
             }
 
@@ -771,10 +761,8 @@ oneOfHelp :
 oneOfHelp list failuresSoFar =
     case list of
         [] ->
-            Test.Expectation.Fail
-                { given = Nothing
-                , distributionReport = Fuzz.Internal.noDistribution
-                , reason = Multiple (List.reverse failuresSoFar)
+            Test.Expectation.fail
+                { reason = Multiple (List.reverse failuresSoFar)
                 , description =
                     "Expect.oneOf: none of the "
                         ++ String.fromInt (List.length failuresSoFar)
@@ -787,8 +775,8 @@ oneOfHelp list failuresSoFar =
         (Test.Expectation.Fail failure) :: rest ->
             oneOfHelp rest
                 ({ given = failure.given
-                 , description = failure.description
-                 , reason = failure.reason
+                 , description = failure.failData.description
+                 , reason = failure.failData.reason
                  }
                     :: failuresSoFar
                 )
@@ -800,10 +788,8 @@ oneOfHelp list failuresSoFar =
 
 reportCollectionFailure : String -> a -> b -> List c -> List d -> Expectation
 reportCollectionFailure comparison expected actual missingKeys extraKeys =
-    Test.Expectation.Fail
-        { given = Nothing
-        , distributionReport = Fuzz.Internal.noDistribution
-        , description = comparison
+    Test.Expectation.fail
+        { description = comparison
         , reason =
             { expected = Internal.toString expected
             , actual = Internal.toString actual
@@ -855,10 +841,8 @@ testWith makeReason label runTest expected actual =
         pass
 
     else
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , description = label
+        Test.Expectation.fail
+            { description = label
             , reason = makeReason (Internal.toString expected) (Internal.toString actual)
             }
 
@@ -896,26 +880,20 @@ relative tolerance =
 nonNegativeToleranceError : FloatingPointTolerance -> String -> Expectation -> Expectation
 nonNegativeToleranceError tolerance name result =
     if absolute tolerance < 0 && relative tolerance < 0 then
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , description = "Expect." ++ name ++ " was given negative absolute and relative tolerances"
+        Test.Expectation.fail
+            { description = "Expect." ++ name ++ " was given negative absolute and relative tolerances"
             , reason = Custom
             }
 
     else if absolute tolerance < 0 then
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , description = "Expect." ++ name ++ " was given a negative absolute tolerance"
+        Test.Expectation.fail
+            { description = "Expect." ++ name ++ " was given a negative absolute tolerance"
             , reason = Custom
             }
 
     else if relative tolerance < 0 then
-        Test.Expectation.Fail
-            { given = Nothing
-            , distributionReport = Fuzz.Internal.noDistribution
-            , description = "Expect." ++ name ++ " was given a negative relative tolerance"
+        Test.Expectation.fail
+            { description = "Expect." ++ name ++ " was given a negative relative tolerance"
             , reason = Custom
             }
 

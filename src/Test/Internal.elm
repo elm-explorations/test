@@ -29,10 +29,8 @@ failNow : { description : String, reason : Reason } -> Test
 failNow { description, reason } =
     ElmTestVariant__UnitTest
         (\() ->
-            Test.Expectation.Fail
-                { given = Nothing
-                , distributionReport = Fuzz.Internal.noDistribution
-                , description = description
+            Test.Expectation.fail
+                { description = description
                 , reason = reason
                 }
         )
