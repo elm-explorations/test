@@ -54,7 +54,7 @@ import Test exposing (Test)
 import Test.Distribution exposing (DistributionReport)
 import Test.Expectation
 import Test.Internal as Internal
-import Test.Runner.Failure exposing (Reason(..))
+import Test.Runner.Failure as Failure exposing (Reason(..))
 
 
 {-| An unevaluated test.
@@ -414,7 +414,7 @@ getFailureReason expectation =
             Just
                 { given = record.given
                 , description = record.failData.description
-                , reason = record.failData.reason
+                , reason = Failure.flatten record.failData.reason
                 }
 
 
