@@ -1,6 +1,5 @@
 module Test.Internal exposing (Test(..), blankDescriptionFailure, duplicatedName, failNow, toString)
 
-import Fuzz.Internal
 import Random
 import Set exposing (Set)
 import Test.Expectation exposing (Expectation)

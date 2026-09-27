@@ -105,7 +105,6 @@ Another example is comparing values that are on either side of zero. `0.0001` is
 -}
 
 import Dict exposing (Dict)
-import Fuzz.Internal
 import Set exposing (Set)
 import Test.Distribution
 import Test.Expectation
