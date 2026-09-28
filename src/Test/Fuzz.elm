@@ -48,8 +48,7 @@ validatedFuzzTest desc fuzzer getExpectation maybeRuns distribution =
 
                     else
                         desc
-            in
-            let
+
                 { failure, distributionReport } =
                     case tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts of
                         Just runResult ->
