@@ -641,8 +641,11 @@ onFail str expectation =
         Test.Expectation.Fail failure ->
             Test.Expectation.Fail
                 { given = failure.given
+                , failData =
+                    { description = str
+                    , reason = Custom
+                    }
                 , distributionReport = failure.distributionReport
-                , failData = { description = str, reason = Custom }
                 }
 
 
@@ -759,10 +762,7 @@ oneOfHelp list failuresSoFar =
         [] ->
             Test.Expectation.fail
                 { reason = Multiple (List.reverse failuresSoFar)
-                , description =
-                    "Expect.oneOf: none of the "
-                        ++ String.fromInt (List.length failuresSoFar)
-                        ++ " expectations passed."
+                , description = "Expect.oneOf: none of the expectations passed."
                 }
 
         (Test.Expectation.Pass _) :: _ ->

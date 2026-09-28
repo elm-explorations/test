@@ -46,14 +46,14 @@ This module supersedes the deprecated [Test.Runner](Test.Runner) module.
 
 import Array exposing (Array)
 import Random
-import RandomRun exposing (RandomRun)
+import RandomRun
 import Task exposing (Task)
 import Test exposing (Test)
-import Test.Distribution exposing (DistributionReport(..))
+import Test.Distribution exposing (DistributionReport)
 import Test.Expectation exposing (Expectation(..))
 import Test.Internal as Internal
 import Test.Internal.DebugLogs
-import Test.Runner.Failure exposing (Reason(..))
+import Test.Runner.Failure exposing (Reason)
 
 
 {-| This type contains flat arrays of tests and some metadata.

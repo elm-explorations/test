@@ -1,6 +1,6 @@
 module Tests exposing (all)
 
-import Expect
+import Expect exposing (Expectation)
 import FloatWithinTests exposing (floatWithinTests)
 import Fuzz exposing (..)
 import FuzzerTests exposing (fuzzerTests)
@@ -19,7 +19,7 @@ import Test.Html.Query.MarkdownTests
 import Test.Html.QueryTests
 import Test.Html.SelectorTests
 import Test.Runner
-import Test.Runner.Failure
+import Test.Runner.Failure exposing (Reason)
 
 
 all : Test
@@ -157,6 +157,43 @@ expectationTests =
 
                                 _ ->
                                     Expect.fail "expected a Multiple reason"
+
+                        Nothing ->
+                            Expect.fail "expected a failure"
+            , test "Nested oneOf is flattened" <|
+                \() ->
+                    let
+                        expectation : Expectation
+                        expectation =
+                            Expect.oneOf
+                                [ 1 |> Expect.equal 2
+                                , Expect.oneOf
+                                    [ 2 |> Expect.equal 3
+                                    , 3 |> Expect.equal 4
+                                    ]
+                                , 4 |> Expect.equal 5
+                                ]
+
+                        isMultiple : Reason -> Bool
+                        isMultiple reason =
+                            case reason of
+                                Test.Runner.Failure.Multiple _ ->
+                                    True
+
+                                _ ->
+                                    False
+                    in
+                    case Test.Runner.getFailureReason expectation of
+                        Just { reason } ->
+                            case reason of
+                                Test.Runner.Failure.Multiple failures ->
+                                    Expect.all
+                                        [ failures |> List.length |> Expect.equal 4
+                                        , failures |> List.any (.reason >> isMultiple) |> Expect.equal False
+                                        ]
+
+                                _ ->
+                                    Expect.fail "Expected a Multiple reason"
 
                         Nothing ->
                             Expect.fail "expected a failure"

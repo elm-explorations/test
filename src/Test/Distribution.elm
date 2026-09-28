@@ -66,7 +66,9 @@ atLeast =
 {-| A result of a distribution check.
 -}
 type DistributionReport
-    = NoDistribution ()
+    = -- Adding a () so that all variants have the same number of arguments
+      -- which is better for performance because of monomorphization
+      NoDistribution ()
     | DistributionToReport
         { distributionCount : Dict (List String) Int
         , runsElapsed : Int

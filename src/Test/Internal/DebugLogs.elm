@@ -1,7 +1,6 @@
 module Test.Internal.DebugLogs exposing (Mode, getDebugLogsBeforeFirstTestRun, modeCollect, modeConsoleLog, modeIgnore, noDebugLogsForPassingFuzzTests, rerunFailureToCollectDebugLogs, runTestWithDurationAndCollectDebugLogs)
 
 import Elm.Kernel.DebugLogs
-import Json.Encode
 import Task exposing (Task)
 
 

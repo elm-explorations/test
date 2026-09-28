@@ -28,6 +28,8 @@ type alias BreakingChangeWorkaround =
     }
 
 
+{-| The data the `Expect` module can set for failing expectations.
+-}
 type alias FailData =
     { description : String
     , reason : Reason
