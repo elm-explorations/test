@@ -638,15 +638,8 @@ onFail str expectation =
         Test.Expectation.Pass _ ->
             expectation
 
-        Test.Expectation.Fail failure ->
-            Test.Expectation.Fail
-                { given = failure.given
-                , failData =
-                    { description = str
-                    , reason = Custom
-                    }
-                , distributionReport = failure.distributionReport
-                }
+        Test.Expectation.Fail _ ->
+            fail str
 
 
 {-| Passes if all given expectations pass.
