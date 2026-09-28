@@ -755,7 +755,7 @@ passesOneOf checks subject =
 
 oneOfHelp :
     List Expectation
-    -> List { given : Maybe String, description : String, reason : Reason }
+    -> List { description : String, reason : Reason }
     -> Expectation
 oneOfHelp list failuresSoFar =
     case list of
@@ -770,8 +770,7 @@ oneOfHelp list failuresSoFar =
 
         (Test.Expectation.Fail failure) :: rest ->
             oneOfHelp rest
-                ({ given = failure.given
-                 , description = failure.failData.description
+                ({ description = failure.failData.description
                  , reason = failure.failData.reason
                  }
                     :: failuresSoFar
