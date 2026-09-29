@@ -6,7 +6,9 @@ module Test.Runner exposing
     , Simplifiable, fuzz, simplify
     )
 
-{-| This is an "experts only" module that exposes functions needed to run and
+{-| **DEPRECATED.** This module has been superseded by the [Test.RunnerV2](Test.RunnerV2) module.
+
+This is an "experts only" module that exposes functions needed to run and
 display tests. A typical user will use an existing runner library for Node or
 the browser, which is implemented using this interface. A list of these runners
 can be found in the `README`.
@@ -41,7 +43,6 @@ These functions give you the ability to run fuzzers separate of running fuzz tes
 -}
 
 import Bitwise
-import Elm.Kernel.Test
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
 import Fuzz.Internal
@@ -140,17 +141,7 @@ countRunnables runnable =
 
 run : Runnable -> Expectation
 run (Thunk fn) =
-    case runThunk fn of
-        Ok test ->
-            test
-
-        Err message ->
-            Expect.fail ("This test failed because it threw an exception: \"" ++ message ++ "\"")
-
-
-runThunk : (() -> a) -> Result String a
-runThunk =
-    Elm.Kernel.Test.runThunk
+    fn ()
 
 
 fromRunnableTree : RunnableTree -> List Runner
@@ -237,7 +228,7 @@ distributeSeeds =
 
 distributeSeedsHelp : Bool -> Int -> Random.Seed -> Test -> Distribution
 distributeSeedsHelp hashed runs seed test =
-    case test of
+    case Internal.unwrapTestVariant test of
         Internal.ElmTestVariant__UnitTest aRun ->
             { seed = seed
             , all = [ Runnable (Thunk (\_ -> aRun ())) ]
@@ -245,13 +236,13 @@ distributeSeedsHelp hashed runs seed test =
             , skipped = []
             }
 
-        Internal.ElmTestVariant__FuzzTest aRun ->
+        Internal.ElmTestVariant__FuzzTest maybeRuns aRun ->
             let
                 ( firstSeed, nextSeed ) =
                     Random.step Random.independentSeed seed
             in
             { seed = nextSeed
-            , all = [ Runnable (Thunk (\_ -> aRun firstSeed runs)) ]
+            , all = [ Runnable (Thunk (\_ -> aRun firstSeed (maybeRuns |> Maybe.withDefault runs) [] |> Test.Expectation.fromFuzzTestExpectation)) ]
             , only = []
             , skipped = []
             }
@@ -308,6 +299,9 @@ distributeSeedsHelp hashed runs seed test =
                 , only = List.map (Labeled description) next.only
                 , skipped = List.map (Labeled description) next.skipped
                 }
+
+        Internal.ElmTestVariant__Tagged _ subTest ->
+            distributeSeedsHelp hashed runs seed subTest
 
         Internal.ElmTestVariant__Skipped subTest ->
             let

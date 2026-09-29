@@ -64,9 +64,6 @@ atLeast =
 
 
 {-| A result of a distribution check.
-
-Get it from your `Expectation` with `Test.Runner.getDistributionReport`.
-
 -}
 type DistributionReport
     = -- Adding a () so that all variants have the same number of arguments
