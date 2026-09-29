@@ -2,12 +2,12 @@ module Test.Html.Query.Internal exposing (Multiple(..), Query(..), QueryError, S
 
 import Expect exposing (Expectation)
 import MicroListExtra as List
+import Test.Expectation
 import Test.Html.Descendant as Descendant
 import Test.Html.Internal.ElmHtml.InternalTypes as InternalTypes exposing (ElmHtml(..))
 import Test.Html.Internal.ElmHtml.ToString exposing (nodeToStringWithOptions)
 import Test.Html.Internal.Inert as Inert
 import Test.Html.Selector.Internal as InternalSelector exposing (Selector, selectorToString)
-import Test.Runner
 
 
 {-| Note: the selectors are stored in reverse order for better prepending perf.
@@ -453,8 +453,8 @@ expectAllHelp successes check list =
                         |> Single False
                         |> check
             in
-            case Test.Runner.getFailureReason expectation of
-                Just { description } ->
+            case expectation of
+                Test.Expectation.Fail { failData } ->
                     let
                         prefix =
                             if successes > 0 then
@@ -463,11 +463,11 @@ expectAllHelp successes check list =
                             else
                                 "The first element failed this test:"
                     in
-                    [ prefix, description ]
+                    [ prefix, failData.description ]
                         |> String.join "\n\n"
                         |> Expect.fail
 
-                Nothing ->
+                Test.Expectation.Pass _ ->
                     expectAllHelp (successes + 1) check rest
 
 
@@ -617,11 +617,11 @@ showSelectorOutcomeInverse elmHtmlList selector =
 
 failWithQuery : Bool -> String -> Query msg -> Expectation -> Expectation
 failWithQuery showTrace queryName query expectation =
-    case Test.Runner.getFailureReason expectation of
-        Just { description } ->
+    case expectation of
+        Test.Expectation.Fail { failData } ->
             let
                 lines =
-                    toLines { showQueryError = not showTrace } description query queryName
+                    toLines { showQueryError = not showTrace } failData.description query queryName
                         |> List.map prefixOutputLine
 
                 tracedLines =
@@ -635,7 +635,7 @@ failWithQuery showTrace queryName query expectation =
                 |> String.join "\n\n\n"
                 |> Expect.fail
 
-        Nothing ->
+        Test.Expectation.Pass _ ->
             expectation
 
 
