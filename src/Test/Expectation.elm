@@ -45,6 +45,9 @@ type FuzzTestExpectation
         , reason : Reason
         , distributionReport : DistributionReport
 
+        -- How many values the fuzzer generated before uncovering this failure.
+        , runsElapsed : Int
+
         -- This function runs the fuzzer and the fuzz test again,
         -- with the input that caused this specific failure, and
         -- throws away the result. This is used in `Test.RunnerV2.runFuzzTest`

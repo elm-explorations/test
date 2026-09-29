@@ -3,7 +3,7 @@ module Test.RunnerV2 exposing
     , UnitTest, getUnitTestTag, getUnitTestLabels, runUnitTest, runUnitTestWithUnbufferedLogs
     , UnitTestExpectation(..), UnitTestFailData, getUnitTestFailDescription, getUnitTestFailReason
     , FuzzTest, getFuzzTestTag, getFuzzTestLabels, getFuzzTestRuns, runFuzzTest, runFuzzTestWithUnbufferedLogs
-    , FuzzTestExpectation(..), getFuzzTestPassDistributionReport, FuzzTestPassData, FuzzTestFailData, getFuzzTestFailDescription, getFuzzTestFailReason, getFuzzTestFailDistributionReport, getFuzzTestFailGiven, getFuzzTestFailFuzzerInts
+    , FuzzTestExpectation(..), getFuzzTestPassDistributionReport, FuzzTestPassData, FuzzTestFailData, getFuzzTestFailDescription, getFuzzTestFailReason, getFuzzTestFailDistributionReport, getFuzzTestFailGiven, getFuzzTestFailFuzzerInts, getFuzzTestFailRunsElapsed
     , identifyTest, tagTest
     , getDebugLogsBeforeFirstTestRun
     )
@@ -30,7 +30,7 @@ This module supersedes the deprecated [Test.Runner](Test.Runner) module.
 ## Fuzz Tests
 
 @docs FuzzTest, getFuzzTestTag, getFuzzTestLabels, getFuzzTestRuns, runFuzzTest, runFuzzTestWithUnbufferedLogs
-@docs FuzzTestExpectation, getFuzzTestPassDistributionReport, FuzzTestPassData, FuzzTestFailData, getFuzzTestFailDescription, getFuzzTestFailReason, getFuzzTestFailDistributionReport, getFuzzTestFailGiven, getFuzzTestFailFuzzerInts
+@docs FuzzTestExpectation, getFuzzTestPassDistributionReport, FuzzTestPassData, FuzzTestFailData, getFuzzTestFailDescription, getFuzzTestFailReason, getFuzzTestFailDistributionReport, getFuzzTestFailGiven, getFuzzTestFailFuzzerInts, getFuzzTestFailRunsElapsed
 
 
 ## Runner test operations
@@ -282,6 +282,7 @@ runFuzzTest (FuzzTest data) seed runs fuzzerInts =
                             , distributionReport = failData.distributionReport
                             , given = failData.given
                             , fuzzerInts = RandomRun.toList failData.randomRun
+                            , runsElapsed = failData.runsElapsed
                             }
                         )
                     , duration
@@ -388,6 +389,7 @@ getFuzzTestPassDistributionReport (FuzzTestPassData distributionReport) =
     A fuzz test can in unusual circumstances fail to even produce a `given` value, which is why it is `Maybe`.
   - `fuzzerInts : List Int`. This is the internal fuzzer state that produced `given`. A runner can pass this
     to [runFuzzTest](#runFuzzTest) to reproduce a previous failure.
+  - `runsElapsed : Int`. How many values the fuzzer generated before uncovering this failure.
 
 Use the various `getFuzzTestFail*` functions to access each field.
 
@@ -399,6 +401,7 @@ type FuzzTestFailData
         , distributionReport : DistributionReport
         , given : Maybe String
         , fuzzerInts : List Int
+        , runsElapsed : Int
         }
 
 
@@ -442,6 +445,18 @@ A runner can pass this to [runFuzzTest](#runFuzzTest) to reproduce a previous fa
 getFuzzTestFailFuzzerInts : FuzzTestFailData -> List Int
 getFuzzTestFailFuzzerInts (FuzzTestFailData data) =
     data.fuzzerInts
+
+
+{-| Get how many values the fuzzer generated before uncovering this failure.
+
+Note this can be larger than the number of runs the test was given: a test with
+an [`expectDistribution`](Test#expectDistribution) keeps generating values until
+the statistical check settles.
+
+-}
+getFuzzTestFailRunsElapsed : FuzzTestFailData -> Int
+getFuzzTestFailRunsElapsed (FuzzTestFailData data) =
+    data.runsElapsed
 
 
 {-| This lets runners tag tests with an identifier, which can be used to implement
@@ -641,6 +656,7 @@ toFuzzTestExpectation expectation =
                     , distributionReport = data.distributionReport
                     , given = data.given
                     , fuzzerInts = RandomRun.toList data.randomRun
+                    , runsElapsed = data.runsElapsed
                     }
                 )
 

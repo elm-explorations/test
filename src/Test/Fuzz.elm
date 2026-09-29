@@ -49,7 +49,7 @@ validatedFuzzTest desc fuzzer getExpectation maybeRuns distribution =
                     else
                         desc
 
-                { failure, distributionReport } =
+                { failure, distributionReport, runsElapsed } =
                     case tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts of
                         Just runResult ->
                             runResult
@@ -75,6 +75,7 @@ validatedFuzzTest desc fuzzer getExpectation maybeRuns distribution =
                         , description = failure_.failData.description
                         , reason = failure_.failData.reason
                         , distributionReport = distributionReport
+                        , runsElapsed = runsElapsed
                         , rerunFailure =
                             \() ->
                                 case Fuzz.Internal.generate (PRNG.hardcoded failure_.randomRun) fuzzer of
@@ -125,6 +126,7 @@ tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts =
 
                             -- In this mode we can't do a distribution report, because we ran just once.
                             , distributionReport = NoDistribution ()
+                            , runsElapsed = 1
                             }
 
             Rejected _ ->
@@ -224,6 +226,7 @@ fuzzLoop c state =
                             , runsElapsed = state.runsElapsed
                             }
             , failure = Just failure
+            , runsElapsed = state.runsElapsed
             }
 
         Nothing ->
@@ -240,6 +243,7 @@ fuzzLoop c state =
                     NoDistributionNeeded ->
                         { distributionReport = Fuzz.Internal.noDistribution
                         , failure = Nothing
+                        , runsElapsed = state.runsElapsed
                         }
 
                     ReportDistribution _ ->
@@ -255,6 +259,7 @@ fuzzLoop c state =
                                         , runsElapsed = state.runsElapsed
                                         }
                                 , failure = Nothing
+                                , runsElapsed = state.runsElapsed
                                 }
 
                     ExpectDistribution _ ->
@@ -283,6 +288,7 @@ fuzzLoop c state =
                                                     , runsElapsed = state.runsElapsed
                                                     }
                                             , failure = Nothing
+                                            , runsElapsed = state.runsElapsed
                                             }
 
                                 Just failedLabel ->
@@ -472,6 +478,7 @@ distributionFailRunResult normalizedDistributionCount failedLabel =
                     , expectedDistribution = Test.Distribution.Internal.expectedDistributionToString failedLabel.expectedDistribution
                     }
             , failure = Just <| distributionInsufficientFailure failedLabel
+            , runsElapsed = failedLabel.runsElapsed
             }
 
 
@@ -487,6 +494,7 @@ distributionBugRunResult =
                 , reason = Invalid DistributionBug
                 }
             }
+    , runsElapsed = 0
     }
 
 
@@ -651,6 +659,16 @@ formatExpectedDistribution expected =
 type alias RunResult =
     { distributionReport : DistributionReport
     , failure : Maybe Failure
+
+    {- How many values the fuzzer generated. Note this can be *more* than the
+       configured `runs`: an `ExpectDistribution` test keeps going until the
+       statistical check settles.
+
+       This is reported to runners for failures, where it says how much work it
+       took to uncover the defect. `DistributionReport` carries the same number,
+       but only for tests that asked for a distribution report.
+    -}
+    , runsElapsed : Int
     }
 
 
