@@ -52,6 +52,9 @@ a second per measurement simplifying a 100-element list.
 The comparison prints per-case detection-rate and time deltas, plus a geometric
 mean of the time ratios (geometric, so that one slow case can't dominate).
 
+Add `--markdown` to any report or comparison to get GitHub-flavoured tables for
+pasting into a PR or issue.
+
 `baseline/` holds committed summaries (the small per-case aggregates, not the raw
 measurements) so you can diff against a known state without rerunning the other
 side. `pr260-random.json` is today's purely-random generation, 300 seeds, budget
@@ -197,6 +200,27 @@ worth measuring. With `Fuzz.list`'s ~16 elements, a random 16-key sequence almos
 always contains the trigger somewhere and the case is falsified by the very first
 value — bounding the size makes *finding* the trigger the work, which is the
 point, and it's how Etna's suites bound their inputs too.
+
+`src/Corpus/Combined.elm` — cases where part of the domain is tiny and part is
+huge, with the defect in the huge part. This is
+[#188](https://github.com/elm-explorations/test/issues/188)'s motivating shape:
+given `oneOf [map Err string, map Ok bool]`, half of every run is spent
+re-testing `Ok True` and `Ok False`, so a defect in the `Err` branch is found at
+half the rate it could be.
+
+The three cases vary exactly one thing each, so a measurement says *which*
+mechanism paid off rather than just that something did:
+
+| case | `Err` payload | choice tree | helped by |
+| :--- | :--- | :--- | :--- |
+| `combined/open-payload` | `Fuzz.string` | infinite | duplicate rejection, or a per-subtree hybrid. **Not** all-or-nothing enumeration, which abandons an infinite tree and changes nothing. |
+| `combined/finite-payload` | uniform `0..1023` | finite, 1026 leaves | plain exhaustive checking: guaranteed detection with zero variance |
+| `combined/wide-easy-branch` | same, but `Ok` has 201 leaves | finite, 1225 leaves | separates leaf-level dedup from subtree-level exhaustion — dedup must *observe* all 201 `Ok` runs first (~`201*H(201)` ≈ 1200 draws) where an enumerator knows when the branch is covered |
+
+`finite-payload` and `wide-easy-branch` have identical baselines by construction
+(`Fuzz.bool` and `intRange 0 200` both consume exactly one draw, so the `Err`
+sequence is bit-identical). They only diverge once a mechanism lands, which makes
+them a matched pair.
 
 `src/Corpus/Synthetic.elm` — cases shaped to probe one weakness each:
 

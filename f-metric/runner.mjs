@@ -25,6 +25,8 @@
 //   --summarize FILE   don't measure, just report on a saved JSONL or summary
 //   --compare FILE     report on this run and diff it against a saved
 //                      JSONL or summary
+//   --markdown         emit the report as GitHub-flavoured markdown tables,
+//                      for pasting into a PR or issue
 //   --quiet            no progress output
 
 import fs from "node:fs";
@@ -49,6 +51,7 @@ function parseArgs(argv) {
     saveSummary: null,
     summarize: null,
     compare: null,
+    markdown: false,
     quiet: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -97,6 +100,9 @@ function parseArgs(argv) {
         break;
       case "--compare":
         options.compare = next();
+        break;
+      case "--markdown":
+        options.markdown = true;
         break;
       case "--quiet":
         options.quiet = true;
@@ -363,7 +369,21 @@ function pct(value) {
   return `${(value * 100).toFixed(0)}%`;
 }
 
+// Set by --markdown. Affects table rendering and section headings only; the
+// numbers are identical either way.
+let MARKDOWN = false;
+
 function table(rows, headers, aligns) {
+  if (MARKDOWN) {
+    // `|run|` as a header would otherwise end the cell early.
+    const escape = (cell) => String(cell).replace(/\|/g, "\\|");
+    const row = (cells) => `| ${cells.map(escape).join(" | ")} |`;
+    return [
+      row(headers),
+      `| ${aligns.map((a) => (a === "r" ? "---:" : ":---")).join(" | ")} |`,
+      ...rows.map(row),
+    ].join("\n");
+  }
   const widths = headers.map((h, i) =>
     Math.max(h.length, ...rows.map((r) => String(r[i]).length)),
   );
@@ -374,10 +394,20 @@ function table(rows, headers, aligns) {
   return [line(headers), line(widths.map((w) => "-".repeat(w))), ...rows.map(line)].join("\n");
 }
 
+function heading(text) {
+  return MARKDOWN ? `### ${text}` : `${text}:`;
+}
+
+function note(text) {
+  return MARKDOWN ? `> ${text}` : text;
+}
+
 function report(summary) {
   const lines = [];
   lines.push(
-    `F-metric: ${summary.meta.label} -- ${summary.meta.seeds} seeds/case, budget ${summary.meta.budget}, ${(summary.meta.wallMs / 1000).toFixed(1)}s wall`,
+    MARKDOWN
+      ? `## F-metric: ${summary.meta.label}\n\n${summary.meta.seeds} seeds/case, budget ${summary.meta.budget}, ${(summary.meta.wallMs / 1000).toFixed(1)}s wall${summary.meta.shrinkOnly ? ", shrink-only cases included" : ""}.`
+      : `F-metric: ${summary.meta.label} -- ${summary.meta.seeds} seeds/case, budget ${summary.meta.budget}, ${(summary.meta.wallMs / 1000).toFixed(1)}s wall`,
   );
   lines.push("");
   lines.push(
@@ -398,7 +428,7 @@ function report(summary) {
     ),
   );
   lines.push("");
-  lines.push("By category:");
+  lines.push(heading("By category"));
   lines.push(
     table(
       [...summary.byCategory.entries()].map(([category, cases]) => [
@@ -417,13 +447,15 @@ function report(summary) {
   if (useless.length > 0) {
     lines.push("");
     lines.push(
-      `Never detected at this budget (these cases can't distinguish anything -- raise the budget or make them easier): ${useless.map((c) => c.name).join(", ")}`,
+      note(
+        `Never detected at this budget (these cases can't distinguish anything -- raise the budget or make them easier): ${useless.map((c) => c.name).join(", ")}`,
+      ),
     );
   }
   const errored = summary.cases.filter((c) => c.errors > 0);
   if (errored.length > 0) {
     lines.push("");
-    lines.push("Cases that failed for the wrong reason (not a detection -- fix the case):");
+    lines.push(heading("Cases that failed for the wrong reason (not a detection -- fix the case)"));
     for (const c of errored) {
       lines.push(`  ${c.name}: ${c.errors}/${c.n} -- ${c.errorDescription}`);
     }
@@ -478,7 +510,11 @@ function compareReport(current, baseline) {
   const gone = baseline.cases.filter((c) => !currentNames.has(c.name)).map((c) => c.name);
 
   const lines = [];
-  lines.push(`Comparison: ${current.meta.label} vs ${baseline.meta.label}`);
+  lines.push(
+    MARKDOWN
+      ? `## Comparison: ${current.meta.label} vs ${baseline.meta.label}`
+      : `Comparison: ${current.meta.label} vs ${baseline.meta.label}`,
+  );
   if (current.meta.budget !== baseline.meta.budget) {
     lines.push(
       `WARNING: budgets differ (${current.meta.budget} vs ${baseline.meta.budget}). Detection rates are not comparable.`,
@@ -561,6 +597,7 @@ function loadSummary(file) {
 // ---------------------------------------------------------------- main
 
 const options = parseArgs(process.argv.slice(2));
+MARKDOWN = options.markdown;
 
 if (options.summarize !== null) {
   const summary = loadSummary(options.summarize);
