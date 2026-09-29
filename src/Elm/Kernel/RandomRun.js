@@ -183,15 +183,15 @@ var _RandomRun_swapIfOutOfOrder = F2(function _RandomRun_swapIfOutOfOrder_(indic
 
   if (left > right) { // out of order
     return __Maybe_Just({
-      newRun: rr.with(indices.__$leftIndex, right).with(indices.__$rightIndex, left),
-      newLeftValue: right,
-      newRightValue: left,
+      __$newRun: rr.with(indices.__$leftIndex, right).with(indices.__$rightIndex, left),
+      __$newLeftValue: right,
+      __$newRightValue: left,
     });
   } else { // left <= right, they weren't out of order
     return __Maybe_Just({
-      newRun: rr,
-      newLeftValue: left,
-      newRightValue: right,
+      __$newRun: rr,
+      __$newLeftValue: left,
+      __$newRightValue: right,
     });
   }
 });
