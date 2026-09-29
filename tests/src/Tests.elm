@@ -165,7 +165,7 @@ expectationTests =
                         expectation =
                             Expect.oneOf
                                 [ 1 |> Expect.equal 2
-                                , Expect.oneOf
+                                , Expect.all
                                     [ 2 |> Expect.equal 3
                                     , 3 |> Expect.equal 4
                                     ]
@@ -181,7 +181,7 @@ expectationTests =
                                 _ ->
                                     False
                     in
-                    case Test.Runner.getFailureReason expectation of
+                    case Test.Runner.getFailureReason expectation |> Debug.log "FAIL" of
                         Just { reason } ->
                             case reason of
                                 Test.Runner.Failure.Multiple failures ->

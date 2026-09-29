@@ -661,7 +661,7 @@ all list =
             }
 
     else
-        allHelp list
+        allHelp list []
 
 
 {-| Passes if each of the given functions passes when applied to the subject.
@@ -685,19 +685,35 @@ passesAll checks subject =
     all (List.map (\check -> check subject) checks)
 
 
-allHelp : List Expectation -> Expectation
-allHelp list =
+allHelp :
+    List Expectation
+    -> List { given : Maybe String, description : String, reason : Reason }
+    -> Expectation
+allHelp list failuresSoFar =
     case list of
         [] ->
-            pass
+            if List.isEmpty failuresSoFar then
+                pass
+
+            else
+                Test.Expectation.fail
+                    { reason = Multiple (List.reverse failuresSoFar)
+                    , description = "Expect.all: some of the expectations failed."
+                    }
 
         check :: rest ->
             case check of
                 Test.Expectation.Pass _ ->
-                    allHelp rest
+                    allHelp rest failuresSoFar
 
-                outcome ->
-                    outcome
+                Test.Expectation.Fail failure ->
+                    allHelp rest
+                        ({ given = failure.given
+                         , description = failure.failData.description
+                         , reason = failure.failData.reason
+                         }
+                            :: failuresSoFar
+                        )
 
 
 {-| Passes if at least one of the given expectations passes.
