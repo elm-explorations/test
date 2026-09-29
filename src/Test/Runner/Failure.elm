@@ -34,8 +34,7 @@ type Reason
       -- all failed, e.g. via `Expect.oneOf`.
     | Multiple
         (List
-            { given : Maybe String
-            , description : String
+            { description : String
             , reason : Reason
             }
         )
@@ -91,8 +90,8 @@ flatten reason =
 
 
 flattenList :
-    List { given : Maybe String, description : String, reason : Reason }
-    -> List { given : Maybe String, description : String, reason : Reason }
+    List { description : String, reason : Reason }
+    -> List { description : String, reason : Reason }
 flattenList failures =
     List.concatMap
         (\failure ->
