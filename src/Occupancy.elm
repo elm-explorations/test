@@ -149,7 +149,7 @@ know when all of its children are accounted for and it can collapse to `Covered`
 -}
 markCovered : Int -> Int -> RandomRun -> List Int -> Occupancy -> ( Occupancy, Int )
 markCovered runs nodeBudget run maxes occupancy =
-    case markCoveredHelp runs nodeBudget maxDepth (RandomRun.toList run) maxes occupancy of
+    case markCoveredHelp runs nodeBudget maxDepth 0 run maxes occupancy of
         ( Nothing, budget ) ->
             ( occupancy, budget )
 
@@ -183,39 +183,52 @@ that case. Benchmarking put the whole mechanism at 0.16x of baseline on
 `filter/even` with this missing, essentially all of it here.
 
 -}
-markCoveredHelp : Int -> Int -> Int -> List Int -> List Int -> Occupancy -> ( Maybe Occupancy, Int )
-markCoveredHelp runs nodeBudget depthLeft run maxes occupancy =
-    case ( run, maxes ) of
-        ( [], _ ) ->
-            case occupancy of
-                Covered ->
+markCoveredHelp : Int -> Int -> Int -> Int -> RandomRun -> List Int -> Occupancy -> ( Maybe Occupancy, Int )
+markCoveredHelp runs nodeBudget depthLeft index run maxes occupancy =
+    case maxes of
+        [] ->
+            {- Out of bounds to walk. Two different situations, and they mean
+               opposite things:
+
+                 - the run ended here too, so this is a leaf and it's now covered;
+                 - the run continues, which means recording stopped partway
+                   because the draw entered an untracked region. Nothing to record.
+            -}
+            if index >= RandomRun.length run then
+                case occupancy of
+                    Covered ->
+                        ( Nothing, nodeBudget )
+
+                    _ ->
+                        ( Just Covered, nodeBudget )
+
+            else
+                ( Nothing, nodeBudget )
+
+        maxValue :: restOfMaxes ->
+            case ( RandomRun.get index run, occupancy ) of
+                ( Nothing, _ ) ->
+                    -- Shouldn't happen: bounds are recorded alongside the run.
                     ( Nothing, nodeBudget )
 
-                _ ->
-                    -- End of the run: this leaf is now covered.
-                    ( Just Covered, nodeBudget )
-
-        ( value :: restOfRun, maxValue :: restOfMaxes ) ->
-            case occupancy of
-                Open ->
+                ( Just _, Open ) ->
                     ( Nothing, nodeBudget )
 
-                Covered ->
+                ( Just _, Covered ) ->
                     ( Nothing, nodeBudget )
 
-                Partial _ children covered ->
+                ( Just value, Partial _ children covered ) ->
                     if depthLeft <= 0 then
                         -- Too deep to be worth recording.
                         ( Just Open, nodeBudget )
 
                     else if not (worthTracking runs (maxValue + 1)) then
-                        {- Checked here, on the width of *this* node, not on the
-                           width of the child we're about to create. This node is
-                           the one that accumulates a child per distinct value, so
-                           this is where the cost lives. Testing the child instead
-                           left a wide node recording a leaf for every value it saw
-                           -- which is how `intRange 0 100 |> filter ...` came out
-                           at a quarter of baseline throughput.
+                        {- Checked on the width of *this* node, not of the child
+                           we're about to create. This node is the one that
+                           accumulates a child per distinct value, so this is
+                           where the cost lives. Testing the child instead left a
+                           wide node recording a leaf for every value it saw,
+                           which measured as a quarter of baseline throughput.
                         -}
                         ( Just Open, nodeBudget )
 
@@ -229,15 +242,17 @@ markCoveredHelp runs nodeBudget depthLeft run maxes occupancy =
                                     Nothing ->
                                         newChild runs nodeBudget restOfMaxes
                         in
-                        case markCoveredHelp runs budgetAfterCreate (depthLeft - 1) restOfRun restOfMaxes existing of
+                        case markCoveredHelp runs budgetAfterCreate (depthLeft - 1) (index + 1) run restOfMaxes existing of
                             ( Nothing, remainingBudget ) ->
                                 if budgetAfterCreate == nodeBudget then
                                     -- Nothing below changed and no node was added.
                                     ( Nothing, remainingBudget )
 
                                 else
-                                    -- A node was created even though it recorded
-                                    -- nothing new; it still has to be stored.
+                                    {- A node was created even though it recorded
+                                       nothing new; it still has to be stored, or
+                                       the budget spent on it leaks.
+                                    -}
                                     ( Just (Partial maxValue (Dict.insert value existing children) covered)
                                     , remainingBudget
                                     )
@@ -262,10 +277,6 @@ markCoveredHelp runs nodeBudget depthLeft run maxes occupancy =
                                     ( Just (Partial maxValue (Dict.insert value updatedChild children) updatedCovered)
                                     , remainingBudget
                                     )
-
-        ( _ :: _, [] ) ->
-            -- Shouldn't happen: a run and its bounds are recorded together.
-            ( Nothing, nodeBudget )
 
 
 {-| Whether a newly discovered node is worth tracking, and what that costs.
