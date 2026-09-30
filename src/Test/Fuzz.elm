@@ -163,26 +163,7 @@ type alias LoopState =
        that's what makes a covered subtree stay declined.
     -}
     , occupancy : Occupancy
-
-    {- How many more nodes we're willing to track. Branching factor alone can't
-       bound the cost of a *product* of narrow choices, and the honest bound on
-       one can't be computed without knowing the whole subtree, so cap the total
-       instead.
-    -}
-    , nodeBudget : Int
     }
-
-
-{-| Ceiling on how much of the input space we'll keep coverage records for.
-
-Bounds both memory and the per-run cost of updating those records, whatever shape
-the fuzzer has. Small, because the point is to catch fuzzers with genuinely tiny
-domains rather than to make a good attempt at large ones.
-
--}
-maxTrackedNodes : Int
-maxTrackedNodes =
-    128
 
 
 initLoopState : Random.Seed -> Distribution a -> LoopState
@@ -205,7 +186,6 @@ initLoopState initialSeed distribution =
     , failure = Nothing
     , currentSeed = initialSeed
     , occupancy = Occupancy.empty
-    , nodeBudget = maxTrackedNodes
     }
 
 
@@ -343,7 +323,6 @@ fuzzLoop c state =
                                         , failure = newState.failure
                                         , currentSeed = newState.currentSeed
                                         , occupancy = newState.occupancy
-                                        , nodeBudget = newState.nodeBudget
                                         }
 
                                 Just failedLabel ->
@@ -597,10 +576,9 @@ runOnce c state =
                 Nothing ->
                     stepSeed state.currentSeed
 
-        newOccupancy : ( Occupancy, Int )
+        newOccupancy : Occupancy
         newOccupancy =
             Occupancy.markCovered c.runsNeeded
-                state.nodeBudget
                 (PRNG.getRun (GenResult.getPrng genResult))
                 (PRNG.getMaxes (GenResult.getPrng genResult))
                 state.occupancy
@@ -666,8 +644,7 @@ runOnce c state =
     , currentSeed = nextSeed
     , runsElapsed = state.runsElapsed + 1
     , nextPowerOfTwo = state.nextPowerOfTwo
-    , occupancy = Tuple.first newOccupancy
-    , nodeBudget = Tuple.second newOccupancy
+    , occupancy = newOccupancy
     }
 
 

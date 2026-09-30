@@ -147,14 +147,15 @@ much of the node budget is left.
 know when all of its children are accounted for and it can collapse to `Covered`.
 
 -}
-markCovered : Int -> Int -> RandomRun -> List Int -> Occupancy -> ( Occupancy, Int )
-markCovered runs nodeBudget run maxes occupancy =
-    case markCoveredHelp runs nodeBudget maxDepth 0 run maxes occupancy of
-        ( Nothing, budget ) ->
-            ( occupancy, budget )
+markCovered : Int -> RandomRun -> List Int -> Occupancy -> Occupancy
+markCovered runs run maxes occupancy =
+    case markCoveredHelp runs maxDepth 0 run maxes occupancy of
+        Nothing ->
+            -- Unchanged, so hand back the same value rather than a copy.
+            occupancy
 
-        ( Just updated, budget ) ->
-            ( updated, budget )
+        Just updated ->
+            updated
 
 
 {-| How far down a run coverage is recorded.
@@ -167,10 +168,18 @@ the root -- `bool` is one draw, `pair bool bool` two, and the `Ok bool` branch o
 `oneOf` is two. Anything deeper is treated as never exhausting, which is the safe
 direction: we decline nothing we shouldn't.
 
+Three also replaces an explicit budget on tracked nodes. That budget existed to
+bound products of narrow choices, but with nodes wider than
+[`maxTrackedWidth`](#worthTracking) refused outright, depth alone bounds the
+structure: at most `8 + 8^2 + 8^3` nodes, and in practice far fewer since nodes are
+only created along runs that actually happen. Dropping the counter removes a tuple
+allocated on every single run, which measured as a real cost for fuzzers whose runs
+are cheap.
+
 -}
 maxDepth : Int
 maxDepth =
-    8
+    3
 
 
 {-| `Nothing` means nothing changed.
@@ -183,8 +192,8 @@ that case. Benchmarking put the whole mechanism at 0.16x of baseline on
 `filter/even` with this missing, essentially all of it here.
 
 -}
-markCoveredHelp : Int -> Int -> Int -> Int -> RandomRun -> List Int -> Occupancy -> ( Maybe Occupancy, Int )
-markCoveredHelp runs nodeBudget depthLeft index run maxes occupancy =
+markCoveredHelp : Int -> Int -> Int -> RandomRun -> List Int -> Occupancy -> Maybe Occupancy
+markCoveredHelp runs depthLeft index run maxes occupancy =
     case maxes of
         [] ->
             {- Out of bounds to walk. Two different situations, and they mean
@@ -197,30 +206,30 @@ markCoveredHelp runs nodeBudget depthLeft index run maxes occupancy =
             if index >= RandomRun.length run then
                 case occupancy of
                     Covered ->
-                        ( Nothing, nodeBudget )
+                        Nothing
 
                     _ ->
-                        ( Just Covered, nodeBudget )
+                        Just Covered
 
             else
-                ( Nothing, nodeBudget )
+                Nothing
 
         maxValue :: restOfMaxes ->
             case ( RandomRun.get index run, occupancy ) of
                 ( Nothing, _ ) ->
                     -- Shouldn't happen: bounds are recorded alongside the run.
-                    ( Nothing, nodeBudget )
+                    Nothing
 
                 ( Just _, Open ) ->
-                    ( Nothing, nodeBudget )
+                    Nothing
 
                 ( Just _, Covered ) ->
-                    ( Nothing, nodeBudget )
+                    Nothing
 
                 ( Just value, Partial _ children covered ) ->
                     if depthLeft <= 0 then
                         -- Too deep to be worth recording.
-                        ( Just Open, nodeBudget )
+                        Just Open
 
                     else if not (worthTracking runs (maxValue + 1)) then
                         {- Checked on the width of *this* node, not of the child
@@ -230,34 +239,25 @@ markCoveredHelp runs nodeBudget depthLeft index run maxes occupancy =
                            wide node recording a leaf for every value it saw,
                            which measured as a quarter of baseline throughput.
                         -}
-                        ( Just Open, nodeBudget )
+                        Just Open
 
                     else
                         let
-                            ( existing, budgetAfterCreate ) =
+                            existing : Occupancy
+                            existing =
                                 case Dict.get value children of
                                     Just child ->
-                                        ( child, nodeBudget )
+                                        child
 
                                     Nothing ->
-                                        newChild runs nodeBudget restOfMaxes
+                                        newChild runs restOfMaxes
                         in
-                        case markCoveredHelp runs budgetAfterCreate (depthLeft - 1) (index + 1) run restOfMaxes existing of
-                            ( Nothing, remainingBudget ) ->
-                                if budgetAfterCreate == nodeBudget then
-                                    -- Nothing below changed and no node was added.
-                                    ( Nothing, remainingBudget )
+                        case markCoveredHelp runs (depthLeft - 1) (index + 1) run restOfMaxes existing of
+                            Nothing ->
+                                -- Nothing below changed, so nothing here did.
+                                Nothing
 
-                                else
-                                    {- A node was created even though it recorded
-                                       nothing new; it still has to be stored, or
-                                       the budget spent on it leaks.
-                                    -}
-                                    ( Just (Partial maxValue (Dict.insert value existing children) covered)
-                                    , remainingBudget
-                                    )
-
-                            ( Just updatedChild, remainingBudget ) ->
+                            Just updatedChild ->
                                 let
                                     updatedCovered : Set Int
                                     updatedCovered =
@@ -271,12 +271,10 @@ markCoveredHelp runs nodeBudget depthLeft index run maxes occupancy =
                                     {- Collapsing keeps the structure small, and is
                                        what propagates coverage up to the root.
                                     -}
-                                    ( Just Covered, remainingBudget )
+                                    Just Covered
 
                                 else
-                                    ( Just (Partial maxValue (Dict.insert value updatedChild children) updatedCovered)
-                                    , remainingBudget
-                                    )
+                                    Just (Partial maxValue (Dict.insert value updatedChild children) updatedCovered)
 
 
 {-| Whether a newly discovered node is worth tracking, and what that costs.
@@ -297,31 +295,23 @@ choice, so the answer changes with whichever run reaches the node first. For
 lose the `Ok` branch, which is the one case this mechanism exists for.
 
 -}
-newChild : Int -> Int -> List Int -> ( Occupancy, Int )
-newChild runs nodeBudget restOfMaxes =
-    if nodeBudget <= 0 then
-        ( Open, nodeBudget )
+newChild : Int -> List Int -> Occupancy
+newChild runs restOfMaxes =
+    case restOfMaxes of
+        [] ->
+            {- A leaf, created empty rather than already covered so that the step
+               to `Covered` is a real change and propagates: reporting it covered
+               on creation makes the parent see "nothing changed" and never add it
+               to its covered set, so nothing ever collapses.
+            -}
+            Partial 0 Dict.empty Set.empty
 
-    else
-        case restOfMaxes of
-            [] ->
-                {- A leaf, created empty rather than already covered so that the
-                   step to `Covered` is a real change and propagates: reporting it
-                   covered on creation makes the parent see "nothing changed" and
-                   never add it to its covered set, so nothing ever collapses.
+        childMax :: _ ->
+            if worthTracking runs (childMax + 1) then
+                Partial childMax Dict.empty Set.empty
 
-                   It costs budget like any other node. Leaves being free was a
-                   hole that let a wide node accumulate a child per value whatever
-                   the budget said.
-                -}
-                ( Partial 0 Dict.empty Set.empty, nodeBudget - 1 )
-
-            childMax :: _ ->
-                if worthTracking runs (childMax + 1) then
-                    ( Partial childMax Dict.empty Set.empty, nodeBudget - 1 )
-
-                else
-                    ( Open, nodeBudget )
+            else
+                Open
 
 
 {-| Whether a node this wide is worth keeping coverage records for.
