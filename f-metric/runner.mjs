@@ -467,6 +467,11 @@ function report(summary) {
 // timer tick is a double-digit percentage of them, so they get excluded from the
 // aggregate time ratio (and flagged in the table) rather than being allowed to
 // masquerade as signal. Their case-count ratios are still exact and still count.
+//
+// The test is on the *baseline* median alone, deliberately. Gating on either side
+// would let the excluded set shift as the variant's own timings move, and then
+// two variants measured against the same baseline would have their geomeans
+// computed over different sets of cases -- which is not a comparison.
 const TIME_FLOOR_MS = 0.5;
 
 function compareReport(current, baseline) {
@@ -488,7 +493,7 @@ function compareReport(current, baseline) {
     if (caseRatio !== null && comparable) caseRatios.push(caseRatio);
 
     const timeRatio = ratioOf(c.medianMs, b.medianMs);
-    const atFloor = Math.max(b.medianMs ?? 0, c.medianMs ?? 0) < TIME_FLOOR_MS;
+    const atFloor = (b.medianMs ?? 0) < TIME_FLOOR_MS;
     if (timeRatio !== null && comparable) {
       if (atFloor) belowFloor++;
       else timeRatios.push(timeRatio);
