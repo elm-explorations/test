@@ -6,6 +6,7 @@ import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
 import MicroDictExtra as Dict
 import MicroListExtra as List
+import Occupancy exposing (Occupancy)
 import PRNG
 import Random
 import RandomRun exposing (RandomRun)
@@ -157,7 +158,31 @@ type alias LoopState =
     , nextPowerOfTwo : Int
     , failure : Maybe Failure
     , currentSeed : Random.Seed
+
+    {- Which parts of the input space have been covered. Carried across runs:
+       that's what makes a covered subtree stay declined.
+    -}
+    , occupancy : Occupancy
+
+    {- How many more nodes we're willing to track. Branching factor alone can't
+       bound the cost of a *product* of narrow choices, and the honest bound on
+       one can't be computed without knowing the whole subtree, so cap the total
+       instead.
+    -}
+    , nodeBudget : Int
     }
+
+
+{-| Ceiling on how much of the input space we'll keep coverage records for.
+
+Bounds both memory and the per-run cost of updating those records, whatever shape
+the fuzzer has. Small, because the point is to catch fuzzers with genuinely tiny
+domains rather than to make a good attempt at large ones.
+
+-}
+maxTrackedNodes : Int
+maxTrackedNodes =
+    128
 
 
 initLoopState : Random.Seed -> Distribution a -> LoopState
@@ -179,6 +204,8 @@ initLoopState initialSeed distribution =
     , nextPowerOfTwo = 1
     , failure = Nothing
     , currentSeed = initialSeed
+    , occupancy = Occupancy.empty
+    , nodeBudget = maxTrackedNodes
     }
 
 
@@ -230,7 +257,14 @@ fuzzLoop c state =
             }
 
         Nothing ->
-            if state.runsElapsed < c.runsNeeded then
+            if Occupancy.isExhausted state.occupancy then
+                -- Proved for every input the fuzzer can produce.
+                { distributionReport = Fuzz.Internal.noDistribution
+                , failure = Nothing
+                , runsElapsed = state.runsElapsed
+                }
+
+            else if state.runsElapsed < c.runsNeeded then
                 let
                     newState : LoopState
                     newState =
@@ -308,6 +342,8 @@ fuzzLoop c state =
                                         , nextPowerOfTwo = newState.nextPowerOfTwo + 1
                                         , failure = newState.failure
                                         , currentSeed = newState.currentSeed
+                                        , occupancy = newState.occupancy
+                                        , nodeBudget = newState.nodeBudget
                                         }
 
                                 Just failedLabel ->
@@ -522,7 +558,12 @@ distributionInsufficientFailure failure =
 -}
 runNTimes : Int -> LoopConstants a -> LoopState -> LoopState
 runNTimes times c state =
-    if times <= 0 || state.failure /= Nothing then
+    if times <= 0 || state.failure /= Nothing || Occupancy.isExhausted state.occupancy then
+        {- A covered root means every input this fuzzer can produce has been
+           tested, so there is nothing left to do however many runs were asked
+           for. Checking here and not only in `fuzzLoop` is what makes the saving
+           real: otherwise the batch runs to completion first.
+        -}
         state
 
     else
@@ -538,7 +579,7 @@ runOnce c state =
         genResult : GenResult a
         genResult =
             Fuzz.Internal.generate
-                (PRNG.random state.currentSeed)
+                (PRNG.tracked state.occupancy state.currentSeed)
                 c.fuzzer
 
         maybeNextSeed : Maybe Random.Seed
@@ -555,6 +596,14 @@ runOnce c state =
 
                 Nothing ->
                     stepSeed state.currentSeed
+
+        newOccupancy : ( Occupancy, Int )
+        newOccupancy =
+            Occupancy.markCovered c.runsNeeded
+                state.nodeBudget
+                (PRNG.getRun (GenResult.getPrng genResult))
+                (PRNG.getMaxes (GenResult.getPrng genResult))
+                state.occupancy
 
         ( maybeFailure, newDistributionCounter ) =
             case genResult of
@@ -617,6 +666,8 @@ runOnce c state =
     , currentSeed = nextSeed
     , runsElapsed = state.runsElapsed + 1
     , nextPowerOfTwo = state.nextPowerOfTwo
+    , occupancy = Tuple.first newOccupancy
+    , nodeBudget = Tuple.second newOccupancy
     }
 
 

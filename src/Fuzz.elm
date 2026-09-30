@@ -90,6 +90,7 @@ import GenResult exposing (GenResult(..))
 import MicroArrayExtra
 import MicroDictExtra as Dict
 import MicroListExtra as List
+import Occupancy
 import PRNG exposing (PRNG(..))
 import Random
 import RandomRun
@@ -1759,6 +1760,102 @@ rollDice maxValue diceGenerator =
                                     , prng = Hardcoded wholeRun restOfChoices
                                     }
 
+                Tracked hereOnwards run reversedMaxes seed ->
+                    let
+                        covered : Set Int
+                        covered =
+                            Occupancy.exhaustedChildren hereOnwards
+
+                        ( diceRoll, newSeed ) =
+                            {- The generator carries the fuzzer's intended bias,
+                               so keep drawing from it and reject values whose
+                               subtree is already covered. Rejection is what makes
+                               the remaining distribution the correct conditional
+                               one rather than a uniform pick over what's left.
+
+                               The common case is that nothing is covered, and
+                               then this is exactly the draw Random would make.
+                            -}
+                            drawAvoiding covered maxValue diceGenerator seed
+                    in
+                    if diceRoll < 0 || diceRoll > maxValue then
+                        Rejected
+                            { reason = "elm-test bug: generated a choice outside 0..maxChoice"
+                            , prng = prng
+                            }
+
+                    else
+                        Generated
+                            { value = diceRoll
+                            , prng =
+                                Tracked
+                                    (Occupancy.childOf diceRoll maxValue hereOnwards)
+                                    (RandomRun.append diceRoll run)
+                                    (maxValue :: reversedMaxes)
+                                    newSeed
+                            }
+
+
+{-| Draw from the generator, rejecting values whose subtree is already covered.
+
+Bounded, because as a node approaches full coverage the chance of landing on an
+available value gets small. On giving up we take the lowest available value: a
+distribution error, but only in the endgame of a node that is nearly exhausted,
+and the alternative is an unbounded loop.
+
+-}
+drawAvoiding : Set Int -> Int -> Random.Generator Int -> Random.Seed -> ( Int, Random.Seed )
+drawAvoiding covered maxValue generator seed =
+    if Set.isEmpty covered then
+        -- Overwhelmingly the common case: behave exactly as an untracked draw.
+        Random.step generator seed
+
+    else
+        drawAvoidingHelp covered maxValue generator seed 32
+
+
+drawAvoidingHelp : Set Int -> Int -> Random.Generator Int -> Random.Seed -> Int -> ( Int, Random.Seed )
+drawAvoidingHelp covered maxValue generator seed attemptsLeft =
+    let
+        ( value, newSeed ) =
+            Random.step generator seed
+    in
+    if not (Set.member value covered) then
+        ( value, newSeed )
+
+    else if attemptsLeft <= 0 then
+        {- Out of attempts, which happens once a node is nearly full. Walk up from
+           the value we drew, wrapping, and take the first one still available.
+           That hands each remaining value the weight of the covered run below it
+           -- biased, but far less so than always taking the lowest, and confined
+           to the endgame of a node that is about to be complete anyway.
+        -}
+        ( nextAvailable covered maxValue value (maxValue + 1), newSeed )
+
+    else
+        drawAvoidingHelp covered maxValue generator newSeed (attemptsLeft - 1)
+
+
+nextAvailable : Set Int -> Int -> Int -> Int -> Int
+nextAvailable covered maxValue candidate stepsLeft =
+    if stepsLeft <= 0 then
+        -- Every value covered; the caller is about to collapse this node anyway.
+        candidate
+
+    else if Set.member candidate covered then
+        nextAvailable covered
+            maxValue
+            (if candidate >= maxValue then
+                0
+
+             else
+                candidate + 1
+            )
+            (stepsLeft - 1)
+
+    else
+        candidate
+
 
 forcedChoice : Int -> Fuzzer Int
 forcedChoice n =
@@ -1799,6 +1896,18 @@ forcedChoice n =
                                         { value = n
                                         , prng = Hardcoded wholeRun restOfChoices
                                         }
+
+                    Tracked hereOnwards run reversedMaxes seed ->
+                        -- A forced choice has no alternatives, so nothing to avoid.
+                        Generated
+                            { value = n
+                            , prng =
+                                Tracked
+                                    (Occupancy.childOf n n hereOnwards)
+                                    (RandomRun.append n run)
+                                    (n :: reversedMaxes)
+                                    seed
+                            }
 
 
 {-| We could golf this to ((/=) 0) but this is perhaps more readable.
