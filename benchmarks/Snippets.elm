@@ -208,3 +208,82 @@ sequence fuzzers =
         (Fuzz.map2 (::))
         (Fuzz.constant [])
         fuzzers
+
+
+
+{- Passing tests over small, exhaustible domains. These are the ones exhaustive
+   checking should be able to finish early: the whole input space fits in far
+   fewer values than a typical `runs` budget.
+-}
+
+
+unitPass : Test
+unitPass =
+    fuzz "(passes) unit" Fuzz.unit <|
+        \_ -> Expect.pass
+
+
+orderPass : Test
+orderPass =
+    fuzz "(passes) order" Fuzz.order <|
+        \_ -> Expect.pass
+
+
+intRange0To20Pass : Test
+intRange0To20Pass =
+    fuzz "(passes) intRange 0 20" (Fuzz.intRange 0 20) <|
+        \_ -> Expect.pass
+
+
+pairBoolPass : Test
+pairBoolPass =
+    fuzz "(passes) pair of bools" (Fuzz.pair Fuzz.bool Fuzz.bool) <|
+        \_ -> Expect.pass
+
+
+maybeBoolPass : Test
+maybeBoolPass =
+    fuzz "(passes) maybe bool" (Fuzz.maybe Fuzz.bool) <|
+        \_ -> Expect.pass
+
+
+oneOfValuesPass : Test
+oneOfValuesPass =
+    fuzz "(passes) oneOfValues" (Fuzz.oneOfValues [ 1, 2, 3, 4, 5 ]) <|
+        \_ -> Expect.pass
+
+
+
+{- Finite, but big enough that exhausting it is a real decision rather than a
+   freebie.
+-}
+
+
+intRange0To1000Pass : Test
+intRange0To1000Pass =
+    fuzz "(passes) intRange 0 1000" (Fuzz.intRange 0 1000) <|
+        \_ -> Expect.pass
+
+
+pairIntRange0To30Pass : Test
+pairIntRange0To30Pass =
+    fuzz "(passes) pair of intRange 0 30"
+        (Fuzz.pair (Fuzz.intRange 0 30) (Fuzz.intRange 0 30))
+    <|
+        \_ -> Expect.pass
+
+
+
+{- Exercises the rejection path, which deduplication and enumeration both have
+   to handle. Kept generous: `Fuzz.filter` gives up after 16 consecutive
+   rejections and fails the test, and over thousands of runs even a mildly
+   selective predicate hits that.
+-}
+
+
+filterPass : Test
+filterPass =
+    fuzz "(passes) filtered intRange"
+        (Fuzz.intRange 0 100 |> Fuzz.filter (\n -> modBy 4 n /= 0))
+    <|
+        \_ -> Expect.pass

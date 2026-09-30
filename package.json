@@ -5,8 +5,9 @@
   "scripts": {
     "test": "bash tests/run-tests.sh",
     "test:random": "RANDOMIZED=1 bash tests/run-tests.sh",
-    "format": "elm-format --validate src tests/src benchmarks f-metric/src",
+    "format": "elm-format --validate src tests/src benchmarks/*.elm f-metric/src",
     "f-metric": "bash f-metric/build.sh && node f-metric/runner.mjs",
+    "benchmarks": "bash benchmarks/build.sh && node benchmarks/runner.mjs",
     "review": "rm -rf tests/elm_home && elm-review",
     "install-local": "rm -rf ~/.elm/0.19.2/packages/elm-explorations/test/2.2.1/ && mkdir -p ~/.elm/0.19.2/packages/elm-explorations/test/2.2.1/ && cp -r ./{src,elm.json,LICENSE,README.md} ~/.elm/0.19.2/packages/elm-explorations/test/2.2.1/"
   },
