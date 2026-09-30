@@ -4,6 +4,7 @@ module Occupancy exposing
     , empty
     , exhaustedChildren
     , isExhausted
+    , isOpen
     , markCovered
     )
 
@@ -44,9 +45,11 @@ same values, no probe, no mode switch.
 ## Bounding the cost
 
 Tracking everything would cost memory and time proportional to the number of
-runs, for fuzzers that can never exhaust anything. Two bounds prevent that, and
-both are deliberately **shape-agnostic** — neither may depend on which path
-through the tree happened to be drawn first. See [`markCovered`](#markCovered).
+runs, for fuzzers that can never exhaust anything. Three bounds prevent that: a
+limit on how deep coverage is recorded, on how wide a node may be to be worth
+recording, and on how many nodes are recorded in total. All three are deliberately
+**shape-agnostic** — none may depend on which path through the tree happened to be
+drawn first. See [`markCovered`](#markCovered) and [`maxDepth`](#maxDepth).
 
 -}
 
@@ -69,6 +72,18 @@ type Occupancy
 empty : Occupancy
 empty =
     Partial 0 Dict.empty Set.empty
+
+
+{-| Whether this part of the tree is untracked, so a draw need not consult it.
+-}
+isOpen : Occupancy -> Bool
+isOpen occupancy =
+    case occupancy of
+        Open ->
+            True
+
+        _ ->
+            False
 
 
 isExhausted : Occupancy -> Bool
@@ -134,60 +149,123 @@ know when all of its children are accounted for and it can collapse to `Covered`
 -}
 markCovered : Int -> Int -> RandomRun -> List Int -> Occupancy -> ( Occupancy, Int )
 markCovered runs nodeBudget run maxes occupancy =
-    markCoveredHelp runs nodeBudget (RandomRun.toList run) maxes occupancy
+    case markCoveredHelp runs nodeBudget maxDepth (RandomRun.toList run) maxes occupancy of
+        ( Nothing, budget ) ->
+            ( occupancy, budget )
+
+        ( Just updated, budget ) ->
+            ( updated, budget )
 
 
-markCoveredHelp : Int -> Int -> List Int -> List Int -> Occupancy -> ( Occupancy, Int )
-markCoveredHelp runs nodeBudget run maxes occupancy =
+{-| How far down a run coverage is recorded.
+
+Without this the cost of recording a run grows with its length: `Fuzz.string` runs
+are tens of draws long and `Fuzz.filter` multiplies that by its retries.
+
+Shallow is enough for what this is for. The coverable parts of a fuzzer are near
+the root -- `bool` is one draw, `pair bool bool` two, and the `Ok bool` branch of a
+`oneOf` is two. Anything deeper is treated as never exhausting, which is the safe
+direction: we decline nothing we shouldn't.
+
+-}
+maxDepth : Int
+maxDepth =
+    8
+
+
+{-| `Nothing` means nothing changed.
+
+This is what keeps the cost flat rather than growing with the number of runs. A
+child that is already `Open` or `Covered` cannot change, so recursing into it and
+then reinserting it would copy a path through the dictionary on every single run
+for no reason -- and for a fuzzer that can never exhaust anything, _every_ run is
+that case. Benchmarking put the whole mechanism at 0.16x of baseline on
+`filter/even` with this missing, essentially all of it here.
+
+-}
+markCoveredHelp : Int -> Int -> Int -> List Int -> List Int -> Occupancy -> ( Maybe Occupancy, Int )
+markCoveredHelp runs nodeBudget depthLeft run maxes occupancy =
     case ( run, maxes ) of
         ( [], _ ) ->
-            -- End of the run: this leaf is now covered.
-            ( Covered, nodeBudget )
+            case occupancy of
+                Covered ->
+                    ( Nothing, nodeBudget )
+
+                _ ->
+                    -- End of the run: this leaf is now covered.
+                    ( Just Covered, nodeBudget )
 
         ( value :: restOfRun, maxValue :: restOfMaxes ) ->
             case occupancy of
                 Open ->
-                    ( Open, nodeBudget )
+                    ( Nothing, nodeBudget )
 
                 Covered ->
-                    ( Covered, nodeBudget )
+                    ( Nothing, nodeBudget )
 
                 Partial _ children covered ->
-                    let
-                        ( existing, budgetAfterCreate ) =
-                            case Dict.get value children of
-                                Just child ->
-                                    ( child, nodeBudget )
+                    if depthLeft <= 0 then
+                        -- Too deep to be worth recording.
+                        ( Just Open, nodeBudget )
 
-                                Nothing ->
-                                    newChild runs nodeBudget restOfMaxes
-
-                        ( updatedChild, remainingBudget ) =
-                            markCoveredHelp runs budgetAfterCreate restOfRun restOfMaxes existing
-
-                        updatedCovered : Set Int
-                        updatedCovered =
-                            if isExhausted updatedChild then
-                                Set.insert value covered
-
-                            else
-                                covered
-                    in
-                    if Set.size updatedCovered == maxValue + 1 then
-                        {- Collapsing keeps the structure small, and is what
-                           propagates coverage up towards the root. Cheap now that
-                           the covered set is maintained: no fold over children.
+                    else if not (worthTracking runs (maxValue + 1)) then
+                        {- Checked here, on the width of *this* node, not on the
+                           width of the child we're about to create. This node is
+                           the one that accumulates a child per distinct value, so
+                           this is where the cost lives. Testing the child instead
+                           left a wide node recording a leaf for every value it saw
+                           -- which is how `intRange 0 100 |> filter ...` came out
+                           at a quarter of baseline throughput.
                         -}
-                        ( Covered, remainingBudget )
+                        ( Just Open, nodeBudget )
 
                     else
-                        ( Partial maxValue (Dict.insert value updatedChild children) updatedCovered
-                        , remainingBudget
-                        )
+                        let
+                            ( existing, budgetAfterCreate ) =
+                                case Dict.get value children of
+                                    Just child ->
+                                        ( child, nodeBudget )
+
+                                    Nothing ->
+                                        newChild runs nodeBudget restOfMaxes
+                        in
+                        case markCoveredHelp runs budgetAfterCreate (depthLeft - 1) restOfRun restOfMaxes existing of
+                            ( Nothing, remainingBudget ) ->
+                                if budgetAfterCreate == nodeBudget then
+                                    -- Nothing below changed and no node was added.
+                                    ( Nothing, remainingBudget )
+
+                                else
+                                    -- A node was created even though it recorded
+                                    -- nothing new; it still has to be stored.
+                                    ( Just (Partial maxValue (Dict.insert value existing children) covered)
+                                    , remainingBudget
+                                    )
+
+                            ( Just updatedChild, remainingBudget ) ->
+                                let
+                                    updatedCovered : Set Int
+                                    updatedCovered =
+                                        if isExhausted updatedChild then
+                                            Set.insert value covered
+
+                                        else
+                                            covered
+                                in
+                                if Set.size updatedCovered == maxValue + 1 then
+                                    {- Collapsing keeps the structure small, and is
+                                       what propagates coverage up to the root.
+                                    -}
+                                    ( Just Covered, remainingBudget )
+
+                                else
+                                    ( Just (Partial maxValue (Dict.insert value updatedChild children) updatedCovered)
+                                    , remainingBudget
+                                    )
 
         ( _ :: _, [] ) ->
             -- Shouldn't happen: a run and its bounds are recorded together.
-            ( occupancy, nodeBudget )
+            ( Nothing, nodeBudget )
 
 
 {-| Whether a newly discovered node is worth tracking, and what that costs.
@@ -210,34 +288,70 @@ lose the `Ok` branch, which is the one case this mechanism exists for.
 -}
 newChild : Int -> Int -> List Int -> ( Occupancy, Int )
 newChild runs nodeBudget restOfMaxes =
-    case restOfMaxes of
-        [] ->
-            -- A leaf: nothing to track below it, and nothing to pay.
-            ( Partial 0 Dict.empty Set.empty, nodeBudget )
+    if nodeBudget <= 0 then
+        ( Open, nodeBudget )
 
-        childMax :: _ ->
-            if nodeBudget <= 0 || not (coverableWithin runs (childMax + 1)) then
-                ( Open, nodeBudget )
+    else
+        case restOfMaxes of
+            [] ->
+                {- A leaf, created empty rather than already covered so that the
+                   step to `Covered` is a real change and propagates: reporting it
+                   covered on creation makes the parent see "nothing changed" and
+                   never add it to its covered set, so nothing ever collapses.
 
-            else
-                ( Partial childMax Dict.empty Set.empty, nodeBudget - 1 )
+                   It costs budget like any other node. Leaves being free was a
+                   hole that let a wide node accumulate a child per value whatever
+                   the budget said.
+                -}
+                ( Partial 0 Dict.empty Set.empty, nodeBudget - 1 )
+
+            childMax :: _ ->
+                if worthTracking runs (childMax + 1) then
+                    ( Partial childMax Dict.empty Set.empty, nodeBudget - 1 )
+
+                else
+                    ( Open, nodeBudget )
 
 
-{-| Whether a space of this many inputs can plausibly be covered by drawing
-`runs` times at random.
+{-| Whether a node this wide is worth keeping coverage records for.
 
-Random draws repeat, so covering `n` distinct inputs takes about `n * ln n` draws
-(the coupon collector's problem), not `n`. Tracking coverage only pays if that
-fits in the budget; otherwise we carry the bookkeeping for the whole test and
-never exhaust anything.
+Two conditions, and the second is the one that matters in practice.
 
-`n * log2 n` stands in for `n * ln n`, overestimating by about 1.44x, which errs
-towards not tracking.
+_Coverable_: random draws repeat, so covering `n` distinct values takes about
+`n * ln n` draws (the coupon collector's problem), not `n`. There is no point
+tracking a node that cannot fill within the run count.
+
+_Worth it_: recording coverage means updating a persistent tree, which allocates
+along the path it copies. A fuzz run can be as cheap as a third of a microsecond,
+and a dozen node allocations cost more than that -- so tracking only pays where
+coverage completes almost immediately and the saving is then total.
+
+That second condition is what the measurements insisted on. With only the
+coupon-collector test, `pair (intRange 0 30) (intRange 0 30)` and
+`intRange 0 100 |> filter ...` both qualify -- 961 and 101 values, both coverable
+inside 1000 runs -- and both came out at around a fifth of baseline throughput,
+while the domains that matter (`bool`, `order`, `oneOfValues`, and the small
+branch of a `oneOf`) are all under eight values and gain 45-90x.
+
+So the width limit is deliberately severe. It gives up mid-sized domains, which we
+would otherwise be able to cover completely, in exchange for never making anything
+slower.
 
 -}
-coverableWithin : Int -> Int -> Bool
-coverableWithin runs size =
-    size <= runs && size * bitsNeeded size <= runs
+worthTracking : Int -> Int -> Bool
+worthTracking runs size =
+    {- `size < 1` is the sentinel a sparse draw records: its generator doesn't
+       produce every value in range, so the set of children isn't knowable from the
+       bound and the node must never be tracked or declared covered.
+    -}
+    size >= 1 && size <= maxTrackedWidth && size * bitsNeeded size <= runs
+
+
+{-| A node wider than this is not tracked. See [`worthTracking`](#worthTracking).
+-}
+maxTrackedWidth : Int
+maxTrackedWidth =
+    8
 
 
 bitsNeeded : Int -> Int
