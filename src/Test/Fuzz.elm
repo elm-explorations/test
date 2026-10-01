@@ -8,18 +8,19 @@ import MicroDictExtra as Dict
 import MicroListExtra as List
 import PRNG
 import Random
+import RandomRun exposing (RandomRun)
 import Simplify
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
-import Test.Expectation exposing (Expectation(..), FailData)
-import Test.Internal exposing (Test(..), blankDescriptionFailure)
+import Test.Expectation exposing (Expectation(..), FailData, FuzzTestExpectation(..))
+import Test.Internal exposing (Test, TestVariant(..), blankDescriptionFailure)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
-{-| Reject always-failing tests because of bad names or invalid fuzzers.
+{-| Reject always-failing tests because of bad names.
 -}
-fuzzTest : String -> Distribution a -> Fuzzer a -> (a -> Expectation) -> Test
-fuzzTest untrimmedDesc distribution fuzzer getExpectation =
+fuzzTest : String -> Maybe Int -> Distribution a -> Fuzzer a -> (a -> Expectation) -> Test
+fuzzTest untrimmedDesc maybeRuns distribution fuzzer getExpectation =
     let
         desc =
             String.trim untrimmedDesc
@@ -28,15 +29,18 @@ fuzzTest untrimmedDesc distribution fuzzer getExpectation =
         blankDescriptionFailure
 
     else
-        ElmTestVariant__Labeled desc <| validatedFuzzTest desc fuzzer getExpectation distribution
+        validatedFuzzTest desc fuzzer (Test.Internal.wrapWithTryCatch getExpectation) maybeRuns distribution
+            |> ElmTestVariant__Labeled desc
+            |> Test.Internal.wrapTestVariant
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : String -> Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
-validatedFuzzTest desc fuzzer getExpectation distribution =
+validatedFuzzTest : String -> Fuzzer a -> (a -> Expectation) -> Maybe Int -> Distribution a -> Test
+validatedFuzzTest desc fuzzer getExpectation maybeRuns distribution =
     ElmTestVariant__FuzzTest
-        (\seed runs ->
+        maybeRuns
+        (\seed runs fuzzerInts ->
             let
                 _ =
                     if DebugConfig.shouldLogFuzzTests then
@@ -44,34 +48,94 @@ validatedFuzzTest desc fuzzer getExpectation distribution =
 
                     else
                         desc
-            in
-            let
-                runResult : RunResult
-                runResult =
-                    fuzzLoop
-                        { fuzzer = fuzzer
-                        , testFn = getExpectation
-                        , initialSeed = seed
-                        , runsNeeded = runs
-                        , distribution = distribution
-                        }
-                        (initLoopState seed distribution)
-            in
-            case runResult.failure of
-                Nothing ->
-                    Pass runResult.distributionReport
 
-                Just failure ->
-                    Fail
-                        { given = failure.given
-                        , failData = failure.failData
-                        , distributionReport = runResult.distributionReport
+                { failure, distributionReport } =
+                    case tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts of
+                        Just runResult ->
+                            runResult
+
+                        Nothing ->
+                            fuzzLoop
+                                { fuzzer = fuzzer
+                                , testFn = getExpectation
+                                , initialSeed = seed
+                                , runsNeeded = runs
+                                , distribution = distribution
+                                }
+                                (initLoopState seed distribution)
+            in
+            case failure of
+                Nothing ->
+                    FuzzTestPass distributionReport
+
+                Just failure_ ->
+                    FuzzTestFail
+                        { given = failure_.given
+                        , randomRun = failure_.randomRun
+                        , description = failure_.failData.description
+                        , reason = failure_.failData.reason
+                        , distributionReport = distributionReport
+                        , rerunFailure =
+                            \() ->
+                                case Fuzz.Internal.generate (PRNG.hardcoded failure_.randomRun) fuzzer of
+                                    Generated { value } ->
+                                        getExpectation value
+                                            |> (\_ -> ())
+
+                                    Rejected _ ->
+                                        ()
                         }
         )
+        |> Test.Internal.wrapTestVariant
+
+
+tryReproduceFailureFromFuzzerInts : Fuzzer a -> (a -> Expectation) -> List Int -> Maybe RunResult
+tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts =
+    if List.isEmpty fuzzerInts then
+        -- No fuzzer ints were passed – continue with a regular fuzz run.
+        Nothing
+
+    else
+        -- When a fuzz test fails, we expose the list of integers in the
+        -- `RandomRun` that caused the failure (after shrinking) to the
+        -- runner. The runner can then store those integers, and pass them
+        -- when running the tests again. This way, a previous failure can
+        -- be reproduced quickly (no need to go through many runs plus
+        -- shrinking again).
+        let
+            randomRun =
+                RandomRun.fromList fuzzerInts
+        in
+        case Fuzz.Internal.generate (PRNG.hardcoded randomRun) fuzzer of
+            Generated { value } ->
+                case getExpectation value of
+                    Pass _ ->
+                        -- The saved `RandomRun` now passes – continue with
+                        -- a regular fuzz run.
+                        Nothing
+
+                    Fail { failData } ->
+                        Just
+                            { failure =
+                                Just
+                                    { given = Just <| Test.Internal.toString value
+                                    , randomRun = randomRun
+                                    , failData = failData
+                                    }
+
+                            -- In this mode we can't do a distribution report, because we ran just once.
+                            , distributionReport = NoDistribution ()
+                            }
+
+            Rejected _ ->
+                -- If the code of the test has changed, a saved `RandomRun` might
+                -- not be usable anymore. If so, just ignore it and start a regular run.
+                Nothing
 
 
 type alias Failure =
     { given : Maybe String
+    , randomRun : RandomRun
     , failData : FailData
     }
 
@@ -417,6 +481,7 @@ distributionBugRunResult =
     , failure =
         Just
             { given = Nothing
+            , randomRun = RandomRun.empty
             , failData =
                 { description = "elm-test distribution collection bug"
                 , reason = Invalid DistributionBug
@@ -428,6 +493,7 @@ distributionBugRunResult =
 distributionInsufficientFailure : DistributionFailure -> Failure
 distributionInsufficientFailure failure =
     { given = Nothing
+    , randomRun = RandomRun.empty
     , failData =
         { description =
             """Distribution of label "{LABEL}" was insufficient:
@@ -487,6 +553,7 @@ runOnce c state =
                 Rejected { reason } ->
                     ( Just
                         { given = Nothing
+                        , randomRun = RandomRun.empty
                         , failData =
                             { description = reason
                             , reason = Invalid InvalidFuzzer
@@ -599,9 +666,10 @@ stepSeed seed =
 findSimplestFailure : Simplify.State a -> Failure
 findSimplestFailure state =
     let
-        ( simplestValue, _, failData ) =
+        ( simplestValue, randomRun, failData ) =
             Simplify.simplify state
     in
     { given = Just <| Test.Internal.toString simplestValue
+    , randomRun = randomRun
     , failData = failData
     }
