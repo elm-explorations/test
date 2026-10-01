@@ -149,7 +149,7 @@ know when all of its children are accounted for and it can collapse to `Covered`
 -}
 markCovered : Int -> RandomRun -> List Int -> Occupancy -> Occupancy
 markCovered runs run maxes occupancy =
-    case markCoveredHelp runs maxDepth 0 run maxes occupancy of
+    case markCoveredHelp runs 1 maxDepth 0 run maxes occupancy of
         Nothing ->
             -- Unchanged, so hand back the same value rather than a copy.
             occupancy
@@ -192,8 +192,8 @@ that case. Benchmarking put the whole mechanism at 0.16x of baseline on
 `filter/even` with this missing, essentially all of it here.
 
 -}
-markCoveredHelp : Int -> Int -> Int -> RandomRun -> List Int -> Occupancy -> Maybe Occupancy
-markCoveredHelp runs depthLeft index run maxes occupancy =
+markCoveredHelp : Int -> Int -> Int -> Int -> RandomRun -> List Int -> Occupancy -> Maybe Occupancy
+markCoveredHelp runs productSoFar depthLeft index run maxes occupancy =
     case maxes of
         [] ->
             {- Out of bounds to walk. Two different situations, and they mean
@@ -231,7 +231,7 @@ markCoveredHelp runs depthLeft index run maxes occupancy =
                         -- Too deep to be worth recording.
                         Just Open
 
-                    else if not (worthTracking runs (maxValue + 1)) then
+                    else if not (worthTracking runs productSoFar (maxValue + 1)) then
                         {- Checked on the width of *this* node, not of the child
                            we're about to create. This node is the one that
                            accumulates a child per distinct value, so this is
@@ -250,9 +250,9 @@ markCoveredHelp runs depthLeft index run maxes occupancy =
                                         child
 
                                     Nothing ->
-                                        newChild runs restOfMaxes
+                                        newChild runs (productSoFar * (maxValue + 1)) restOfMaxes
                         in
-                        case markCoveredHelp runs (depthLeft - 1) (index + 1) run restOfMaxes existing of
+                        case markCoveredHelp runs (productSoFar * (maxValue + 1)) (depthLeft - 1) (index + 1) run restOfMaxes existing of
                             Nothing ->
                                 -- Nothing below changed, so nothing here did.
                                 Nothing
@@ -295,8 +295,8 @@ choice, so the answer changes with whichever run reaches the node first. For
 lose the `Ok` branch, which is the one case this mechanism exists for.
 
 -}
-newChild : Int -> List Int -> Occupancy
-newChild runs restOfMaxes =
+newChild : Int -> Int -> List Int -> Occupancy
+newChild runs productSoFar restOfMaxes =
     case restOfMaxes of
         [] ->
             {- A leaf, created empty rather than already covered so that the step
@@ -307,56 +307,48 @@ newChild runs restOfMaxes =
             Partial 0 Dict.empty Set.empty
 
         childMax :: _ ->
-            if worthTracking runs (childMax + 1) then
+            if worthTracking runs productSoFar (childMax + 1) then
                 Partial childMax Dict.empty Set.empty
 
             else
                 Open
 
 
-{-| Whether a node this wide is worth keeping coverage records for.
+{-| Whether a node is worth keeping coverage records for, given how much of the
+tree already lies above it.
 
-Two conditions, and the second is the one that matters in practice.
+Three things have to hold, and the third is the one that was missing.
 
-_Coverable_: random draws repeat, so covering `n` distinct values takes about
+_Coverable._ Random draws repeat, so covering `n` distinct values takes about
 `n * ln n` draws (the coupon collector's problem), not `n`. There is no point
 tracking a node that cannot fill within the run count.
 
-_Worth it_: recording coverage means updating a persistent tree, which allocates
-along the path it copies. A fuzz run can be as cheap as a third of a microsecond,
-and a dozen node allocations cost more than that -- so tracking only pays where
-coverage completes almost immediately and the saving is then total.
+_Worth it._ Recording coverage updates a persistent tree, which allocates. The
+margin is what makes this a cost/benefit test rather than a feasibility one: a
+node that spends the entire budget covering itself has no budget left to save.
 
-That second condition is what the measurements insisted on. With only the
-coupon-collector test, `pair (intRange 0 30) (intRange 0 30)` and
-`intRange 0 100 |> filter ...` both qualify -- 961 and 101 values, both coverable
-inside 1000 runs -- and both came out at around a fifth of baseline throughput,
-while the domains that matter (`bool`, `order`, `oneOfValues`, and the small
-branch of a `oneOf`) are all under eight values and gain 45-90x.
-
-So the width limit is deliberately severe. It gives up mid-sized domains, which we
-would otherwise be able to cover completely, in exchange for never making anything
-slower.
+_Bounded in aggregate._ `productSoFar` is the number of distinct paths that can
+reach this node, so `productSoFar * size` bounds the nodes its level can hold. A
+per-node test alone says nothing about this, and the consequence was severe: with
+the width limit relaxed by the margin, `Fuzz.filter` retries append to the same
+run, so each retry is a deeper position, and a 101-wide node at depth three
+permits on the order of a million nodes. `filter/even` ran at 0.09x of baseline.
+Threading the product down costs nothing — no counter to return, no tuple to
+allocate — where the explicit node budget it replaces cost both.
 
 -}
-worthTracking : Int -> Int -> Bool
-worthTracking runs size =
+worthTracking : Int -> Int -> Int -> Bool
+worthTracking runs productSoFar size =
     {- `size < 1` is the sentinel a sparse draw records: its generator doesn't
        produce every value in range, so the set of children isn't knowable from the
        bound and the node must never be tracked or declared covered.
     -}
-    size >= 1 && size * bitsNeeded size * trackingMargin <= runs
+    (size >= 1)
+        && (productSoFar * size * bitsNeeded size * trackingMargin <= runs)
 
 
 trackingMargin : Int
 trackingMargin =
-    8
-
-
-{-| A node wider than this is not tracked. See [`worthTracking`](#worthTracking).
--}
-maxTrackedWidth : Int
-maxTrackedWidth =
     8
 
 
