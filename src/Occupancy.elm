@@ -345,7 +345,12 @@ worthTracking runs size =
        produce every value in range, so the set of children isn't knowable from the
        bound and the node must never be tracked or declared covered.
     -}
-    size >= 1 && size <= maxTrackedWidth && size * bitsNeeded size <= runs
+    size >= 1 && size * bitsNeeded size * trackingMargin <= runs
+
+
+trackingMargin : Int
+trackingMargin =
+    8
 
 
 {-| A node wider than this is not tracked. See [`worthTracking`](#worthTracking).
