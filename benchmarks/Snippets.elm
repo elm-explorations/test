@@ -1,7 +1,9 @@
 module Snippets exposing (..)
 
+import Dict
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
+import Set
 import Test exposing (Test, fuzz)
 
 
@@ -287,3 +289,53 @@ filterPass =
         (Fuzz.intRange 0 100 |> Fuzz.filter (\n -> modBy 4 n /= 0))
     <|
         \_ -> Expect.pass
+
+
+
+{- Varying how much work the *test body* does, holding the fuzzer fixed.
+
+   The overhead of coverage tracking is largely per-run and fixed, so a heavier
+   body should dilute it. Early termination works the other way: skipping a run
+   skips its body too, so the heavier the body the bigger the saving. These pairs
+   measure both effects, which is what a real test suite with substantial
+   assertions would exercise.
+-}
+
+
+{-| An assertion with real work in it: round-trip the list through a Dict and
+compare, which allocates and compares structures rather than checking a tag.
+-}
+heavyAssertion : List Int -> Expect.Expectation
+heavyAssertion xs =
+    xs
+        |> List.map (\x -> ( x, String.fromInt x ))
+        |> Dict.fromList
+        |> Dict.toList
+        |> List.map Tuple.first
+        |> Expect.equal (xs |> Set.fromList |> Set.toList)
+
+
+listIntHeavyPass : Test
+listIntHeavyPass =
+    fuzz "(passes) list of int, heavy assertion" (Fuzz.list Fuzz.int) heavyAssertion
+
+
+boolHeavyPass : Test
+boolHeavyPass =
+    fuzz "(passes) bool, heavy assertion" Fuzz.bool <|
+        \b ->
+            heavyAssertion (List.range 0 60 |> List.filter (\n -> modBy 2 n == 0 || b))
+
+
+pairBoolHeavyPass : Test
+pairBoolHeavyPass =
+    fuzz "(passes) pair of bools, heavy assertion" (Fuzz.pair Fuzz.bool Fuzz.bool) <|
+        \( a, b ) ->
+            heavyAssertion (List.range 0 60 |> List.filter (\n -> modBy 2 n == 0 || a || b))
+
+
+stringHeavyPass : Test
+stringHeavyPass =
+    fuzz "(passes) string, heavy assertion" Fuzz.string <|
+        \s ->
+            heavyAssertion (String.toList s |> List.map Char.toCode)

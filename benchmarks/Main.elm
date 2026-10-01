@@ -221,6 +221,15 @@ benchmarks =
     , ( "large/list-int", True, Snippets.listIntPass )
     , ( "large/record-map5", True, Snippets.map5Pass )
 
+    {- Same fuzzers, but with a test body that does real work. Coverage tracking's
+       overhead is mostly per-run and fixed, so a heavier body dilutes it; early
+       termination skips the body too, so a heavier body makes that win larger.
+    -}
+    , ( "heavy/bool", True, Snippets.boolHeavyPass )
+    , ( "heavy/pair-bool", True, Snippets.pairBoolHeavyPass )
+    , ( "heavy/string", True, Snippets.stringHeavyPass )
+    , ( "heavy/list-int", True, Snippets.listIntHeavyPass )
+
     -- Rejection path.
     , ( "filter/even", True, Snippets.filterPass )
 
