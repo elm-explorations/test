@@ -2,7 +2,7 @@
 
 import Basics exposing (EQ, LT, GT)
 import Maybe exposing (Just, Nothing)
-import Elm.Kernel.List exposing (Nil, Cons)
+import Elm.Kernel.List exposing (Nil, Cons, toArray)
 
 */
 
@@ -54,6 +54,10 @@ function _RandomRun_toList(rr) {
     out = __List_Cons(rr[i], out);
   }
   return out;
+}
+
+function _RandomRun_fromList(list) {
+  return new Uint32Array(__List_toArray(list));
 }
 
 var _RandomRun_get = F2(function _RandomRun_get_(index, rr) {
@@ -179,15 +183,15 @@ var _RandomRun_swapIfOutOfOrder = F2(function _RandomRun_swapIfOutOfOrder_(indic
 
   if (left > right) { // out of order
     return __Maybe_Just({
-      newRun: rr.with(indices.__$leftIndex, right).with(indices.__$rightIndex, left),
-      newLeftValue: right,
-      newRightValue: left,
+      __$newRun: rr.with(indices.__$leftIndex, right).with(indices.__$rightIndex, left),
+      __$newLeftValue: right,
+      __$newRightValue: left,
     });
   } else { // left <= right, they weren't out of order
     return __Maybe_Just({
-      newRun: rr,
-      newLeftValue: left,
-      newRightValue: right,
+      __$newRun: rr,
+      __$newLeftValue: left,
+      __$newRightValue: right,
     });
   }
 });

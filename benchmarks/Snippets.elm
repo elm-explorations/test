@@ -1,7 +1,9 @@
 module Snippets exposing (..)
 
+import Dict
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer)
+import Set
 import Test exposing (Test, fuzz)
 
 
@@ -208,3 +210,132 @@ sequence fuzzers =
         (Fuzz.map2 (::))
         (Fuzz.constant [])
         fuzzers
+
+
+
+{- Passing tests over small, exhaustible domains. These are the ones exhaustive
+   checking should be able to finish early: the whole input space fits in far
+   fewer values than a typical `runs` budget.
+-}
+
+
+unitPass : Test
+unitPass =
+    fuzz "(passes) unit" Fuzz.unit <|
+        \_ -> Expect.pass
+
+
+orderPass : Test
+orderPass =
+    fuzz "(passes) order" Fuzz.order <|
+        \_ -> Expect.pass
+
+
+intRange0To20Pass : Test
+intRange0To20Pass =
+    fuzz "(passes) intRange 0 20" (Fuzz.intRange 0 20) <|
+        \_ -> Expect.pass
+
+
+pairBoolPass : Test
+pairBoolPass =
+    fuzz "(passes) pair of bools" (Fuzz.pair Fuzz.bool Fuzz.bool) <|
+        \_ -> Expect.pass
+
+
+maybeBoolPass : Test
+maybeBoolPass =
+    fuzz "(passes) maybe bool" (Fuzz.maybe Fuzz.bool) <|
+        \_ -> Expect.pass
+
+
+oneOfValuesPass : Test
+oneOfValuesPass =
+    fuzz "(passes) oneOfValues" (Fuzz.oneOfValues [ 1, 2, 3, 4, 5 ]) <|
+        \_ -> Expect.pass
+
+
+
+{- Finite, but big enough that exhausting it is a real decision rather than a
+   freebie.
+-}
+
+
+intRange0To1000Pass : Test
+intRange0To1000Pass =
+    fuzz "(passes) intRange 0 1000" (Fuzz.intRange 0 1000) <|
+        \_ -> Expect.pass
+
+
+pairIntRange0To30Pass : Test
+pairIntRange0To30Pass =
+    fuzz "(passes) pair of intRange 0 30"
+        (Fuzz.pair (Fuzz.intRange 0 30) (Fuzz.intRange 0 30))
+    <|
+        \_ -> Expect.pass
+
+
+
+{- Exercises the rejection path, which deduplication and enumeration both have
+   to handle. Kept generous: `Fuzz.filter` gives up after 16 consecutive
+   rejections and fails the test, and over thousands of runs even a mildly
+   selective predicate hits that.
+-}
+
+
+filterPass : Test
+filterPass =
+    fuzz "(passes) filtered intRange"
+        (Fuzz.intRange 0 100 |> Fuzz.filter (\n -> modBy 4 n /= 0))
+    <|
+        \_ -> Expect.pass
+
+
+
+{- Varying how much work the *test body* does, holding the fuzzer fixed.
+
+   The overhead of coverage tracking is largely per-run and fixed, so a heavier
+   body should dilute it. Early termination works the other way: skipping a run
+   skips its body too, so the heavier the body the bigger the saving. These pairs
+   measure both effects, which is what a real test suite with substantial
+   assertions would exercise.
+-}
+
+
+{-| An assertion with real work in it: round-trip the list through a Dict and
+compare, which allocates and compares structures rather than checking a tag.
+-}
+heavyAssertion : List Int -> Expect.Expectation
+heavyAssertion xs =
+    xs
+        |> List.map (\x -> ( x, String.fromInt x ))
+        |> Dict.fromList
+        |> Dict.toList
+        |> List.map Tuple.first
+        |> Expect.equal (xs |> Set.fromList |> Set.toList)
+
+
+listIntHeavyPass : Test
+listIntHeavyPass =
+    fuzz "(passes) list of int, heavy assertion" (Fuzz.list Fuzz.int) heavyAssertion
+
+
+boolHeavyPass : Test
+boolHeavyPass =
+    fuzz "(passes) bool, heavy assertion" Fuzz.bool <|
+        \b ->
+            heavyAssertion (List.range 0 60 |> List.filter (\n -> modBy 2 n == 0 || b))
+
+
+pairBoolHeavyPass : Test
+pairBoolHeavyPass =
+    fuzz "(passes) pair of bools, heavy assertion" (Fuzz.pair Fuzz.bool Fuzz.bool) <|
+        \( a, b ) ->
+            heavyAssertion (List.range 0 60 |> List.filter (\n -> modBy 2 n == 0 || a || b))
+
+
+stringHeavyPass : Test
+stringHeavyPass =
+    fuzz "(passes) string, heavy assertion" Fuzz.string <|
+        \s ->
+            heavyAssertion (String.toList s |> List.map Char.toCode)

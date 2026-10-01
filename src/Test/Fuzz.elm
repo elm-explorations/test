@@ -6,20 +6,22 @@ import Fuzz.Internal exposing (Fuzzer)
 import GenResult exposing (GenResult(..))
 import MicroDictExtra as Dict
 import MicroListExtra as List
+import Occupancy exposing (Occupancy)
 import PRNG
 import Random
+import RandomRun exposing (RandomRun)
 import Simplify
 import Test.Distribution exposing (DistributionReport(..))
 import Test.Distribution.Internal exposing (Distribution(..), ExpectedDistribution(..))
-import Test.Expectation exposing (Expectation(..), FailData)
-import Test.Internal exposing (Test(..), blankDescriptionFailure)
+import Test.Expectation exposing (Expectation(..), FailData, FuzzTestExpectation(..))
+import Test.Internal exposing (Test, TestVariant(..), blankDescriptionFailure)
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
-{-| Reject always-failing tests because of bad names or invalid fuzzers.
+{-| Reject always-failing tests because of bad names.
 -}
-fuzzTest : String -> Distribution a -> Fuzzer a -> (a -> Expectation) -> Test
-fuzzTest untrimmedDesc distribution fuzzer getExpectation =
+fuzzTest : String -> Maybe Int -> Distribution a -> Fuzzer a -> (a -> Expectation) -> Test
+fuzzTest untrimmedDesc maybeRuns distribution fuzzer getExpectation =
     let
         desc =
             String.trim untrimmedDesc
@@ -28,15 +30,18 @@ fuzzTest untrimmedDesc distribution fuzzer getExpectation =
         blankDescriptionFailure
 
     else
-        ElmTestVariant__Labeled desc <| validatedFuzzTest desc fuzzer getExpectation distribution
+        validatedFuzzTest desc fuzzer (Test.Internal.wrapWithTryCatch getExpectation) maybeRuns distribution
+            |> ElmTestVariant__Labeled desc
+            |> Test.Internal.wrapTestVariant
 
 
 {-| Knowing that the fuzz test isn't obviously invalid, run the test and package up the results.
 -}
-validatedFuzzTest : String -> Fuzzer a -> (a -> Expectation) -> Distribution a -> Test
-validatedFuzzTest desc fuzzer getExpectation distribution =
+validatedFuzzTest : String -> Fuzzer a -> (a -> Expectation) -> Maybe Int -> Distribution a -> Test
+validatedFuzzTest desc fuzzer getExpectation maybeRuns distribution =
     ElmTestVariant__FuzzTest
-        (\seed runs ->
+        maybeRuns
+        (\seed runs fuzzerInts ->
             let
                 _ =
                     if DebugConfig.shouldLogFuzzTests then
@@ -44,34 +49,96 @@ validatedFuzzTest desc fuzzer getExpectation distribution =
 
                     else
                         desc
-            in
-            let
-                runResult : RunResult
-                runResult =
-                    fuzzLoop
-                        { fuzzer = fuzzer
-                        , testFn = getExpectation
-                        , initialSeed = seed
-                        , runsNeeded = runs
-                        , distribution = distribution
-                        }
-                        (initLoopState seed distribution)
-            in
-            case runResult.failure of
-                Nothing ->
-                    Pass runResult.distributionReport
 
-                Just failure ->
-                    Fail
-                        { given = failure.given
-                        , failData = failure.failData
-                        , distributionReport = runResult.distributionReport
+                { failure, distributionReport, runsElapsed } =
+                    case tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts of
+                        Just runResult ->
+                            runResult
+
+                        Nothing ->
+                            fuzzLoop
+                                { fuzzer = fuzzer
+                                , testFn = getExpectation
+                                , initialSeed = seed
+                                , runsNeeded = runs
+                                , distribution = distribution
+                                }
+                                (initLoopState seed distribution)
+            in
+            case failure of
+                Nothing ->
+                    FuzzTestPass distributionReport
+
+                Just failure_ ->
+                    FuzzTestFail
+                        { given = failure_.given
+                        , randomRun = failure_.randomRun
+                        , description = failure_.failData.description
+                        , reason = failure_.failData.reason
+                        , distributionReport = distributionReport
+                        , runsElapsed = runsElapsed
+                        , rerunFailure =
+                            \() ->
+                                case Fuzz.Internal.generate (PRNG.hardcoded failure_.randomRun) fuzzer of
+                                    Generated { value } ->
+                                        getExpectation value
+                                            |> (\_ -> ())
+
+                                    Rejected _ ->
+                                        ()
                         }
         )
+        |> Test.Internal.wrapTestVariant
+
+
+tryReproduceFailureFromFuzzerInts : Fuzzer a -> (a -> Expectation) -> List Int -> Maybe RunResult
+tryReproduceFailureFromFuzzerInts fuzzer getExpectation fuzzerInts =
+    if List.isEmpty fuzzerInts then
+        -- No fuzzer ints were passed – continue with a regular fuzz run.
+        Nothing
+
+    else
+        -- When a fuzz test fails, we expose the list of integers in the
+        -- `RandomRun` that caused the failure (after shrinking) to the
+        -- runner. The runner can then store those integers, and pass them
+        -- when running the tests again. This way, a previous failure can
+        -- be reproduced quickly (no need to go through many runs plus
+        -- shrinking again).
+        let
+            randomRun =
+                RandomRun.fromList fuzzerInts
+        in
+        case Fuzz.Internal.generate (PRNG.hardcoded randomRun) fuzzer of
+            Generated { value } ->
+                case getExpectation value of
+                    Pass _ ->
+                        -- The saved `RandomRun` now passes – continue with
+                        -- a regular fuzz run.
+                        Nothing
+
+                    Fail { failData } ->
+                        Just
+                            { failure =
+                                Just
+                                    { given = Just <| Test.Internal.toString value
+                                    , randomRun = randomRun
+                                    , failData = failData
+                                    }
+
+                            -- In this mode we can't do a distribution report, because we ran just once.
+                            , distributionReport = NoDistribution ()
+                            , runsElapsed = 1
+                            }
+
+            Rejected _ ->
+                -- If the code of the test has changed, a saved `RandomRun` might
+                -- not be usable anymore. If so, just ignore it and start a regular run.
+                Nothing
 
 
 type alias Failure =
     { given : Maybe String
+    , randomRun : RandomRun
     , failData : FailData
     }
 
@@ -91,6 +158,11 @@ type alias LoopState =
     , nextPowerOfTwo : Int
     , failure : Maybe Failure
     , currentSeed : Random.Seed
+
+    {- Which parts of the input space have been covered. Carried across runs:
+       that's what makes a covered subtree stay declined.
+    -}
+    , occupancy : Occupancy
     }
 
 
@@ -113,6 +185,7 @@ initLoopState initialSeed distribution =
     , nextPowerOfTwo = 1
     , failure = Nothing
     , currentSeed = initialSeed
+    , occupancy = Occupancy.empty
     }
 
 
@@ -160,10 +233,18 @@ fuzzLoop c state =
                             , runsElapsed = state.runsElapsed
                             }
             , failure = Just failure
+            , runsElapsed = state.runsElapsed
             }
 
         Nothing ->
-            if state.runsElapsed < c.runsNeeded then
+            if Occupancy.isExhausted state.occupancy then
+                -- Proved for every input the fuzzer can produce.
+                { distributionReport = Fuzz.Internal.noDistribution
+                , failure = Nothing
+                , runsElapsed = state.runsElapsed
+                }
+
+            else if state.runsElapsed < c.runsNeeded then
                 let
                     newState : LoopState
                     newState =
@@ -176,6 +257,7 @@ fuzzLoop c state =
                     NoDistributionNeeded ->
                         { distributionReport = Fuzz.Internal.noDistribution
                         , failure = Nothing
+                        , runsElapsed = state.runsElapsed
                         }
 
                     ReportDistribution _ ->
@@ -191,6 +273,7 @@ fuzzLoop c state =
                                         , runsElapsed = state.runsElapsed
                                         }
                                 , failure = Nothing
+                                , runsElapsed = state.runsElapsed
                                 }
 
                     ExpectDistribution _ ->
@@ -219,6 +302,7 @@ fuzzLoop c state =
                                                     , runsElapsed = state.runsElapsed
                                                     }
                                             , failure = Nothing
+                                            , runsElapsed = state.runsElapsed
                                             }
 
                                 Just failedLabel ->
@@ -238,6 +322,7 @@ fuzzLoop c state =
                                         , nextPowerOfTwo = newState.nextPowerOfTwo + 1
                                         , failure = newState.failure
                                         , currentSeed = newState.currentSeed
+                                        , occupancy = newState.occupancy
                                         }
 
                                 Just failedLabel ->
@@ -408,6 +493,7 @@ distributionFailRunResult normalizedDistributionCount failedLabel =
                     , expectedDistribution = Test.Distribution.Internal.expectedDistributionToString failedLabel.expectedDistribution
                     }
             , failure = Just <| distributionInsufficientFailure failedLabel
+            , runsElapsed = failedLabel.runsElapsed
             }
 
 
@@ -417,17 +503,20 @@ distributionBugRunResult =
     , failure =
         Just
             { given = Nothing
+            , randomRun = RandomRun.empty
             , failData =
                 { description = "elm-test distribution collection bug"
                 , reason = Invalid DistributionBug
                 }
             }
+    , runsElapsed = 0
     }
 
 
 distributionInsufficientFailure : DistributionFailure -> Failure
 distributionInsufficientFailure failure =
     { given = Nothing
+    , randomRun = RandomRun.empty
     , failData =
         { description =
             """Distribution of label "{LABEL}" was insufficient:
@@ -448,7 +537,12 @@ distributionInsufficientFailure failure =
 -}
 runNTimes : Int -> LoopConstants a -> LoopState -> LoopState
 runNTimes times c state =
-    if times <= 0 || state.failure /= Nothing then
+    if times <= 0 || state.failure /= Nothing || Occupancy.isExhausted state.occupancy then
+        {- A covered root means every input this fuzzer can produce has been
+           tested, so there is nothing left to do however many runs were asked
+           for. Checking here and not only in `fuzzLoop` is what makes the saving
+           real: otherwise the batch runs to completion first.
+        -}
         state
 
     else
@@ -464,7 +558,7 @@ runOnce c state =
         genResult : GenResult a
         genResult =
             Fuzz.Internal.generate
-                (PRNG.random state.currentSeed)
+                (PRNG.tracked state.occupancy state.currentSeed)
                 c.fuzzer
 
         maybeNextSeed : Maybe Random.Seed
@@ -482,11 +576,19 @@ runOnce c state =
                 Nothing ->
                     stepSeed state.currentSeed
 
+        newOccupancy : Occupancy
+        newOccupancy =
+            Occupancy.markCovered c.runsNeeded
+                (PRNG.getRun (GenResult.getPrng genResult))
+                (PRNG.getMaxes (GenResult.getPrng genResult))
+                state.occupancy
+
         ( maybeFailure, newDistributionCounter ) =
             case genResult of
                 Rejected { reason } ->
                     ( Just
                         { given = Nothing
+                        , randomRun = RandomRun.empty
                         , failData =
                             { description = reason
                             , reason = Invalid InvalidFuzzer
@@ -542,6 +644,7 @@ runOnce c state =
     , currentSeed = nextSeed
     , runsElapsed = state.runsElapsed + 1
     , nextPowerOfTwo = state.nextPowerOfTwo
+    , occupancy = newOccupancy
     }
 
 
@@ -584,6 +687,16 @@ formatExpectedDistribution expected =
 type alias RunResult =
     { distributionReport : DistributionReport
     , failure : Maybe Failure
+
+    {- How many values the fuzzer generated. Note this can be *more* than the
+       configured `runs`: an `ExpectDistribution` test keeps going until the
+       statistical check settles.
+
+       This is reported to runners for failures, where it says how much work it
+       took to uncover the defect. `DistributionReport` carries the same number,
+       but only for tests that asked for a distribution report.
+    -}
+    , runsElapsed : Int
     }
 
 
@@ -599,9 +712,10 @@ stepSeed seed =
 findSimplestFailure : Simplify.State a -> Failure
 findSimplestFailure state =
     let
-        ( simplestValue, _, failData ) =
+        ( simplestValue, randomRun, failData ) =
             Simplify.simplify state
     in
     { given = Just <| Test.Internal.toString simplestValue
+    , randomRun = randomRun
     , failData = failData
     }

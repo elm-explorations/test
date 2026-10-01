@@ -90,6 +90,7 @@ import GenResult exposing (GenResult(..))
 import MicroArrayExtra
 import MicroDictExtra as Dict
 import MicroListExtra as List
+import Occupancy
 import PRNG exposing (PRNG(..))
 import Random
 import RandomRun
@@ -1339,7 +1340,11 @@ intFrequency fuzzers =
                     weightSum =
                         List.foldl (\( w, _ ) acc -> w + acc) n rest
                 in
-                rollDice (weightSum - 1) (intFrequencyGenerator n (List.map Tuple.first rest))
+                {- Sparse: `maxValue` here is the sum of the weights, but the
+                   generator only ever produces valid indices, so most values in
+                   the range are never drawn.
+                -}
+                rollDice Sparse (weightSum - 1) (intFrequencyGenerator n (List.map Tuple.first rest))
                     |> andThen
                         (\i ->
                             case List.getAt i fuzzers of
@@ -1663,7 +1668,7 @@ Max supported value is 2^32 - 1.
 -}
 uniformInt : Int -> Fuzzer Int
 uniformInt n =
-    rollDice n (Random.int 0 n)
+    rollDice Dense n (Random.int 0 n)
 
 
 {-| A fuzzer for boolean values, generating True with the given probability
@@ -1683,9 +1688,39 @@ weightedBool p =
         forcedChoice 1
 
      else
-        rollDice 1 (weightedBoolGenerator p)
+        rollDice Dense 1 (weightedBoolGenerator p)
     )
         |> map intToBool
+
+
+{-| Whether a draw can produce every value in `0..maxValue`.
+
+`maxValue` is an upper bound on what the generator might return, not a description
+of its support: `intFrequency` passes the sum of its weights while only ever
+producing valid indices. Anything reasoning about the _set_ of values a draw can
+take -- `Occupancy`, deciding a node is fully covered -- has to know the
+difference, because handing a fuzzer a number its generator would never have
+produced is interpreted as garbage. `intFrequency` reports it as
+`elm-test bug: intFrequency index out of range`.
+
+-}
+type Density
+    = Dense
+    | Sparse
+
+
+{-| The bound recorded for `Occupancy`. A sparse draw reports no usable bound, so
+its node is never tracked and never claimed to be covered.
+-}
+boundFor : Density -> Int -> Int
+boundFor density maxValue =
+    case density of
+        Dense ->
+            maxValue
+
+        Sparse ->
+            -- No node can be this wide, so Occupancy treats it as untrackable.
+            -1
 
 
 {-| This is the only place that accepts Random.Generators.
@@ -1701,8 +1736,8 @@ Based on the PRNG value, this function:
   - or picks a number from the hardcoded list. (PRNG.Hardcoded)
 
 -}
-rollDice : Int -> Random.Generator Int -> Fuzzer Int
-rollDice maxValue diceGenerator =
+rollDice : Density -> Int -> Random.Generator Int -> Fuzzer Int
+rollDice density maxValue diceGenerator =
     Fuzzer <|
         \prng ->
             case prng of
@@ -1759,6 +1794,155 @@ rollDice maxValue diceGenerator =
                                     , prng = Hardcoded wholeRun restOfChoices
                                     }
 
+                Tracked hereOnwards run reversedMaxes seed ->
+                    let
+                        covered : Set Int
+                        covered =
+                            Occupancy.exhaustedChildren hereOnwards
+
+                        ( diceRoll, newSeed ) =
+                            {- The generator carries the fuzzer's intended bias,
+                               so keep drawing from it and reject values whose
+                               subtree is already covered. Rejection is what makes
+                               the remaining distribution the correct conditional
+                               one rather than a uniform pick over what's left.
+
+                               The common case is that nothing is covered, and
+                               then this is exactly the draw Random would make.
+                            -}
+                            drawAvoiding covered maxValue diceGenerator seed
+                    in
+                    if diceRoll < 0 || diceRoll > maxValue then
+                        Rejected
+                            { reason = "elm-test bug: generated a choice outside 0..maxChoice"
+                            , prng = prng
+                            }
+
+                    else
+                        let
+                            next : Occupancy.Occupancy
+                            next =
+                                Occupancy.childOf diceRoll maxValue hereOnwards
+                        in
+                        Generated
+                            { value = diceRoll
+                            , prng =
+                                if Occupancy.isOpen next then
+                                    {- Nothing below here is tracked, so there is
+                                       nothing left for a tracked draw to consult.
+                                       Dropping back to a plain random draw skips
+                                       the occupancy lookup, the covered-set check
+                                       and the bound bookkeeping for the rest of
+                                       the run -- which for a fuzzer with a large
+                                       domain is the whole run.
+
+                                       The run itself keeps accumulating, so
+                                       simplification is unaffected. Bounds stop
+                                       being recorded, which is exactly right:
+                                       `markCovered` walks until it reaches the
+                                       Open node and stops there anyway.
+                                    -}
+                                    Random (RandomRun.append diceRoll run) newSeed
+
+                                else
+                                    Tracked
+                                        next
+                                        (RandomRun.append diceRoll run)
+                                        (boundFor density maxValue :: reversedMaxes)
+                                        newSeed
+                            }
+
+
+{-| Draw from the generator, avoiding values whose subtree is already covered.
+
+Rejection sampling, and it has to be: `maxValue` is an upper bound on what the
+generator _could_ return, not its support. `intFrequency` passes the sum of its
+weights while only ever producing valid indices, so anything that picks a value
+from `0..maxValue` directly can hand the fuzzer a number it cannot interpret --
+which shows up as `elm-test bug: intFrequency index out of range`. Only values the
+generator itself produced are safe to return.
+
+The attempt limit matters because rejection gets expensive exactly when it's doing
+the most good: a node that is 90% covered rejects nine draws in ten. On running out
+of attempts we accept the covered value and re-test an input we've already seen.
+That costs a redundant run and can never be wrong, which is the right way round --
+substituting a different value instead is what broke.
+
+While nothing is covered, this is just the generator's own draw: identical values
+for a given seed, no conditioning, nothing to pay. For a fuzzer with a large domain
+that is every draw.
+
+-}
+drawAvoiding : Set Int -> Int -> Random.Generator Int -> Random.Seed -> ( Int, Random.Seed )
+drawAvoiding covered maxValue generator seed =
+    if Set.isEmpty covered then
+        Random.step generator seed
+
+    else
+        drawAvoidingHelp covered maxValue generator seed maxRedrawAttempts
+
+
+{-| Generous, because it can afford to be: only narrow nodes are tracked, so with
+`c` of `w` values covered a draw succeeds with probability `(w - c) / w` and the
+expected number of attempts stays in single digits.
+
+It has to be generous. Cutting this to 4 made the last uncovered value of a small
+domain unreachable in practice, so coverage never completed and early termination
+never fired -- `maybe bool` went from 49x baseline to 0.44x. What bounds the cost
+here is the width limit on tracked nodes, not this number.
+
+-}
+maxRedrawAttempts : Int
+maxRedrawAttempts =
+    32
+
+
+drawAvoidingHelp : Set Int -> Int -> Random.Generator Int -> Random.Seed -> Int -> ( Int, Random.Seed )
+drawAvoidingHelp covered maxValue generator seed attemptsLeft =
+    let
+        ( value, newSeed ) =
+            Random.step generator seed
+    in
+    if not (Set.member value covered) then
+        ( value, newSeed )
+
+    else if attemptsLeft <= 0 then
+        {- Out of attempts. Take the next value that isn't covered, wrapping.
+           Safe only because a node is tracked only when its draw is `Dense`, so
+           every value in range is one the generator could have produced -- doing
+           this for a sparse draw hands the fuzzer a number it cannot interpret.
+
+           Needed, not merely nice: without it the last uncovered value of a small
+           domain is rarely reached by chance, coverage never completes and the
+           early exit never fires. Accepting the duplicate instead measured
+           `maybe bool` at 0.16x baseline where substituting gives 49x.
+        -}
+        ( nextAvailable covered maxValue value (maxValue + 1), newSeed )
+
+    else
+        drawAvoidingHelp covered maxValue generator newSeed (attemptsLeft - 1)
+
+
+nextAvailable : Set Int -> Int -> Int -> Int -> Int
+nextAvailable covered maxValue candidate stepsLeft =
+    if stepsLeft <= 0 then
+        -- Every value covered; the caller is about to collapse this node anyway.
+        candidate
+
+    else if Set.member candidate covered then
+        nextAvailable covered
+            maxValue
+            (if candidate >= maxValue then
+                0
+
+             else
+                candidate + 1
+            )
+            (stepsLeft - 1)
+
+    else
+        candidate
+
 
 forcedChoice : Int -> Fuzzer Int
 forcedChoice n =
@@ -1799,6 +1983,18 @@ forcedChoice n =
                                         { value = n
                                         , prng = Hardcoded wholeRun restOfChoices
                                         }
+
+                    Tracked hereOnwards run reversedMaxes seed ->
+                        -- A forced choice has no alternatives, so nothing to avoid.
+                        Generated
+                            { value = n
+                            , prng =
+                                Tracked
+                                    (Occupancy.childOf n n hereOnwards)
+                                    (RandomRun.append n run)
+                                    (n :: reversedMaxes)
+                                    seed
+                            }
 
 
 {-| We could golf this to ((/=) 0) but this is perhaps more readable.
