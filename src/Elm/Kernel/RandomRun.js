@@ -2,7 +2,7 @@
 
 import Basics exposing (EQ, LT, GT)
 import Maybe exposing (Just, Nothing)
-import Elm.Kernel.List exposing (Nil, Cons)
+import Elm.Kernel.List exposing (Nil, Cons, toArray)
 
 */
 
@@ -54,6 +54,10 @@ function _RandomRun_toList(rr) {
     out = __List_Cons(rr[i], out);
   }
   return out;
+}
+
+function _RandomRun_fromList(list) {
+  return new Uint32Array(__List_toArray(list));
 }
 
 var _RandomRun_get = F2(function _RandomRun_get_(index, rr) {

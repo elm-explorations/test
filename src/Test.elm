@@ -32,8 +32,8 @@ import Test.Internal as Internal
 import Test.Runner.Failure exposing (InvalidReason(..), Reason(..))
 
 
-{-| A test which has yet to be evaluated. When evaluated, it produces one
-or more [`Expectation`](Expect#Expectation)s.
+{-| A test which has yet to be evaluated. When evaluated, it produces an
+[`Expectation`](Expect#Expectation).
 
 See [`test`](#test) and [`fuzz`](#fuzz) for some ways to create a `Test`.
 
@@ -69,6 +69,7 @@ concat tests =
 
             Ok _ ->
                 Internal.ElmTestVariant__Batch tests
+                    |> Internal.wrapTestVariant
 
 
 {-| Apply a description to a list of tests.
@@ -114,13 +115,18 @@ describe untrimmedDesc tests =
             }
 
     else
+        let
+            labeled test_ =
+                Internal.ElmTestVariant__Labeled desc test_
+                    |> Internal.wrapTestVariant
+        in
         case Internal.duplicatedName tests of
             Err dups ->
                 let
                     dupDescription duped =
                         "Contains multiple tests named '" ++ duped ++ "'. Let's rename them so we know which is which."
                 in
-                Internal.ElmTestVariant__Labeled desc <|
+                labeled <|
                     Internal.failNow
                         { description = String.join "\n" (List.map dupDescription <| Set.toList dups)
                         , reason = Invalid DuplicatedName
@@ -128,14 +134,14 @@ describe untrimmedDesc tests =
 
             Ok childrenNames ->
                 if Set.member desc childrenNames then
-                    Internal.ElmTestVariant__Labeled desc <|
+                    labeled <|
                         Internal.failNow
                             { description = "The test '" ++ desc ++ "' contains a child test of the same name. Let's rename them so we know which is which."
                             , reason = Invalid DuplicatedName
                             }
 
                 else
-                    Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__Batch tests)
+                    labeled (Internal.wrapTestVariant (Internal.ElmTestVariant__Batch tests))
 
 
 {-| Create a group of tests from a list of input-output cases (also called "parameterized tests").
@@ -202,7 +208,8 @@ test untrimmedDesc thunk =
         Internal.blankDescriptionFailure
 
     else
-        Internal.ElmTestVariant__Labeled desc (Internal.ElmTestVariant__UnitTest (\() -> thunk ()))
+        Internal.ElmTestVariant__Labeled desc (Internal.wrapTestVariant (Internal.ElmTestVariant__UnitTest (Internal.wrapWithTryCatch thunk)))
+            |> Internal.wrapTestVariant
 
 
 {-| Returns a [`Test`](#Test) that is "TODO" (not yet implemented). These tests
@@ -270,8 +277,9 @@ an `only` inside a `skip`, it will also get skipped.
 
 -}
 only : Test -> Test
-only =
-    Internal.ElmTestVariant__Only
+only test_ =
+    Internal.ElmTestVariant__Only test_
+        |> Internal.wrapTestVariant
 
 
 {-| Returns a [`Test`](#Test) that gets skipped.
@@ -306,8 +314,9 @@ an `only` inside a `skip`, it will also get skipped.
 
 -}
 skip : Test -> Test
-skip =
-    Internal.ElmTestVariant__Skipped
+skip test_ =
+    Internal.ElmTestVariant__Skipped test_
+        |> Internal.wrapTestVariant
 
 
 {-| Options [`fuzzWith`](#fuzzWith) accepts.
@@ -392,35 +401,7 @@ fuzzWith desc options fuzzer getTest =
             }
 
     else
-        fuzzWithHelp options (Test.Fuzz.fuzzTest desc options.distribution fuzzer getTest)
-
-
-fuzzWithHelp : FuzzOptions a -> Test -> Test
-fuzzWithHelp options aTest =
-    case aTest of
-        Internal.ElmTestVariant__UnitTest _ ->
-            aTest
-
-        Internal.ElmTestVariant__FuzzTest run ->
-            Internal.ElmTestVariant__FuzzTest (\seed _ -> run seed options.runs)
-
-        Internal.ElmTestVariant__Labeled label subTest ->
-            Internal.ElmTestVariant__Labeled label (fuzzWithHelp options subTest)
-
-        Internal.ElmTestVariant__Skipped subTest ->
-            -- It's important to treat skipped tests exactly the same as normal,
-            -- until after seed distribution has completed.
-            fuzzWithHelp options subTest
-                |> Internal.ElmTestVariant__Only
-
-        Internal.ElmTestVariant__Only subTest ->
-            fuzzWithHelp options subTest
-                |> Internal.ElmTestVariant__Only
-
-        Internal.ElmTestVariant__Batch tests ->
-            tests
-                |> List.map (fuzzWithHelp options)
-                |> Internal.ElmTestVariant__Batch
+        Test.Fuzz.fuzzTest desc (Just options.runs) options.distribution fuzzer getTest
 
 
 {-| Specify hardcoded example inputs for your fuzz test. They will be run
@@ -499,7 +480,7 @@ fuzz :
     -> (a -> Expectation)
     -> Test
 fuzz desc fuzzer getExpectation =
-    Test.Fuzz.fuzzTest desc Test.Distribution.Internal.NoDistributionNeeded fuzzer getExpectation
+    Test.Fuzz.fuzzTest desc Nothing Test.Distribution.Internal.NoDistributionNeeded fuzzer getExpectation
 
 
 {-| Run a [fuzz test](#fuzz) using two random inputs.

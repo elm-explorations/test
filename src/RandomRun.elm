@@ -6,6 +6,7 @@ module RandomRun exposing
     , deleteChunk
     , empty
     , equal
+    , fromList
     , get
     , isEmpty
     , length
@@ -119,6 +120,11 @@ compare =
 toList : RandomRun -> List Int
 toList =
     Elm.Kernel.RandomRun.toList
+
+
+fromList : List Int -> RandomRun
+fromList =
+    Elm.Kernel.RandomRun.fromList
 
 
 update : Int -> (Int -> Int) -> RandomRun -> RandomRun
