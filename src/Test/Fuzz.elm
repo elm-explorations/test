@@ -59,7 +59,7 @@ validatedFuzzTest desc fuzzer getExpectation maybeRuns distribution =
                                 { fuzzer = fuzzer
                                 , testFn = getExpectation
                                 , initialSeed = seed
-                                , runsNeeded = runs
+                                , runsNeeded = maybeRuns |> Maybe.withDefault runs
                                 , distribution = distribution
                                 }
                                 (initLoopState seed distribution)
