@@ -13,7 +13,7 @@ cd "${0%/*}" # Change current working directory to this one.
 
 PACKAGE_NAME=$(grep '"name"' ../elm.json | cut -d \" -f4)
 PACKAGE_VERSION=$(grep '"version"' ../elm.json | cut -d \" -f4)
-ELM_HOME="elm_home"
+ELM_HOME="elm_home/elm-stuff" # elm-stuff so that elm-review, elm-format and IDE:s ignore it.
 PACKAGE_PATH="${ELM_HOME}/0.19.2/packages/${PACKAGE_NAME}/${PACKAGE_VERSION}"
 
 if [ -z ${NOCLEANUP+x} ]; then
